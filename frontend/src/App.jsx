@@ -9,6 +9,8 @@ import Login from './Login';
 import './index.css';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiZHVtbXkiLCJhIjoiY2x4eXh5eXh5eXh5eXh5eXh5eXh5eXh5eSJ9.dummy';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 const INITIAL_VIEW_STATE = {
   longitude: -74.0060,
   latitude: 40.7128,
@@ -42,7 +44,7 @@ function App() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/permits');
+      const response = await axios.get(`${BACKEND_URL}/api/permits`);
       const realPermits = response.data;
       
       const mappedData = realPermits.map(permit => ({
