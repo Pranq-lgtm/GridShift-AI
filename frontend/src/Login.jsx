@@ -9,6 +9,25 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterMsg, setNewsletterMsg] = useState("");
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    try {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      const res = await fetch(`${BACKEND_URL}/api/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail })
+      });
+      const data = await res.json();
+      setNewsletterMsg(data.message || "Subscribed!");
+      setNewsletterEmail("");
+    } catch (err) {
+      setNewsletterMsg("Failed to subscribe.");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,6 +84,24 @@ function Login() {
         <p style={{ marginTop: '20px', fontSize: '0.85rem', cursor: 'pointer', color: 'var(--color-accent-green)' }} onClick={() => setIsSignUp(!isSignUp)}>
           {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
         </p>
+
+        <div style={{ marginTop: '30px', borderTop: '1px solid var(--color-glass-border)', paddingTop: '20px' }}>
+          <h4 style={{ fontSize: '0.9rem', marginBottom: '10px' }}>Subscribe to GridShift Updates</h4>
+          <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: '5px' }}>
+            <input 
+              type="email" 
+              placeholder="Email for Newsletter" 
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              required
+              style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid var(--color-glass-border)', background: 'rgba(255,255,255,0.5)', outline: 'none', fontSize: '0.8rem' }}
+            />
+            <button className="btn btn-primary" type="submit" style={{ padding: '8px 12px', fontSize: '0.8rem' }}>
+              Subscribe
+            </button>
+          </form>
+          {newsletterMsg && <p style={{ fontSize: '0.75rem', marginTop: '10px', color: 'var(--color-accent-green)' }}>{newsletterMsg}</p>}
+        </div>
       </div>
     </div>
   );
