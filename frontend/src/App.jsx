@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import DeckGL from '@deck.gl/react';
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
-import { Map } from 'react-map-gl';
+import { Map } from 'react-map-gl/mapbox';
+import axios from 'axios';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from './firebase';
 import Login from './Login';
