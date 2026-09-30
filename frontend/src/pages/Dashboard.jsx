@@ -9,9 +9,9 @@ const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiZHV
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 const INITIAL_VIEW_STATE = {
-  longitude: -74.0060,
-  latitude: 40.7128,
-  zoom: 11,
+  longitude: 73.9575,
+  latitude: 15.2736,
+  zoom: 12,
   pitch: 45,
   bearing: 0
 };

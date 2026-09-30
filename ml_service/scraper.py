@@ -12,11 +12,11 @@ def scrape_municipal_permits():
     print("Parsing HTML DOM for permit records...")
     
     wards = [
-        {"name": "Ward 1", "lat": 40.7128, "lng": -74.0060},
-        {"name": "Ward 2", "lat": 40.7138, "lng": -74.0070},
-        {"name": "Commercial Block A", "lat": 40.7148, "lng": -74.0080},
-        {"name": "Downtown Hub", "lat": 40.7200, "lng": -73.9900},
-        {"name": "Uptown Sector", "lat": 40.7800, "lng": -73.9600}
+        {"name": "Fatorda", "lat": 15.2830, "lng": 73.9550},
+        {"name": "Borda", "lat": 15.2880, "lng": 73.9650},
+        {"name": "Margao Market", "lat": 15.2750, "lng": 73.9580},
+        {"name": "Navelim", "lat": 15.2530, "lng": 73.9540},
+        {"name": "Colva Beach Road", "lat": 15.2760, "lng": 73.9110}
     ]
     types = ["Construction", "Public Gathering", "Food Festival", "Street Fair"]
     
