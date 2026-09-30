@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import DeckGL from '@deck.gl/react';
 import { HexagonLayer } from '@deck.gl/aggregation-layers';
 import { Map } from 'react-map-gl';
-import axios from 'axios';
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from './firebase';
+import Login from './Login';
 import './index.css';
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiZHVtbXkiLCJhIjoiY2x4eXh5eXh5eXh5eXh5eXh5eXh5eXh5eSJ9.dummy';
@@ -25,16 +27,23 @@ const colorRange = [
 ];
 
 function App() {
+  const [user, setUser] = useState(null);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [predictions, setPredictions] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Generate synthetic data
   const generateData = async () => {
     setLoading(true);
     try {
       // In a real app, this would call our Node.js backend
-      // For demo purposes, we'll generate synthetic points around NYC
       const newData = Array.from({ length: 200 }).map(() => ({
         position: [
           -74.0060 + (Math.random() - 0.5) * 0.1,
@@ -59,8 +68,14 @@ function App() {
   };
 
   useEffect(() => {
-    generateData();
-  }, []);
+    if (user) {
+      generateData();
+    }
+  }, [user]);
+
+  if (!user) {
+    return <Login />;
+  }
 
   const layers = [
     new HexagonLayer({
@@ -103,8 +118,12 @@ function App() {
       
       <div className="sidebar">
         <div className="glass-panel">
-          <h1>GridShift-AI</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h1>GridShift-AI</h1>
+            <button className="btn" onClick={() => signOut(auth)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Logout</button>
+          </div>
           <p>Micro-Surge Waste Forecasting</p>
+          <p style={{ fontSize: '0.8rem', marginTop: '5px' }}>Logged in as: {user.email}</p>
           
           <div style={{ marginTop: '20px' }}>
             <button className="btn btn-primary" onClick={generateData} disabled={loading} style={{ width: '100%' }}>
