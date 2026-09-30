@@ -39,29 +39,35 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Generate synthetic data
-  const generateData = async () => {
+  // Fetch real data from Backend
+  const fetchData = async () => {
     setLoading(true);
     try {
-      // In a real app, this would call our Node.js backend
-      const newData = Array.from({ length: 200 }).map(() => ({
-        position: [
-          -74.0060 + (Math.random() - 0.5) * 0.1,
-          40.7128 + (Math.random() - 0.5) * 0.1
-        ],
-        weight: Math.random() * 10
+      // Connect to the Node.js API
+      const response = await axios.get('http://localhost:5000/api/permits');
+      const realPermits = response.data;
+      
+      // Transform data for Deck.gl Heatmap
+      const mappedData = realPermits.map(permit => ({
+        position: [permit.coordinates.lng, permit.coordinates.lat],
+        weight: permit.forecast.predicted_surge_tonnage // Hexagon height correlates to waste tonnage
       }));
+      setData(mappedData);
       
-      setData(newData);
+      // Extract active alerts for the UI sidebar (filter for high/critical)
+      const alerts = realPermits
+        .filter(p => p.forecast.alert_triggered || p.forecast.pressure_level === 'High' || p.forecast.pressure_level === 'Critical')
+        .map(p => ({
+          location: p.location,
+          surge: p.forecast.predicted_surge_tonnage.toFixed(1),
+          level: p.forecast.pressure_level
+        }))
+        .slice(0, 5); // Limit to top 5 alerts
       
-      // Simulate ML prediction
-      setPredictions([
-        { location: 'Ward 1', surge: 24.5, level: 'Critical' },
-        { location: 'Ward 4', surge: 18.2, level: 'High' },
-        { location: 'Ward 2', surge: 12.1, level: 'Normal' }
-      ]);
+      setPredictions(alerts);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch from API:", err);
+      alert("Failed to connect to backend database.");
     } finally {
       setLoading(false);
     }
@@ -69,7 +75,7 @@ function App() {
 
   useEffect(() => {
     if (user) {
-      generateData();
+      fetchData();
     }
   }, [user]);
 
@@ -126,8 +132,8 @@ function App() {
           <p style={{ fontSize: '0.8rem', marginTop: '5px' }}>Logged in as: {user.email}</p>
           
           <div style={{ marginTop: '20px' }}>
-            <button className="btn btn-primary" onClick={generateData} disabled={loading} style={{ width: '100%' }}>
-              {loading ? 'Analyzing...' : 'Simulate 48-Hour Forecast'}
+            <button className="btn btn-primary" onClick={fetchData} disabled={loading} style={{ width: '100%' }}>
+              {loading ? 'Fetching...' : 'Refresh Forecasts'}
             </button>
           </div>
         </div>

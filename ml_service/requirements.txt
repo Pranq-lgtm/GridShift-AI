@@ -4,3 +4,5 @@ xgboost
 pandas
 scikit-learn
 pydantic
+requests
+beautifulsoup4

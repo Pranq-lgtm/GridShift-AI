@@ -19,7 +19,7 @@ mongoose.connect(process.env.MONGO_URI, {
     console.error('MongoDB connection error:', err);
 });
 
-// Basic Permit Schema (Simulated)
+// Permit Schema
 const PermitSchema = new mongoose.Schema({
     location: { type: String, required: true },
     coordinates: {
@@ -28,7 +28,12 @@ const PermitSchema = new mongoose.Schema({
     },
     type: { type: String, required: true }, // e.g. "Construction", "Public Gathering"
     scale: { type: Number, required: true }, // e.g. 1-10
-    date: { type: Date, required: true }
+    date: { type: Date, required: true },
+    forecast: {
+        predicted_surge_tonnage: { type: Number },
+        pressure_level: { type: String },
+        alert_triggered: { type: Boolean }
+    }
 });
 
 const Permit = mongoose.model('Permit', PermitSchema);
@@ -47,29 +52,58 @@ app.get('/api/permits', async (req, res) => {
     }
 });
 
-// Endpoint to trigger synthetic generation (for demo)
-app.post('/api/generate-synthetic-data', async (req, res) => {
+// Endpoint to ingest bulk scraped permits and ping ML service
+app.post('/api/permits/bulk', async (req, res) => {
     try {
-        const locations = [
-            { name: "Ward 1", lat: 40.7128, lng: -74.0060 },
-            { name: "Ward 2", lat: 40.7138, lng: -74.0070 },
-            { name: "Commercial Block A", lat: 40.7148, lng: -74.0080 }
-        ];
-        
-        const types = ["Construction", "Public Gathering", "Food Festival"];
-        
-        const newPermit = new Permit({
-            location: locations[Math.floor(Math.random() * locations.length)].name,
-            coordinates: locations[Math.floor(Math.random() * locations.length)],
-            type: types[Math.floor(Math.random() * types.length)],
-            scale: Math.floor(Math.random() * 10) + 1,
-            date: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000) // Within next 7 days
-        });
+        const permits = req.body.permits; // Array of permit objects from scraper
+        if (!permits || !Array.isArray(permits)) {
+            return res.status(400).json({ error: 'Expected an array of permits' });
+        }
 
-        await newPermit.save();
-        res.json({ message: 'Synthetic permit generated successfully', data: newPermit });
+        const ML_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+        const savedPermits = [];
+
+        for (let p of permits) {
+            // Ping ML Service for prediction
+            let forecast = null;
+            try {
+                const mlResponse = await fetch(`${ML_URL}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        location: p.location,
+                        event_type: p.type,
+                        scale: p.scale,
+                        date: new Date(p.date).toISOString()
+                    })
+                });
+                if (mlResponse.ok) {
+                    forecast = await mlResponse.json();
+                } else {
+                    console.error('ML service error for permit:', p.location);
+                }
+            } catch (mlErr) {
+                console.error('Failed to connect to ML Service:', mlErr.message);
+            }
+
+            // Create new permit document with forecast
+            const newPermit = new Permit({
+                ...p,
+                forecast: forecast || {
+                    predicted_surge_tonnage: 0,
+                    pressure_level: 'Unknown',
+                    alert_triggered: false
+                }
+            });
+
+            await newPermit.save();
+            savedPermits.push(newPermit);
+        }
+
+        res.json({ message: `Successfully ingested and forecasted ${savedPermits.length} permits.`, data: savedPermits });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to generate data' });
+        console.error(err);
+        res.status(500).json({ error: 'Failed to process bulk permits' });
     }
 });
 
