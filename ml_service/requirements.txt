@@ -6,3 +6,4 @@ scikit-learn
 pydantic
 requests
 beautifulsoup4
+google-generativeai

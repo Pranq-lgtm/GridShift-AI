@@ -16,14 +16,13 @@ const INITIAL_VIEW_STATE = {
   bearing: 0
 };
 
-// Color range for the heatmap (green to brown/red)
 const colorRange = [
-  [34, 197, 94],   // Green
-  [134, 239, 172], // Light green
-  [253, 224, 71],  // Yellow
-  [245, 158, 11],  // Orange
-  [217, 119, 6],   // Dark orange
-  [139, 90, 43]    // Brown (Critical)
+  [34, 197, 94],
+  [134, 239, 172],
+  [253, 224, 71],
+  [245, 158, 11],
+  [217, 119, 6],
+  [139, 90, 43]
 ];
 
 function App() {
@@ -39,30 +38,27 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch real data from Backend
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Connect to the Node.js API
       const response = await axios.get('http://localhost:5000/api/permits');
       const realPermits = response.data;
       
-      // Transform data for Deck.gl Heatmap
       const mappedData = realPermits.map(permit => ({
         position: [permit.coordinates.lng, permit.coordinates.lat],
-        weight: permit.forecast.predicted_surge_tonnage // Hexagon height correlates to waste tonnage
+        weight: permit.forecast.predicted_surge_tonnage
       }));
       setData(mappedData);
       
-      // Extract active alerts for the UI sidebar (filter for high/critical)
       const alerts = realPermits
         .filter(p => p.forecast.alert_triggered || p.forecast.pressure_level === 'High' || p.forecast.pressure_level === 'Critical')
         .map(p => ({
           location: p.location,
           surge: p.forecast.predicted_surge_tonnage.toFixed(1),
-          level: p.forecast.pressure_level
+          level: p.forecast.pressure_level,
+          copilot: p.forecast.copilot
         }))
-        .slice(0, 5); // Limit to top 5 alerts
+        .slice(0, 5);
       
       setPredictions(alerts);
     } catch (err) {
@@ -138,20 +134,48 @@ function App() {
           </div>
         </div>
         
-        <div className="glass-panel card">
-          <h3>Active Alerts</h3>
-          <p style={{ fontSize: '0.85rem', marginBottom: '15px' }}>Fleet deployment required within 48h</p>
+        <div className="glass-panel card" style={{ padding: '20px' }}>
+          <h3>Waste Surge Copilot</h3>
+          <p style={{ fontSize: '0.85rem', marginBottom: '15px' }}>AI-Driven Deployment Recommendations</p>
+          
+          {predictions.length === 0 && <p style={{ fontSize: '0.85rem' }}>No active surges detected.</p>}
           
           {predictions.map((p, idx) => (
-            <div key={idx} style={{ marginBottom: '15px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong>{p.location}</strong>
-                <span className={`badge ${p.level.toLowerCase()}`}>{p.level}</span>
+            <div key={idx} style={{ marginBottom: '25px', paddingBottom: '20px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <strong style={{ fontSize: '1.1rem' }}>🔴 SURGE ALERT — {p.location}</strong>
               </div>
-              <div className="stat-row">
-                <span>Predicted Surge</span>
-                <span className="stat-value">+{p.surge} Tons</span>
+              
+              <div style={{ fontSize: '0.9rem', marginBottom: '10px' }}>
+                <div><strong>Predicted waste pressure:</strong> {p.surge} Tons</div>
+                {p.copilot?.when && <div><strong>Peak:</strong> {p.copilot.when}</div>}
               </div>
+              
+              {p.copilot && (
+                <>
+                  <div style={{ marginBottom: '10px' }}>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-text-main)' }}>Why?</strong>
+                    <ul style={{ margin: '5px 0 0 20px', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                      {p.copilot.why.map((reason, i) => (
+                        <li key={i}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div style={{ marginBottom: '10px' }}>
+                    <strong style={{ fontSize: '0.9rem', color: 'var(--color-accent-green)' }}>AI recommendation</strong>
+                    <ul style={{ margin: '5px 0 0 20px', fontSize: '0.85rem', listStyleType: 'none', padding: 0 }}>
+                      {p.copilot.recommendations.map((rec, i) => (
+                        <li key={i} style={{ marginBottom: '4px' }}>🚛 {rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  
+                  <div style={{ fontSize: '0.85rem', marginTop: '10px', textAlign: 'right', fontWeight: 'bold' }}>
+                    Confidence: {p.copilot.confidence}%
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

@@ -32,7 +32,6 @@ body {
   flex-direction: column;
 }
 
-/* Glassmorphism Classes */
 .glass-panel {
   background: var(--color-glass);
   backdrop-filter: var(--blur-glass);
@@ -43,7 +42,6 @@ body {
   padding: 24px;
 }
 
-/* Typography */
 h1, h2, h3, h4 {
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -54,13 +52,13 @@ p {
   line-height: 1.5;
 }
 
-/* Layout */
 .app-container {
   display: flex;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   position: relative;
+  flex-direction: row;
 }
 
 .map-container {
@@ -81,7 +79,31 @@ p {
   overflow-y: auto;
 }
 
-/* Components */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    position: relative;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 50vh;
+    padding: 10px;
+  }
+  
+  .map-container {
+    height: 50vh;
+    flex: none;
+  }
+  
+  .glass-panel {
+    padding: 16px;
+  }
+}
+
 .card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }

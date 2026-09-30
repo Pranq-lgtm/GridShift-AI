@@ -9,7 +9,6 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -19,26 +18,30 @@ mongoose.connect(process.env.MONGO_URI, {
     console.error('MongoDB connection error:', err);
 });
 
-// Permit Schema
 const PermitSchema = new mongoose.Schema({
     location: { type: String, required: true },
     coordinates: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
     },
-    type: { type: String, required: true }, // e.g. "Construction", "Public Gathering"
-    scale: { type: Number, required: true }, // e.g. 1-10
+    type: { type: String, required: true },
+    scale: { type: Number, required: true },
     date: { type: Date, required: true },
     forecast: {
         predicted_surge_tonnage: { type: Number },
         pressure_level: { type: String },
-        alert_triggered: { type: Boolean }
+        alert_triggered: { type: Boolean },
+        copilot: {
+            when: { type: String },
+            why: [{ type: String }],
+            recommendations: [{ type: String }],
+            confidence: { type: Number }
+        }
     }
 });
 
 const Permit = mongoose.model('Permit', PermitSchema);
 
-// API Routes
 app.get('/api/health', (req, res) => {
     res.json({ status: 'Backend is running' });
 });
@@ -52,10 +55,9 @@ app.get('/api/permits', async (req, res) => {
     }
 });
 
-// Endpoint to ingest bulk scraped permits and ping ML service
 app.post('/api/permits/bulk', async (req, res) => {
     try {
-        const permits = req.body.permits; // Array of permit objects from scraper
+        const permits = req.body.permits;
         if (!permits || !Array.isArray(permits)) {
             return res.status(400).json({ error: 'Expected an array of permits' });
         }
@@ -64,7 +66,6 @@ app.post('/api/permits/bulk', async (req, res) => {
         const savedPermits = [];
 
         for (let p of permits) {
-            // Ping ML Service for prediction
             let forecast = null;
             try {
                 const mlResponse = await fetch(`${ML_URL}/predict`, {
@@ -86,13 +87,13 @@ app.post('/api/permits/bulk', async (req, res) => {
                 console.error('Failed to connect to ML Service:', mlErr.message);
             }
 
-            // Create new permit document with forecast
             const newPermit = new Permit({
                 ...p,
                 forecast: forecast || {
                     predicted_surge_tonnage: 0,
                     pressure_level: 'Unknown',
-                    alert_triggered: false
+                    alert_triggered: false,
+                    copilot: null
                 }
             });
 

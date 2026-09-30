@@ -8,19 +8,9 @@ import os
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:5000")
 
 def scrape_municipal_permits():
-    """
-    Simulates scraping a municipal open-data portal or parsing an HTML page for permits.
-    In a real scenario, this would use BeautifulSoup to parse the DOM or requests to hit a public API (like NYC Socrata).
-    """
     print("Initiating web scraping sequence...")
-    
-    # Mocking HTML parsing logic for demonstration
-    # Imagine we fetched: html_content = requests.get('https://nyc.gov/permits').text
-    # soup = BeautifulSoup(html_content, 'html.parser')
-    
     print("Parsing HTML DOM for permit records...")
     
-    # Let's generate a realistic payload that a scraper would extract
     wards = [
         {"name": "Ward 1", "lat": 40.7128, "lng": -74.0060},
         {"name": "Ward 2", "lat": 40.7138, "lng": -74.0070},
@@ -36,11 +26,9 @@ def scrape_municipal_permits():
         event_type = random.choice(types)
         location = random.choice(wards)
         
-        # Scrapers often extract raw text, so we simulate cleaning it
         raw_date_str = (datetime.now() + timedelta(days=random.randint(1, 14))).strftime("%B %d, %Y")
         clean_date = datetime.strptime(raw_date_str, "%B %d, %Y").isoformat()
         
-        # Determine scale based on type
         scale = random.randint(5, 10) if event_type in ["Construction", "Food Festival"] else random.randint(1, 5)
         
         permit = {
@@ -59,10 +47,6 @@ def scrape_municipal_permits():
     return scraped_data
 
 def send_to_backend(permits):
-    """
-    Sends the scraped permits to the Node.js backend.
-    The backend will ping this ML service for predictions before saving to DB.
-    """
     print(f"Sending data to Node.js backend at {BACKEND_URL}/api/permits/bulk...")
     try:
         response = requests.post(f"{BACKEND_URL}/api/permits/bulk", json={"permits": permits})
