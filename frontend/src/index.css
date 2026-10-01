@@ -278,3 +278,25 @@ p {
 .pulse-dot {
   animation: softPulse 2s infinite ease-in-out;
 }
+/* Parivahan Sewa Responsive Topbar & Mobile Styles */
+.mobile-hamburger {
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .mobile-hamburger {
+    display: flex !important;
+  }
+
+  .main-viewport {
+    margin-left: 0 !important;
+  }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+}

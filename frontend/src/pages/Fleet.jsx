@@ -9,8 +9,8 @@ function Fleet() {
   ];
 
   return (
-    <div className="page-container" style={{ padding: '20px 40px', overflowY: 'auto', height: '100vh', width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+    <div className="page-container" style={{ padding: '24px 32px', minHeight: '100%', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
         <div>
           <h1 style={{ marginBottom: '5px' }}>Fleet Management</h1>
           <p style={{ color: 'var(--color-text-muted)' }}>Real-time vehicle telemetry and AI-driven rerouting.</p>
@@ -18,7 +18,7 @@ function Fleet() {
         <button className="btn btn-primary">Optimize Routes Now</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '30px' }}>
         <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div style={{ background: 'rgba(34, 197, 94, 0.1)', padding: '15px', borderRadius: '12px' }}>
             <CheckCircle2 size={30} color="var(--color-accent-green)" />
@@ -50,8 +50,8 @@ function Fleet() {
         </div>
       </div>
 
-      <div className="glass-panel" style={{ padding: 0, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="glass-panel" style={{ padding: 0, overflowX: 'auto' }}>
+        <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--color-glass-border)' }}>
               <th style={{ padding: '16px 20px', fontWeight: 600 }}>Vehicle ID</th>

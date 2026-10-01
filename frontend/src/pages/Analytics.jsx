@@ -12,11 +12,11 @@ const data = [
 
 function Analytics() {
   return (
-    <div className="page-container" style={{ padding: '20px 40px', overflowY: 'auto', height: '100vh', width: '100%' }}>
+    <div className="page-container" style={{ padding: '24px 32px', minHeight: '100%', width: '100%', boxSizing: 'border-box' }}>
       <h1 style={{ marginBottom: '5px' }}>Data Analytics</h1>
-      <p style={{ marginBottom: '30px', color: 'var(--color-text-muted)' }}>City-wide historical waste generation vs XGBoost predictions.</p>
+      <p style={{ marginBottom: '24px', color: 'var(--color-text-muted)' }}>City-wide historical waste generation vs XGBoost predictions.</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '20px' }}>
         <div className="glass-panel" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ marginBottom: '20px' }}>Weekly Surge Trend (Tons)</h3>
           <div style={{ flex: 1, width: '100%' }}>

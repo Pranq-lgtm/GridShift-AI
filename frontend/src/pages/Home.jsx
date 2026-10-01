@@ -14,11 +14,12 @@ import {
   Zap, 
   Activity, 
   BarChart3,
-  Radar
+  Radar,
+  Camera
 } from 'lucide-react';
 import '../index.css';
 
-function Home() {
+function Home({ onOpenWasteCamera }) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
@@ -198,6 +199,29 @@ function Home() {
                     >
                       {slide.secondaryBtn.text}
                     </Link>
+
+                    {onOpenWasteCamera && (
+                      <button
+                        onClick={onOpenWasteCamera}
+                        type="button"
+                        style={{
+                          padding: '14px 22px',
+                          borderRadius: '9999px',
+                          backgroundColor: '#ecfdf5',
+                          color: '#065f46',
+                          border: '2px solid #a7f3d0',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Camera size={16} color="#059669" />
+                        Report Waste
+                      </button>
+                    )}
                   </div>
                 </div>
 
