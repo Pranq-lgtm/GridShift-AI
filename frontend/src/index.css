@@ -31,7 +31,7 @@ body {
   color: var(--color-text-main);
   min-height: 100vh;
   display: flex;
-  3 flex-direction: column;
+  flex-direction: column;
 }
 
 .glass-panel {
