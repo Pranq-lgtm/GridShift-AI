@@ -12,18 +12,26 @@ import {
   X, 
   Camera, 
   Bot, 
-  Layers, 
-  ShieldCheck, 
   Radio, 
-  AlertTriangle,
   ChevronLeft,
-  ChevronRight
+  Activity,
+  Layers
 } from 'lucide-react';
 import './index.css';
 
 function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenChatbot }) {
   const location = useLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const handleLogout = async () => {
+    localStorage.removeItem("gridshift_demo_user");
+    window.dispatchEvent(new Event("gridshift_auth_change"));
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const navItems = [
     { path: '/', label: 'Overview', icon: <HomeIcon size={18} /> },
@@ -34,7 +42,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
 
   return (
     <>
-      {/* 1. PARIVAHAN SEWA-STYLE TOPBAR HEADER */}
+      {/* 1. TOPBAR HEADER */}
       <header
         style={{
           position: 'fixed',
@@ -43,7 +51,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           right: 0,
           height: '68px',
           backgroundColor: '#ffffff',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
           zIndex: 100,
           display: 'flex',
           alignItems: 'center',
@@ -52,19 +60,19 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           borderBottom: '1px solid #e2e8f0'
         }}
       >
-        {/* Left: Sidebar Toggle + Brand Emblem */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {/* Desktop Left-Side Pane Toggle Button */}
+        {/* Left: Sidebar Toggle (Desktop Only) + Clean Brand Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Desktop-only toggle button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="desktop-only-toggle"
             style={{
-              width: '40px',
-              height: '40px',
+              width: '38px',
+              height: '38px',
               borderRadius: '10px',
               backgroundColor: '#f1f5f9',
               border: '1px solid #cbd5e1',
               color: '#092C5E',
-              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
@@ -73,48 +81,28 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             title={sidebarOpen ? 'Collapse Left Pane' : 'Expand Left Pane'}
             aria-label="Toggle Left Sidebar"
           >
-            {sidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
+            {sidebarOpen ? <ChevronLeft size={18} /> : <Menu size={18} />}
           </button>
 
-          {/* Parivahan Sewa Official Emblem & Brand Logo */}
+          {/* Clean Brand Logo & Name */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '46px',
-                backgroundColor: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                borderRadius: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-              }}
-            >
-              <img src="/favicon.jpg" alt="Logo" style={{ width: '26px', height: '26px', objectFit: 'contain' }} />
-              <span style={{ fontSize: '7px', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', marginTop: '1px' }}>
-                GOA-MMC
-              </span>
-            </div>
-
+            <img 
+              src="/favicon.jpg" 
+              alt="GridShift Logo" 
+              style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'contain', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} 
+            />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#092C5E', letterSpacing: '-0.02em', lineHeight: 1 }}>
-                  GridShift <span style={{ color: '#22c55e' }}>Sewa</span>
-                </span>
-                <span style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#16a34a', fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
-                  2.0
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Urban Waste Intelligence Portal
-              </p>
+              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#092C5E', letterSpacing: '-0.02em', lineHeight: 1, display: 'block' }}>
+                GridShift-AI
+              </span>
+              <span style={{ fontSize: '9px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Waste Forecasting & Telemetry
+              </span>
             </div>
           </Link>
         </div>
 
-        {/* Center / Desktop Links (Parivahan Style) */}
+        {/* Center: Desktop Navigation Links */}
         <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -145,10 +133,11 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
         </nav>
 
         {/* Right Header Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Quick Photo Report Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Quick Photo Report Button (Desktop only) */}
           <button
             onClick={onOpenWasteCamera}
+            className="desktop-only-btn"
             style={{
               padding: '8px 14px',
               borderRadius: '9999px',
@@ -157,21 +146,20 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               border: 'none',
               fontWeight: 700,
               fontSize: '0.82rem',
-              display: 'flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(9, 44, 94, 0.2)'
             }}
-            title="Snap Photo to Report Waste"
           >
             <Camera size={15} color="#22c55e" />
-            <span className="hide-on-mobile">Report Waste</span>
+            <span>Report Waste</span>
           </button>
 
-          {/* Copilot Chat Trigger */}
+          {/* Copilot Chat Trigger (Desktop only) */}
           <button
             onClick={onOpenChatbot}
+            className="desktop-only-btn"
             style={{
               padding: '8px 14px',
               borderRadius: '9999px',
@@ -180,7 +168,6 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               border: '1px solid #cbd5e1',
               fontWeight: 700,
               fontSize: '0.82rem',
-              display: 'flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer',
@@ -188,12 +175,13 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             }}
           >
             <Bot size={15} color="#22c55e" />
-            <span className="hide-on-mobile">Ask Copilot</span>
+            <span>Ask Copilot</span>
           </button>
 
-          {/* User Signout */}
+          {/* User Signout (Desktop only) */}
           <button
-            onClick={() => signOut(auth)}
+            onClick={handleLogout}
+            className="desktop-only-btn"
             style={{
               padding: '8px 12px',
               borderRadius: '9999px',
@@ -202,24 +190,22 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               border: '1px solid #fecaca',
               fontWeight: 700,
               fontSize: '0.8rem',
-              display: 'flex',
               alignItems: 'center',
               gap: '6px',
               cursor: 'pointer'
             }}
-            title="Sign Out"
           >
             <LogOut size={14} />
-            <span className="hide-on-mobile">Logout</span>
+            <span>Logout</span>
           </button>
 
-          {/* Mobile Hamburger Drawer Button */}
+          {/* Mobile Hamburger Drawer Button (ONLY icon visible on mobile right side) */}
           <button
             onClick={() => setMobileDrawerOpen(true)}
             className="mobile-hamburger"
             style={{
-              width: '40px',
-              height: '40px',
+              width: '42px',
+              height: '42px',
               borderRadius: '10px',
               backgroundColor: '#f8fafc',
               border: '1px solid #cbd5e1',
@@ -230,7 +216,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             }}
             aria-label="Open Mobile Menu"
           >
-            <Menu size={20} />
+            <Menu size={22} />
           </button>
         </div>
       </header>
@@ -244,7 +230,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           left: 0,
           top: '68px',
           zIndex: 90,
-          backgroundColor: 'rgba(255, 255, 255, 0.94)',
+          backgroundColor: 'rgba(255, 255, 255, 0.96)',
           backdropFilter: 'blur(20px)',
           borderRight: '1px solid #e2e8f0',
           boxShadow: '4px 0 20px rgba(0,0,0,0.03)',
@@ -297,10 +283,10 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           })}
         </div>
 
-        {/* Live Municipal Dispatch Shortcuts */}
+        {/* Dispatch Quick Links */}
         <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginBottom: 'auto' }}>
           <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '10px' }}>
-            HOTSPOT DISPATCHES
+            SURGE DISPATCHES
           </span>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -310,7 +296,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '8px 10px',
+                padding: '9px 12px',
                 borderRadius: '8px',
                 backgroundColor: '#fef2f2',
                 border: '1px solid #fee2e2',
@@ -320,7 +306,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 color: '#b91c1c'
               }}
             >
-              <span>⚠️ Margao Fish Market (18T)</span>
+              <span>⚠️ Active Micro-Surges</span>
               <span className="pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#ef4444' }} />
             </Link>
 
@@ -330,7 +316,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '8px 10px',
+                padding: '9px 12px',
                 borderRadius: '8px',
                 backgroundColor: '#fef3c7',
                 border: '1px solid #fde68a',
@@ -340,7 +326,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 color: '#b45309'
               }}
             >
-              <span>🏗️ Fatorda C&D Debris (14.5T)</span>
+              <span>🏗️ C&D Debris Sites</span>
               <span>Active</span>
             </Link>
 
@@ -350,7 +336,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '8px 10px',
+                padding: '9px 12px',
                 borderRadius: '8px',
                 backgroundColor: '#eff6ff',
                 border: '1px solid #bfdbfe',
@@ -360,17 +346,17 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 color: '#1d4ed8'
               }}
             >
-              <span>🤖 Rover R-1 (Bayshore Ave)</span>
-              <span>Scanning</span>
+              <span>🤖 Autonomous Fleet</span>
+              <span>Monitoring</span>
             </Link>
           </div>
         </div>
 
-        {/* Bottom Profile Info & LoRaWAN Health */}
+        {/* Bottom Profile Info & Health */}
         <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#16a34a', fontWeight: 700, marginBottom: '8px' }}>
             <Radio size={14} className="pulse-dot" />
-            <span>LoRaWAN Mesh: 140 Units (100%)</span>
+            <span>Telemetry Network: 100% Online</span>
           </div>
           <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user?.email || user?.phoneNumber || 'Authenticated User'}
@@ -378,13 +364,13 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
         </div>
       </aside>
 
-      {/* 3. PARIVAHAN SEWA-STYLE MOBILE SLIDE-IN DRAWER */}
+      {/* 3. MOBILE SLIDE-IN DRAWER (Clean, uncluttered, accessible) */}
       {mobileDrawerOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
           {/* Backdrop */}
           <div
             onClick={() => setMobileDrawerOpen(false)}
-            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
           />
 
           {/* Drawer Body */}
@@ -394,7 +380,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               top: 0,
               right: 0,
               bottom: 0,
-              width: '320px',
+              width: '300px',
               maxWidth: '85vw',
               backgroundColor: '#ffffff',
               boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
@@ -410,16 +396,17 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <img src="/favicon.jpg" alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
-                  <span style={{ fontWeight: 900, color: '#092C5E', fontSize: '1.1rem' }}>GridShift Sewa</span>
+                  <span style={{ fontWeight: 900, color: '#092C5E', fontSize: '1.15rem' }}>GridShift-AI</span>
                 </div>
                 <button
                   onClick={() => setMobileDrawerOpen(false)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
                 >
-                  <X size={22} />
+                  <X size={24} />
                 </button>
               </div>
 
+              {/* Navigation Links */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '20px' }}>
                 {navItems.map((item) => (
                   <Link
@@ -445,6 +432,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 ))}
               </div>
 
+              {/* Quick Actions */}
               <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   onClick={() => {
@@ -452,9 +440,9 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                     onOpenWasteCamera();
                   }}
                   className="btn btn-primary"
-                  style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: 700 }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
-                  <Camera size={16} style={{ marginRight: '8px' }} />
+                  <Camera size={18} />
                   Report Waste (Camera)
                 </button>
 
@@ -477,29 +465,35 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                     gap: '8px'
                   }}
                 >
-                  <Bot size={16} color="#16a34a" />
+                  <Bot size={18} color="#16a34a" />
                   Ask AI Copilot (RAG)
                 </button>
               </div>
             </div>
 
+            {/* User Info & Logout */}
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
               <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>
                 {user?.email || user?.phoneNumber}
               </p>
               <button
-                onClick={() => signOut(auth)}
+                onClick={handleLogout}
                 style={{
                   width: '100%',
-                  padding: '10px',
+                  padding: '11px',
                   backgroundColor: '#fee2e2',
                   color: '#b91c1c',
                   border: 'none',
                   borderRadius: '10px',
                   fontWeight: 700,
-                  fontSize: '0.85rem'
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
                 }}
               >
+                <LogOut size={16} />
                 Sign Out
               </button>
             </div>

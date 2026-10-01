@@ -35,7 +35,7 @@ const CONSTRUCTION_DEBRIS = [
     coordinates: [73.9620, 15.2891],
     tonnage: 14.5,
     type: 'Concrete, Brick & Plaster Rubble',
-    permit: 'MMC/BLD/2026/044',
+    permit: 'GS-MUN/BLD/2026/044',
     status: 'Demolition Active',
     severity: 'High',
     color: [245, 158, 11], // Amber
@@ -47,7 +47,7 @@ const CONSTRUCTION_DEBRIS = [
     coordinates: [73.9740, 15.2680],
     tonnage: 8.2,
     type: 'Drywall, Tiles & Masonry Scraps',
-    permit: 'MMC/COMM/2026/119',
+    permit: 'GS-MUN/COMM/2026/119',
     status: 'Segregation Underway',
     severity: 'Medium',
     color: [245, 158, 11],
@@ -71,7 +71,7 @@ const CONSTRUCTION_DEBRIS = [
     coordinates: [73.9680, 15.2590],
     tonnage: 11.4,
     type: 'Asphalt Millings & Sand Sub-base',
-    permit: 'MMC/RD/2026/201',
+    permit: 'GS-MUN/RD/2026/201',
     status: 'Scheduled for Clearing',
     severity: 'High',
     color: [245, 158, 11],
@@ -83,7 +83,7 @@ const CONSTRUCTION_DEBRIS = [
     coordinates: [73.9560, 15.2820],
     tonnage: 6.8,
     type: 'Laterite Stone & Lime Plaster',
-    permit: 'MMC/HERIT/2026/012',
+    permit: 'GS-MUN/HERIT/2026/012',
     status: 'Salvage Sorted',
     severity: 'Medium',
     color: [245, 158, 11],
@@ -131,6 +131,7 @@ function Dashboard() {
   // Selected Marker for Details Card
   const [selectedMarker, setSelectedMarker] = useState(CONSTRUCTION_DEBRIS[0]);
   const [citizenReports, setCitizenReports] = useState([]);
+  const [mobileTelemetryOpen, setMobileTelemetryOpen] = useState(false);
 
   // Load Citizen Reports from LocalStorage
   const loadCitizenReports = () => {
@@ -384,18 +385,28 @@ function Dashboard() {
       </div>
 
       {/* 2. LAYER FILTER CONTROLS BAR (Top Center) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '20px',
-          zIndex: 10,
-          display: 'flex',
-          gap: '8px',
-          flexWrap: 'wrap',
-          maxWidth: 'calc(100% - 420px)'
-        }}
-      >
+      <div className="dashboard-filter-bar">
+        {/* Mobile Toggle Button for Telemetry Drawer */}
+        <button
+          onClick={() => setMobileTelemetryOpen(!mobileTelemetryOpen)}
+          className="mobile-panel-toggle"
+          style={{
+            padding: '8px 14px',
+            borderRadius: '9999px',
+            border: 'none',
+            backgroundColor: mobileTelemetryOpen ? '#092C5E' : '#16a34a',
+            color: 'white',
+            fontWeight: 800,
+            fontSize: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          {mobileTelemetryOpen ? '✕ Close Stats' : '📊 Telemetry Stats'}
+        </button>
+
         <button
           onClick={() => setShowDebris(!showDebris)}
           style={{
@@ -551,7 +562,19 @@ function Dashboard() {
       )}
 
       {/* 4. FLOATING RIGHT TELEMETRY PANELS */}
-      <div style={{ position: 'absolute', right: '20px', top: '16px', width: '380px', display: 'flex', flexDirection: 'column', gap: '14px', pointerEvents: 'none', zIndex: 10 }}>
+      <div className={`dashboard-telemetry-panel ${mobileTelemetryOpen ? 'open' : ''}`}>
+        {/* Mobile drawer header */}
+        <div className="mobile-panel-toggle" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', width: '100%' }}>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: '#092C5E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            TELEMETRY & LIVE PREDICTIONS
+          </span>
+          <button
+            onClick={() => setMobileTelemetryOpen(false)}
+            style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
         
         {/* 3D Cyber Grid Digital Twin Model Card */}
         <div className="glass-panel card" style={{ pointerEvents: 'auto', padding: '16px' }}>
@@ -640,7 +663,7 @@ function Dashboard() {
 
         {/* Global Metrics Panel */}
         <div className="glass-panel card" style={{ pointerEvents: 'auto', padding: '14px 16px' }}>
-          <h3 style={{ marginBottom: '6px', fontSize: '0.95rem' }}>Madgaon Telemetry Status</h3>
+          <h3 style={{ marginBottom: '6px', fontSize: '0.95rem' }}>Municipal Telemetry Status</h3>
           <div className="stat-row">
             <span>Model Accuracy</span>
             <span className="stat-value" style={{ color: 'var(--color-accent-green)' }}>94.2%</span>

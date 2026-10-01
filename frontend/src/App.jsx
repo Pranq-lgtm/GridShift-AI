@@ -14,6 +14,14 @@ import './index.css';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [demoUser, setDemoUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("gridshift_demo_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [authChecked, setAuthChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -33,7 +41,21 @@ function App() {
       setUser(currentUser);
       setAuthChecked(true);
     });
-    return () => unsubscribe();
+
+    const handleAuthChange = () => {
+      try {
+        const saved = localStorage.getItem("gridshift_demo_user");
+        setDemoUser(saved ? JSON.parse(saved) : null);
+      } catch {
+        setDemoUser(null);
+      }
+    };
+    window.addEventListener("gridshift_auth_change", handleAuthChange);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("gridshift_auth_change", handleAuthChange);
+    };
   }, []);
 
   if (!authChecked) {
@@ -45,7 +67,9 @@ function App() {
     );
   }
 
-  if (!user) {
+  const activeUser = user || demoUser;
+
+  if (!activeUser) {
     return <Login />;
   }
 
@@ -53,14 +77,13 @@ function App() {
     <BrowserRouter>
       <div style={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundColor: '#fbfbfd' }}>
         
-        {/* Parivahan Sewa-Inspired Header & Collapsible Sidebar */}
+        {/* GridShift-AI Responsive Header & Collapsible Sidebar */}
         <Navbar 
-          user={user} 
+          user={activeUser} 
           sidebarOpen={sidebarOpen} 
           setSidebarOpen={setSidebarOpen} 
           onOpenWasteCamera={() => setCameraModalOpen(true)}
           onOpenChatbot={() => {
-            // Trigger floating chat if already rendered
             const chatBtn = document.querySelector('button[aria-label="Open AI Copilot Chat"]');
             if (chatBtn) chatBtn.click();
           }}
@@ -72,7 +95,7 @@ function App() {
           onClose={() => setCameraModalOpen(false)} 
         />
 
-        {/* Main Content Area (Smoothly adjusts margin when left pane opens/closes) */}
+        {/* Main Content Area */}
         <div 
           className="main-viewport"
           style={{ 

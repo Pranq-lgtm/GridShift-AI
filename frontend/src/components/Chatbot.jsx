@@ -9,7 +9,7 @@ function Chatbot() {
     {
       id: 1,
       sender: 'bot',
-      text: '👋 Hello! I am the **GridShift AI Copilot** powered by Google Gemini and live municipal telemetry for Madgaon, Goa. How can I assist you with waste surges, construction debris, or fleet dispatches today?',
+      text: '👋 Hello! I am the **GridShift AI Copilot** powered by Google Gemini and real-time municipal telemetry. How can I assist you with waste surges, construction debris, or fleet dispatches today?',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -21,7 +21,7 @@ function Chatbot() {
     '🏗️ Status of construction debris?',
     '🤖 Where is Rover R-1 patrolling?',
     '📸 How to report illegal dumping?',
-    '⚡ Margao Market surge status?'
+    '⚡ Active surge hotspot status?'
   ];
 
   const scrollToBottom = () => {
@@ -77,32 +77,15 @@ function Chatbot() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 999,
-            backgroundColor: '#092C5E',
-            color: 'white',
-            border: '2px solid rgba(34, 197, 94, 0.4)',
-            borderRadius: '9999px',
-            padding: '14px 22px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            boxShadow: '0 12px 32px rgba(9, 44, 94, 0.35)',
-            cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-          }}
-          className="pulse-dot"
+          className="chatbot-trigger-btn pulse-dot"
           aria-label="Open AI Copilot Chat"
         >
           <div style={{ position: 'relative' }}>
-            <Bot size={22} color="#22c55e" />
-            <span style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22c55e' }} />
+            <Bot size={20} color="#22c55e" />
+            <span style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: '50%', backgroundColor: '#22c55e' }} />
           </div>
-          <span style={{ fontWeight: 800, fontSize: '0.88rem', letterSpacing: '0.02em' }}>
-            AI Copilot (RAG)
+          <span style={{ fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.02em' }}>
+            AI Copilot
           </span>
         </button>
       )}
@@ -163,7 +146,7 @@ function Chatbot() {
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: '10px', color: '#93c5fd' }}>
-                  Gemini 2.5 • Madgaon Municipal Intelligence
+                  Gemini 2.5 • Real-Time Municipal Telemetry
                 </p>
               </div>
             </div>

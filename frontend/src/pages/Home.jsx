@@ -74,218 +74,176 @@ function Home({ onOpenWasteCamera }) {
     '⚡ Bayshore Ave: Debris-042 identified as Recyclable (98% conf.)',
     '📊 Downtown Kitchen Hub: Organics container reached 90% threshold',
     '🚛 Route Optima: 14 dynamic routes generated — 22% fuel saved today',
-    '🌱 Panaji Central: 94.8% clean corridor rating verified',
+    '🌱 Metro Central: 94.8% clean corridor rating verified',
     '🔔 ML Model: Micro-surge anticipated near Waterfront Promenade'
   ];
 
   return (
-    <div style={{ 
-      width: '100%', 
-      minHeight: '100vh', 
-      overflowY: 'auto', 
-      padding: '24px 36px 60px 36px',
-      backgroundColor: '#fbfbfd' 
-    }}>
+    <div className="home-container">
       
       {/* 1. HERO SLIDESHOW CONTAINER (Pukaar Apple-Style) */}
       <section style={{ maxWidth: '1280px', margin: '0 auto 40px auto' }}>
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          minHeight: '520px',
-          borderRadius: '3rem',
-          overflow: 'hidden',
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,246,255,0.85) 100%)',
-          border: '1px solid rgba(255,255,255,0.9)',
-          boxShadow: '0 20px 50px -10px rgba(9, 44, 94, 0.12)'
-        }}>
+        <div className="hero-slide-container">
           {slides.map((slide, index) => {
             const isActive = index === currentSlide;
             return (
               <div
                 key={index}
                 className={`hero-slide ${isActive ? 'active' : ''}`}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '48px 56px',
-                  width: '100%',
-                  height: '100%'
-                }}
+                style={{ width: '100%', height: '100%' }}
               >
-                {/* Left Text Content */}
-                <div style={{ maxWidth: '540px', zIndex: 10 }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'white',
-                    color: '#092C5E',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    padding: '6px 14px',
-                    borderRadius: '9999px',
-                    marginBottom: '16px',
-                    boxShadow: '0 2px 10px rgba(9, 44, 94, 0.06)',
-                    border: '1px solid rgba(9, 44, 94, 0.1)'
-                  }}>
-                    <Sparkles size={13} color="#22c55e" />
-                    {slide.badge}
-                  </span>
+                <div className="hero-slide-content">
+                  {/* Left Text Content */}
+                  <div className="hero-text-col">
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'white',
+                      color: '#092C5E',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.08em',
+                      padding: '6px 14px',
+                      borderRadius: '9999px',
+                      marginBottom: '16px',
+                      boxShadow: '0 2px 10px rgba(9, 44, 94, 0.06)',
+                      border: '1px solid rgba(9, 44, 94, 0.1)'
+                    }}>
+                      <Sparkles size={13} color="#22c55e" />
+                      {slide.badge}
+                    </span>
 
-                  <h1 style={{
-                    fontSize: '3rem',
-                    fontWeight: 900,
-                    letterSpacing: '-0.03em',
-                    color: '#092C5E',
-                    lineHeight: 1.15,
-                    marginBottom: '16px'
-                  }}>
-                    {slide.title}<br />
-                    <span style={{ color: '#22c55e' }}>{slide.subtitle}</span>
-                  </h1>
+                    <h1 className="hero-title">
+                      {slide.title}<br />
+                      <span style={{ color: '#22c55e' }}>{slide.subtitle}</span>
+                    </h1>
 
-                  <p style={{
-                    color: '#4b5563',
-                    fontSize: '1.05rem',
-                    fontWeight: 500,
-                    lineHeight: 1.6,
-                    marginBottom: '32px'
-                  }}>
-                    {slide.description}
-                  </p>
+                    <p className="hero-desc">
+                      {slide.description}
+                    </p>
 
-                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                    <Link
-                      to={slide.primaryBtn.link}
-                      className="btn"
-                      style={{
-                        padding: '14px 28px',
-                        borderRadius: '9999px',
-                        backgroundColor: '#092C5E',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        boxShadow: '0 10px 25px -5px rgba(9, 44, 94, 0.3)',
-                        textDecoration: 'none',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      {slide.primaryBtn.text}
-                      <ArrowRight size={16} />
-                    </Link>
-
-                    <Link
-                      to={slide.secondaryBtn.link}
-                      style={{
-                        padding: '14px 26px',
-                        borderRadius: '9999px',
-                        backgroundColor: 'white',
-                        color: '#092C5E',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        border: '2px solid rgba(9, 44, 94, 0.12)',
-                        textDecoration: 'none',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                      }}
-                    >
-                      {slide.secondaryBtn.text}
-                    </Link>
-
-                    {onOpenWasteCamera && (
-                      <button
-                        onClick={onOpenWasteCamera}
-                        type="button"
+                    <div className="hero-btn-group">
+                      <Link
+                        to={slide.primaryBtn.link}
+                        className="btn"
                         style={{
-                          padding: '14px 22px',
+                          padding: '14px 28px',
                           borderRadius: '9999px',
-                          backgroundColor: '#ecfdf5',
-                          color: '#065f46',
-                          border: '2px solid #a7f3d0',
+                          backgroundColor: '#092C5E',
+                          color: 'white',
                           fontWeight: 700,
                           fontSize: '0.9rem',
-                          cursor: 'pointer',
+                          boxShadow: '0 10px 25px -5px rgba(9, 44, 94, 0.3)',
+                          textDecoration: 'none',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px'
+                          gap: '8px'
                         }}
                       >
-                        <Camera size={16} color="#059669" />
-                        Report Waste
-                      </button>
-                    )}
+                        {slide.primaryBtn.text}
+                        <ArrowRight size={16} />
+                      </Link>
+
+                      <Link
+                        to={slide.secondaryBtn.link}
+                        style={{
+                          padding: '14px 26px',
+                          borderRadius: '9999px',
+                          backgroundColor: 'white',
+                          color: '#092C5E',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          border: '2px solid rgba(9, 44, 94, 0.12)',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        {slide.secondaryBtn.text}
+                      </Link>
+
+                      {onOpenWasteCamera && (
+                        <button
+                          onClick={onOpenWasteCamera}
+                          type="button"
+                          style={{
+                            padding: '14px 22px',
+                            borderRadius: '9999px',
+                            backgroundColor: '#ecfdf5',
+                            color: '#065f46',
+                            border: '2px solid #a7f3d0',
+                            fontWeight: 700,
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <Camera size={16} color="#059669" />
+                          Report Waste
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Right Visual Image */}
-                <div style={{
-                  position: 'relative',
-                  width: '46%',
-                  height: '380px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 5
-                }}>
-                  {/* Ambient Glow */}
-                  <div style={{
-                    position: 'absolute',
-                    width: '280px',
-                    height: '280px',
-                    background: 'rgba(34, 197, 94, 0.22)',
-                    borderRadius: '9999px',
-                    filter: 'blur(50px)',
-                    zIndex: 0
-                  }} />
-
-                  <div style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '28px',
-                    overflow: 'hidden',
-                    boxShadow: '0 20px 40px -10px rgba(9, 44, 94, 0.25)',
-                    border: '3px solid rgba(255, 255, 255, 0.8)',
-                    zIndex: 1
-                  }}>
-                    <img
-                      src={slide.image}
-                      alt={slide.imageAlt}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                    />
-
-                    {/* Floating badge inside image */}
+                  {/* Right Visual Image */}
+                  <div className="hero-image-col">
+                    {/* Ambient Glow */}
                     <div style={{
                       position: 'absolute',
-                      bottom: '16px',
-                      left: '16px',
-                      background: 'rgba(9, 44, 94, 0.88)',
-                      backdropFilter: 'blur(10px)',
-                      color: 'white',
-                      padding: '8px 16px',
+                      width: '260px',
+                      height: '260px',
+                      background: 'rgba(34, 197, 94, 0.22)',
                       borderRadius: '9999px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      letterSpacing: '0.05em',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      border: '1px solid rgba(255,255,255,0.2)'
+                      filter: 'blur(50px)',
+                      zIndex: 0
+                    }} />
+
+                    <div style={{
+                      position: 'relative',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '24px',
+                      overflow: 'hidden',
+                      boxShadow: '0 20px 40px -10px rgba(9, 44, 94, 0.25)',
+                      border: '3px solid rgba(255, 255, 255, 0.8)',
+                      zIndex: 1
                     }}>
-                      <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-                      {slide.cardBadge}
+                      <img
+                        src={slide.image}
+                        alt={slide.imageAlt}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+
+                      {/* Floating badge inside image */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '14px',
+                        left: '14px',
+                        background: 'rgba(9, 44, 94, 0.88)',
+                        backdropFilter: 'blur(10px)',
+                        color: 'white',
+                        padding: '6px 14px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                      }}>
+                        <span className="pulse-dot" style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+                        {slide.cardBadge}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -297,15 +255,16 @@ function Home({ onOpenWasteCamera }) {
           <button
             onClick={prevSlide}
             aria-label="Previous slide"
+            className="hero-arrow-btn"
             style={{
               position: 'absolute',
-              left: '16px',
+              left: '12px',
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '44px',
-              height: '44px',
+              width: '42px',
+              height: '42px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.9)',
+              backgroundColor: 'rgba(255,255,255,0.92)',
               backdropFilter: 'blur(8px)',
               border: '1px solid rgba(0,0,0,0.06)',
               boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
@@ -317,21 +276,22 @@ function Home({ onOpenWasteCamera }) {
               color: '#092C5E'
             }}
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={20} />
           </button>
 
           <button
             onClick={nextSlide}
             aria-label="Next slide"
+            className="hero-arrow-btn"
             style={{
               position: 'absolute',
-              right: '16px',
+              right: '12px',
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '44px',
-              height: '44px',
+              width: '42px',
+              height: '42px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.9)',
+              backgroundColor: 'rgba(255,255,255,0.92)',
               backdropFilter: 'blur(8px)',
               border: '1px solid rgba(0,0,0,0.06)',
               boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
@@ -343,13 +303,13 @@ function Home({ onOpenWasteCamera }) {
               color: '#092C5E'
             }}
           >
-            <ChevronRight size={22} />
+            <ChevronRight size={20} />
           </button>
 
           {/* Slider Pagination Dots */}
           <div style={{
             position: 'absolute',
-            bottom: '20px',
+            bottom: '16px',
             left: 0,
             right: 0,
             display: 'flex',
@@ -380,18 +340,9 @@ function Home({ onOpenWasteCamera }) {
 
       {/* 2. IMPACT METRICS BAR (Pukaar Section 2 Style) */}
       <section style={{ maxWidth: '1200px', margin: '0 auto 50px auto' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          padding: '24px 16px',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.9)',
-          borderRadius: '2.5rem',
-          boxShadow: '0 10px 30px -10px rgba(9, 44, 94, 0.06)'
-        }}>
+        <div className="metrics-grid">
           <div style={{ textAlign: 'center', borderRight: '1px solid #f1f5f9', padding: '8px' }}>
-            <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#092C5E', marginBottom: '2px' }}>
+            <div className="metrics-stat-value">
               18.4K+
             </div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -400,7 +351,7 @@ function Home({ onOpenWasteCamera }) {
           </div>
 
           <div style={{ textAlign: 'center', borderRight: '1px solid #f1f5f9', padding: '8px' }}>
-            <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#092C5E', marginBottom: '2px' }}>
+            <div className="metrics-stat-value">
               99.2%
             </div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -409,7 +360,7 @@ function Home({ onOpenWasteCamera }) {
           </div>
 
           <div style={{ textAlign: 'center', borderRight: '1px solid #f1f5f9', padding: '8px' }}>
-            <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#092C5E', marginBottom: '2px' }}>
+            <div className="metrics-stat-value">
               140+
             </div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -427,7 +378,7 @@ function Home({ onOpenWasteCamera }) {
               alignItems: 'center',
               gap: '6px',
               fontWeight: 800,
-              fontSize: '13px',
+              fontSize: '12px',
               marginBottom: '4px',
               border: '1px solid rgba(34, 197, 94, 0.25)'
             }}>
@@ -441,17 +392,9 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 3. SPOTLIGHT SECTION 1: AI STREET SENTINEL (Pukaar Aira-Style Layout with street-detection.jpg) */}
+      {/* 3. SPOTLIGHT SECTION 1: AI STREET SENTINEL (street-detection.jpg) */}
       <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
-        <div className="ios-card-white" style={{
-          padding: '48px',
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: '48px'
-        }}>
+        <div className="ios-card-white spotlight-card">
           {/* Ambient Glow */}
           <div style={{
             position: 'absolute',
@@ -485,7 +428,7 @@ function Home({ onOpenWasteCamera }) {
             </div>
 
             <h2 style={{
-              fontSize: '2.5rem',
+              fontSize: '2.4rem',
               fontWeight: 900,
               color: '#092C5E',
               lineHeight: 1.2,
@@ -498,7 +441,7 @@ function Home({ onOpenWasteCamera }) {
 
             <p style={{
               color: '#64748b',
-              fontSize: '1.05rem',
+              fontSize: '1rem',
               lineHeight: 1.6,
               marginBottom: '24px',
               fontWeight: 500
@@ -521,7 +464,7 @@ function Home({ onOpenWasteCamera }) {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <Link
                 to="/dashboard"
                 className="btn"
@@ -557,7 +500,7 @@ function Home({ onOpenWasteCamera }) {
           </div>
 
           {/* Right Image Container */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10 }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10, width: '100%' }}>
             <div style={{
               width: '100%',
               maxWidth: '500px',
@@ -570,14 +513,14 @@ function Home({ onOpenWasteCamera }) {
               <img
                 src="/street-detection.jpg"
                 alt="AI Street Vision Object Detection"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
+                style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '340px', objectFit: 'cover' }}
               />
 
               {/* Heatmap overlay tag */}
               <div style={{
                 position: 'absolute',
-                top: '16px',
-                right: '16px',
+                top: '14px',
+                right: '14px',
                 background: 'rgba(15, 23, 42, 0.85)',
                 backdropFilter: 'blur(8px)',
                 color: 'white',
@@ -592,8 +535,8 @@ function Home({ onOpenWasteCamera }) {
 
               <div style={{
                 position: 'absolute',
-                bottom: '16px',
-                left: '16px',
+                bottom: '14px',
+                left: '14px',
                 background: 'rgba(9, 44, 94, 0.9)',
                 backdropFilter: 'blur(10px)',
                 color: 'white',
@@ -612,17 +555,9 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 4. SPOTLIGHT SECTION 2: COMMERCIAL KITCHENS & IOT TECH (with iot-organics.jpg) */}
+      {/* 4. SPOTLIGHT SECTION 2: COMMERCIAL KITCHENS & IOT TECH (iot-organics.jpg) */}
       <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
-        <div className="ios-card-white" style={{
-          padding: '48px',
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: '48px'
-        }}>
+        <div className="ios-card-white spotlight-card spotlight-reverse">
           {/* Ambient Glow */}
           <div style={{
             position: 'absolute',
@@ -636,61 +571,7 @@ function Home({ onOpenWasteCamera }) {
             pointerEvents: 'none'
           }} />
 
-          {/* Left Image */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10 }}>
-            <div style={{
-              width: '100%',
-              maxWidth: '500px',
-              borderRadius: '24px',
-              overflow: 'hidden',
-              boxShadow: '0 16px 36px -8px rgba(9, 44, 94, 0.2)',
-              border: '2px solid rgba(255,255,255,0.9)',
-              position: 'relative'
-            }}>
-              <img
-                src="/iot-organics.jpg"
-                alt="Commercial Kitchen Organics Smart IoT Bin"
-                style={{ width: '100%', height: 'auto', display: 'block' }}
-              />
-
-              {/* Status overlay tag */}
-              <div style={{
-                position: 'absolute',
-                top: '16px',
-                left: '16px',
-                background: 'rgba(9, 44, 94, 0.9)',
-                backdropFilter: 'blur(8px)',
-                color: 'white',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: 700,
-                border: '1px solid rgba(255,255,255,0.15)'
-              }}>
-                COMMERCIAL ORGANICS NODE
-              </div>
-
-              <div style={{
-                position: 'absolute',
-                bottom: '16px',
-                right: '16px',
-                background: 'rgba(15, 23, 42, 0.92)',
-                backdropFilter: 'blur(10px)',
-                color: 'white',
-                padding: '8px 14px',
-                borderRadius: '12px',
-                fontSize: '11px',
-                lineHeight: 1.4,
-                border: '1px solid rgba(239, 68, 68, 0.5)'
-              }}>
-                <div style={{ color: '#ef4444', fontWeight: 800 }}>⚠️ SURGE ALERT: 90% FULL</div>
-                <div>NODE ID: GW134 (KITCHEN BAY 2)</div>
-                <div style={{ color: '#22c55e', fontSize: '10px' }}>AI OPTIMIZED ROUTE QUEUED</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Text */}
+          {/* Left Text */}
           <div style={{ flex: 1, zIndex: 10 }}>
             <div style={{
               display: 'inline-flex',
@@ -710,7 +591,7 @@ function Home({ onOpenWasteCamera }) {
             </div>
 
             <h2 style={{
-              fontSize: '2.5rem',
+              fontSize: '2.4rem',
               fontWeight: 900,
               color: '#092C5E',
               lineHeight: 1.2,
@@ -723,7 +604,7 @@ function Home({ onOpenWasteCamera }) {
 
             <p style={{
               color: '#64748b',
-              fontSize: '1.05rem',
+              fontSize: '1rem',
               lineHeight: 1.6,
               marginBottom: '24px',
               fontWeight: 500
@@ -772,40 +653,94 @@ function Home({ onOpenWasteCamera }) {
               View Organics Analytics
             </Link>
           </div>
+
+          {/* Right Image */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10, width: '100%' }}>
+            <div style={{
+              width: '100%',
+              maxWidth: '500px',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              boxShadow: '0 16px 36px -8px rgba(9, 44, 94, 0.2)',
+              border: '2px solid rgba(255,255,255,0.9)',
+              position: 'relative'
+            }}>
+              <img
+                src="/iot-organics.jpg"
+                alt="Commercial Kitchen Organics Smart IoT Bin"
+                style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '340px', objectFit: 'cover' }}
+              />
+
+              {/* Status overlay tag */}
+              <div style={{
+                position: 'absolute',
+                top: '14px',
+                left: '14px',
+                background: 'rgba(9, 44, 94, 0.9)',
+                backdropFilter: 'blur(8px)',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: '1px solid rgba(255,255,255,0.15)'
+              }}>
+                COMMERCIAL ORGANICS NODE
+              </div>
+
+              <div style={{
+                position: 'absolute',
+                bottom: '14px',
+                right: '14px',
+                background: 'rgba(15, 23, 42, 0.92)',
+                backdropFilter: 'blur(10px)',
+                color: 'white',
+                padding: '8px 14px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                lineHeight: 1.4,
+                border: '1px solid rgba(239, 68, 68, 0.5)'
+              }}>
+                <div style={{ color: '#ef4444', fontWeight: 800 }}>⚠️ SURGE ALERT: 90% FULL</div>
+                <div>NODE ID: GW134 (KITCHEN BAY 2)</div>
+                <div style={{ color: '#22c55e', fontSize: '10px' }}>AI OPTIMIZED ROUTE QUEUED</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 5. SERVICES & CAPABILITIES GRID (Pukaar Section 4 Style) */}
+      {/* 5. SERVICES & CAPABILITIES GRID */}
       <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
         <div style={{ marginBottom: '36px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#092C5E', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+          <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#092C5E', letterSpacing: '-0.02em', marginBottom: '8px' }}>
             Core AI Modules & <span style={{ color: '#22c55e' }}>Platform Capabilities</span>
           </h2>
-          <p style={{ color: '#64748b', fontSize: '1.05rem', fontWeight: 500, maxWidth: '600px', margin: '0 auto' }}>
+          <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: 500, maxWidth: '600px', margin: '0 auto' }}>
             Modular intelligence engineered for municipal sanitation divisions, facility managers, and smart city operators.
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+        <div className="three-col-grid">
           
           {/* Card 1 */}
-          <div className="ios-card-white" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+          <div className="ios-card-white" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
             <div style={{
-              width: '56px',
-              height: '56px',
+              width: '52px',
+              height: '52px',
               borderRadius: '16px',
               backgroundColor: 'rgba(34, 197, 94, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '20px'
+              marginBottom: '18px'
             }}>
-              <Layers size={28} color="#16a34a" />
+              <Layers size={26} color="#16a34a" />
             </div>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#092C5E', marginBottom: '10px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#092C5E', marginBottom: '8px' }}>
               Micro-Surge Forecasting
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, flex: 1, marginBottom: '24px' }}>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
               Our XGBoost and neural models correlate commercial building permits, weather patterns, and historical disposal cycles to forecast volume spikes up to 48 hours in advance.
             </p>
             <Link
@@ -827,23 +762,23 @@ function Home({ onOpenWasteCamera }) {
           </div>
 
           {/* Card 2 */}
-          <div className="ios-card-white" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+          <div className="ios-card-white" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
             <div style={{
-              width: '56px',
-              height: '56px',
+              width: '52px',
+              height: '52px',
               borderRadius: '16px',
               backgroundColor: 'rgba(59, 130, 246, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '20px'
+              marginBottom: '18px'
             }}>
-              <Truck size={28} color="#2563eb" />
+              <Truck size={26} color="#2563eb" />
             </div>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#092C5E', marginBottom: '10px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#092C5E', marginBottom: '8px' }}>
               Autonomous Fleet Routing
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, flex: 1, marginBottom: '24px' }}>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
               Dynamic GPS waypoints automatically reroute municipal compactor trucks and sidewalk sweepers directly to critical load zones, cutting dead mileage and emissions.
             </p>
             <Link
@@ -865,23 +800,23 @@ function Home({ onOpenWasteCamera }) {
           </div>
 
           {/* Card 3 */}
-          <div className="ios-card-white" style={{ padding: '32px', display: 'flex', flexDirection: 'column' }}>
+          <div className="ios-card-white" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
             <div style={{
-              width: '56px',
-              height: '56px',
+              width: '52px',
+              height: '52px',
               borderRadius: '16px',
               backgroundColor: 'rgba(245, 158, 11, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '20px'
+              marginBottom: '18px'
             }}>
-              <MapPin size={28} color="#d97706" />
+              <MapPin size={26} color="#d97706" />
             </div>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#092C5E', marginBottom: '10px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#092C5E', marginBottom: '8px' }}>
               3D Spatial Hexagon Grids
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6, flex: 1, marginBottom: '24px' }}>
+            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
               DeckGL-powered H3 geospatial pillars provide intuitive visualization of waste accumulation rates, allowing municipal planners to optimize bin placement.
             </p>
             <Link
@@ -905,12 +840,12 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 6. DARK BLUE PILLARS BANNER (Pukaar Section 5 Style) */}
+      {/* 6. PILLARS BANNER */}
       <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
         <div style={{
           background: 'linear-gradient(135deg, #092C5E 0%, #0B3B7B 50%, #061C3D 100%)',
-          borderRadius: '3rem',
-          padding: '56px 48px',
+          borderRadius: '2.5rem',
+          padding: '44px 32px',
           position: 'relative',
           overflow: 'hidden',
           boxShadow: '0 25px 60px -15px rgba(9, 44, 94, 0.35)',
@@ -921,8 +856,8 @@ function Home({ onOpenWasteCamera }) {
             position: 'absolute',
             top: 0,
             right: 0,
-            width: '320px',
-            height: '320px',
+            width: '300px',
+            height: '300px',
             background: 'rgba(59, 130, 246, 0.25)',
             filter: 'blur(100px)',
             borderRadius: '9999px',
@@ -932,8 +867,8 @@ function Home({ onOpenWasteCamera }) {
             position: 'absolute',
             bottom: 0,
             left: 0,
-            width: '320px',
-            height: '320px',
+            width: '300px',
+            height: '300px',
             background: 'rgba(34, 197, 94, 0.2)',
             filter: 'blur(100px)',
             borderRadius: '9999px',
@@ -941,7 +876,7 @@ function Home({ onOpenWasteCamera }) {
           }} />
 
           {/* Header */}
-          <div style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto 40px auto', position: 'relative', zIndex: 10 }}>
+          <div style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto 36px auto', position: 'relative', zIndex: 10 }}>
             <span style={{
               display: 'inline-block',
               background: 'rgba(255,255,255,0.12)',
@@ -958,44 +893,44 @@ function Home({ onOpenWasteCamera }) {
             }}>
               MUNICIPAL RESILIENCE & UPTIME
             </span>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'white', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               Built For Zero-Latency Operations.
             </h2>
-            <p style={{ color: 'rgba(219, 234, 254, 0.8)', fontSize: '1rem', marginTop: '10px', fontWeight: 500 }}>
+            <p style={{ color: 'rgba(219, 234, 254, 0.8)', fontSize: '0.95rem', marginTop: '10px', fontWeight: 500 }}>
               End-to-end reliability from IoT bin telematics to cloud machine learning and autonomous dispatch.
             </p>
           </div>
 
           {/* 3 Pillars */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', position: 'relative', zIndex: 10 }}>
+          <div className="three-col-grid" style={{ position: 'relative', zIndex: 10 }}>
             
             <div style={{
               background: 'rgba(255, 255, 255, 0.06)',
               backdropFilter: 'blur(16px)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '2rem',
-              padding: '32px 24px',
+              borderRadius: '1.5rem',
+              padding: '28px 20px',
               textAlign: 'center',
               transition: 'all 0.3s'
             }}>
               <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
                 background: 'rgba(34, 197, 94, 0.15)',
                 border: '1px solid rgba(34, 197, 94, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 20px auto',
+                margin: '0 auto 16px auto',
                 color: '#4ade80'
               }}>
-                <Zap size={30} />
+                <Zap size={26} />
               </div>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.25rem', marginBottom: '8px' }}>
+              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
                 15-Second Telemetry
               </h3>
-              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.85rem', lineHeight: 1.5 }}>
                 Edge-processed sensor events stream over cellular LoRaWAN to maintain sub-second updates without network bottleneck.
               </p>
             </div>
@@ -1004,29 +939,29 @@ function Home({ onOpenWasteCamera }) {
               background: 'rgba(255, 255, 255, 0.06)',
               backdropFilter: 'blur(16px)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '2rem',
-              padding: '32px 24px',
+              borderRadius: '1.5rem',
+              padding: '28px 20px',
               textAlign: 'center',
               transition: 'all 0.3s'
             }}>
               <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
                 background: 'rgba(59, 130, 246, 0.15)',
                 border: '1px solid rgba(59, 130, 246, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 20px auto',
+                margin: '0 auto 16px auto',
                 color: '#60a5fa'
               }}>
-                <Activity size={30} />
+                <Activity size={26} />
               </div>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.25rem', marginBottom: '8px' }}>
+              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
                 Predictive Reroutes
               </h3>
-              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.85rem', lineHeight: 1.5 }}>
                 Continuous algorithmic simulation generates dynamic waypoint updates as soon as trash capacity reaches 80%.
               </p>
             </div>
@@ -1035,29 +970,29 @@ function Home({ onOpenWasteCamera }) {
               background: 'rgba(255, 255, 255, 0.06)',
               backdropFilter: 'blur(16px)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '2rem',
-              padding: '32px 24px',
+              borderRadius: '1.5rem',
+              padding: '28px 20px',
               textAlign: 'center',
               transition: 'all 0.3s'
             }}>
               <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '20px',
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
                 background: 'rgba(168, 85, 247, 0.15)',
                 border: '1px solid rgba(168, 85, 247, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 20px auto',
+                margin: '0 auto 16px auto',
                 color: '#c084fc'
               }}>
-                <ShieldCheck size={30} />
+                <ShieldCheck size={26} />
               </div>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.25rem', marginBottom: '8px' }}>
+              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
                 End-to-End Encrypted
               </h3>
-              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.88rem', lineHeight: 1.5 }}>
+              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.85rem', lineHeight: 1.5 }}>
                 Military-grade AES-256 encrypted payload channels for municipal compliance and secure data governance.
               </p>
             </div>
@@ -1066,7 +1001,7 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 7. LIVE SYSTEM TICKER (Pukaar Scrolling Marquee Style) */}
+      {/* 7. LIVE SYSTEM TICKER */}
       <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto', overflow: 'hidden' }}>
         <div style={{ textAlign: 'center', marginBottom: '16px' }}>
           <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -1084,21 +1019,21 @@ function Home({ onOpenWasteCamera }) {
           border: '1px solid rgba(0,0,0,0.04)'
         }}>
           {/* Gradient Edges */}
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '60px', background: 'linear-gradient(to right, #fbfbfd, transparent)', zIndex: 10 }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '60px', background: 'linear-gradient(to left, #fbfbfd, transparent)', zIndex: 10 }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to right, #fbfbfd, transparent)', zIndex: 10 }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to left, #fbfbfd, transparent)', zIndex: 10 }} />
 
-          <div className="animate-scroll" style={{ display: 'flex', gap: '20px', padding: '0 20px' }}>
+          <div className="animate-scroll" style={{ display: 'flex', gap: '16px', padding: '0 16px' }}>
             {marqueeItems.concat(marqueeItems).map((text, idx) => (
               <div
                 key={idx}
                 style={{
                   flexShrink: 0,
                   backgroundColor: 'white',
-                  padding: '8px 18px',
+                  padding: '7px 16px',
                   borderRadius: '9999px',
                   border: '1px solid #e2e8f0',
                   boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                  fontSize: '0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: 600,
                   color: '#334155'
                 }}
@@ -1110,44 +1045,44 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 8. QUICK DISPATCH CTA (Pukaar Section 8 Style) */}
+      {/* 8. QUICK DISPATCH CTA */}
       <section style={{ maxWidth: '1000px', margin: '0 auto 60px auto' }}>
         <div className="ios-card-white" style={{
-          padding: '48px',
+          padding: '40px 24px',
           textAlign: 'center',
           boxShadow: '0 20px 50px -10px rgba(9,44,94,0.08)',
           border: '1px solid rgba(9,44,94,0.1)'
         }}>
           <div style={{
-            width: '64px',
-            height: '64px',
+            width: '56px',
+            height: '56px',
             backgroundColor: '#092C5E',
             color: 'white',
-            borderRadius: '20px',
+            borderRadius: '18px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 24px auto',
+            margin: '0 auto 20px auto',
             boxShadow: '0 10px 25px rgba(9, 44, 94, 0.25)',
             transform: 'rotate(-3deg)'
           }}>
-            <Sparkles size={32} />
+            <Sparkles size={28} />
           </div>
 
-          <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#092C5E', marginBottom: '12px' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#092C5E', marginBottom: '10px' }}>
             Ready to Monitor Urban Micro-Surges?
           </h2>
 
-          <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '540px', margin: '0 auto 28px auto', fontWeight: 500 }}>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 24px auto', fontWeight: 500 }}>
             Inspect real-time 3D hexagonal density layers, manage municipal vehicle telemetry, and track commercial diversion rates.
           </p>
 
-          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
               to="/dashboard"
               className="btn"
               style={{
-                padding: '14px 32px',
+                padding: '14px 30px',
                 borderRadius: '9999px',
                 backgroundColor: '#092C5E',
                 color: 'white',
@@ -1167,7 +1102,7 @@ function Home({ onOpenWasteCamera }) {
             <Link
               to="/fleet"
               style={{
-                padding: '14px 28px',
+                padding: '14px 26px',
                 borderRadius: '9999px',
                 backgroundColor: 'white',
                 color: '#092C5E',
@@ -1183,11 +1118,11 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 9. FOOTER (Pukaar Style) */}
+      {/* 9. FOOTER */}
       <footer style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        paddingTop: '28px',
+        paddingTop: '24px',
         borderTop: '1px solid #e2e8f0',
         display: 'flex',
         justifyContent: 'space-between',
@@ -1200,7 +1135,7 @@ function Home({ onOpenWasteCamera }) {
           <span style={{ fontWeight: 800, color: '#092C5E', fontSize: '1rem' }}>GridShift-AI</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '24px', fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
+        <div style={{ display: 'flex', gap: '20px', fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
           <Link to="/" style={{ color: '#092C5E', textDecoration: 'none' }}>Home</Link>
           <Link to="/dashboard" style={{ color: '#64748b', textDecoration: 'none' }}>Live Grid</Link>
           <Link to="/fleet" style={{ color: '#64748b', textDecoration: 'none' }}>Fleet Telemetry</Link>
