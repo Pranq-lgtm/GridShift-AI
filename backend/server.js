@@ -16,13 +16,33 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
+function getSanitizedMongoUri(uri) {
+    if (!uri) return uri;
+    try {
+        const { MongoClient } = require('mongodb');
+        new MongoClient(uri);
+        return uri;
+    } catch (err) {
+        if (err.message && err.message.includes('unescaped characters')) {
+            const match = uri.match(/^(mongodb(?:\+srv)?:\/\/)([^:]+):(.*)@(.+)$/);
+            if (match) {
+                const [, prefix, user, pass, rest] = match;
+                const encodedPass = encodeURIComponent(decodeURIComponent(pass));
+                return `${prefix}${encodeURIComponent(decodeURIComponent(user))}:${encodedPass}@${rest}`;
+            }
+        }
+        return uri;
+    }
+}
+
+const mongoUri = getSanitizedMongoUri(process.env.MONGO_URI);
+
+mongoose.connect(mongoUri, {
+    dbName: 'gridshift_db',
 }).then(() => {
     console.log('Connected to MongoDB');
 }).catch(err => {
-    console.error('MongoDB connection error:', err);
+    console.error('MongoDB connection error:', err.message || err);
 });
 
 const PermitSchema = new mongoose.Schema({
