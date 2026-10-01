@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import Login from './Login';
 import Navbar from './Navbar';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Fleet from './pages/Fleet';
 import Analytics from './pages/Analytics';
@@ -35,9 +36,10 @@ function App() {
         <Navbar user={user} />
         
         {/* Main content area */}
-        <div style={{ flex: 1, marginLeft: '290px', position: 'relative', height: '100vh' }}>
+        <div style={{ flex: 1, marginLeft: '290px', position: 'relative', height: '100vh', overflowY: 'auto' }}>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/fleet" element={<Fleet />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<Navigate to="/" replace />} />

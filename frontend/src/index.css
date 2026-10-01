@@ -4,19 +4,21 @@
   --color-glass-border: rgba(255, 255, 255, 0.5);
   --color-text-main: #1f2937;
   --color-text-muted: #6b7280;
-  
+
   --color-accent-green: #22c55e;
   --color-accent-green-light: rgba(34, 197, 94, 0.1);
   --color-accent-brown: #8b5a2b;
-  
+
   --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
   --blur-glass: blur(12px);
-  
+
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
 }
 
-*, *:before, *:after {
+*,
+*:before,
+*:after {
   box-sizing: inherit;
   margin: 0;
   padding: 0;
@@ -25,11 +27,11 @@
 body {
   background-color: var(--color-bg);
   background-image: radial-gradient(circle at 10% 20%, rgba(34, 197, 94, 0.05) 0%, transparent 20%),
-                    radial-gradient(circle at 90% 80%, rgba(139, 90, 43, 0.05) 0%, transparent 20%);
+    radial-gradient(circle at 90% 80%, rgba(139, 90, 43, 0.05) 0%, transparent 20%);
   color: var(--color-text-main);
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  3 flex-direction: column;
 }
 
 .glass-panel {
@@ -42,7 +44,10 @@ body {
   padding: 24px;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
@@ -83,7 +88,7 @@ p {
   .app-container {
     flex-direction: column;
   }
-  
+
   .sidebar {
     width: 100%;
     position: relative;
@@ -93,12 +98,12 @@ p {
     height: 50vh;
     padding: 10px;
   }
-  
+
   .map-container {
     height: 50vh;
     flex: none;
   }
-  
+
   .glass-panel {
     padding: 16px;
   }
@@ -172,10 +177,104 @@ p {
   justify-content: space-between;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(0,0,0,0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .stat-value {
   font-weight: 600;
   color: var(--color-text-main);
+}
+
+/* Pukaar iOS Style Design System */
+.ios-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+}
+
+.ios-card-white {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 10px 40px -10px rgba(9, 44, 94, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ios-card-white:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px -12px rgba(9, 44, 94, 0.14);
+}
+
+/* Hero Carousel */
+.hero-slide {
+  transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out;
+  opacity: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transform: scale(0.98);
+}
+
+.hero-slide.active {
+  opacity: 1;
+  z-index: 10;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.hero-dot {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.hero-dot.active {
+  background-color: #092C5E;
+  transform: scale(1.1);
+  width: 28px;
+  border-radius: 99px;
+}
+
+/* Marquee Animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  display: flex;
+  width: max-content;
+  animation: scroll 32s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
+
+/* Pulsing Badge & Radar Glows */
+@keyframes softPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.pulse-dot {
+  animation: softPulse 2s infinite ease-in-out;
 }

@@ -1,16 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
-import { LayoutDashboard, Truck, BarChart3, LogOut, ShieldAlert } from 'lucide-react';
+import { Home as HomeIcon, LayoutDashboard, Truck, BarChart3, LogOut } from 'lucide-react';
 import './index.css';
 
 function Navbar({ user }) {
   const location = useLocation();
   
   const navItems = [
-    { path: '/', label: 'Live Map', icon: <LayoutDashboard size={20} /> },
-    { path: '/fleet', label: 'Fleet Management', icon: <Truck size={20} /> },
-    { path: '/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { path: '/', label: 'Overview', icon: <HomeIcon size={20} /> },
+    { path: '/dashboard', label: 'Live Grid Map', icon: <LayoutDashboard size={20} /> },
+    { path: '/fleet', label: 'Fleet & Rovers', icon: <Truck size={20} /> },
+    { path: '/analytics', label: 'Surge Analytics', icon: <BarChart3 size={20} /> },
   ];
 
   return (
@@ -25,9 +26,16 @@ function Navbar({ user }) {
       flexDirection: 'column',
       padding: '24px 16px'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px', padding: '0 8px' }}>
-        <ShieldAlert size={28} color="var(--color-accent-green)" />
-        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>GridShift-AI</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '36px', padding: '0 8px' }}>
+        <img 
+          src="/favicon.jpg" 
+          alt="GridShift Logo" 
+          style={{ width: '34px', height: '34px', borderRadius: '10px', objectFit: 'contain', boxShadow: '0 4px 12px rgba(34, 197, 94, 0.25)', border: '1px solid rgba(34, 197, 94, 0.3)' }} 
+        />
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#092C5E', letterSpacing: '-0.02em' }}>GridShift-AI</h2>
+          <span style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SENTINEL ACTIVE</span>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
