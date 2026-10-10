@@ -15,7 +15,9 @@ import {
   Radio, 
   ChevronLeft,
   Activity,
-  Layers
+  Layers,
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import './index.css';
 
@@ -34,45 +36,30 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
   };
 
   const navItems = [
-    { path: '/', label: 'Overview', icon: <HomeIcon size={18} /> },
-    { path: '/dashboard', label: 'Live Grid Map', icon: <LayoutDashboard size={18} /> },
-    { path: '/fleet', label: 'Fleet & Rovers', icon: <Truck size={18} /> },
-    { path: '/analytics', label: 'Surge Analytics', icon: <BarChart3 size={18} /> },
+    { path: '/', label: 'Overview', icon: <HomeIcon size={16} /> },
+    { path: '/dashboard', label: 'Live Grid Map', icon: <LayoutDashboard size={16} /> },
+    { path: '/fleet', label: 'Fleet Dispatch', icon: <Truck size={16} /> },
+    { path: '/analytics', label: 'Surge Analytics', icon: <BarChart3 size={16} /> },
   ];
 
   return (
     <>
-      {/* 1. TOPBAR HEADER */}
-      <header
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '68px',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-          zIndex: 100,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 20px',
-          borderBottom: '1px solid #e2e8f0'
-        }}
-      >
-        {/* Left: Sidebar Toggle (Desktop Only) + Clean Brand Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Desktop-only toggle button */}
+      {/* ═══════════════════════════════════════════════════════
+          1. FROSTED GLASS TOP BAR
+          ═══════════════════════════════════════════════════════ */}
+      <header className="gs-topbar">
+        {/* Left: Toggle + Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="desktop-only-toggle"
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              backgroundColor: '#f1f5f9',
-              border: '1px solid #cbd5e1',
-              color: '#092C5E',
+              width: '34px',
+              height: '34px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(15, 23, 42, 0.04)',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
+              color: '#0F172A',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
@@ -81,49 +68,31 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             title={sidebarOpen ? 'Collapse Left Pane' : 'Expand Left Pane'}
             aria-label="Toggle Left Sidebar"
           >
-            {sidebarOpen ? <ChevronLeft size={18} /> : <Menu size={18} />}
+            {sidebarOpen ? <ChevronLeft size={16} /> : <Menu size={16} />}
           </button>
 
-          {/* Clean Brand Logo & Name */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
+          <Link to="/" className="gs-brand">
             <img 
               src="/favicon.jpg" 
               alt="GridShift Logo" 
-              style={{ width: '34px', height: '34px', borderRadius: '8px', objectFit: 'contain', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }} 
+              className="gs-brand-logo"
             />
             <div>
-              <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#092C5E', letterSpacing: '-0.02em', lineHeight: 1, display: 'block' }}>
-                GridShift-AI
-              </span>
-              <span style={{ fontSize: '9px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Waste Forecasting & Telemetry
-              </span>
+              <span className="gs-brand-name">GridShift AI</span>
+              <span className="gs-brand-sub">Predictive Waste Intelligence</span>
             </div>
           </Link>
         </div>
 
-        {/* Center: Desktop Navigation Links */}
-        <nav className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {/* Center: Navigation with Glowing Underlines */}
+        <nav className="gs-nav-center">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 14px',
-                  borderRadius: '9999px',
-                  textDecoration: 'none',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  color: isActive ? '#092C5E' : '#475569',
-                  backgroundColor: isActive ? 'rgba(34, 197, 94, 0.14)' : 'transparent',
-                  border: isActive ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid transparent',
-                  transition: 'all 0.2s'
-                }}
+                className={`gs-nav-link ${isActive ? 'active' : ''}`}
               >
                 {item.icon}
                 {item.label}
@@ -132,108 +101,67 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           })}
         </nav>
 
-        {/* Right Header Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Quick Photo Report Button (Desktop only) */}
+        {/* Right: Action Buttons */}
+        <div className="gs-nav-actions">
+          {/* Report Incident — Glossy Primary */}
           <button
             onClick={onOpenWasteCamera}
-            className="desktop-only-btn"
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              backgroundColor: '#092C5E',
-              color: 'white',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(9, 44, 94, 0.2)'
-            }}
+            className="gs-btn-primary desktop-only-btn"
           >
-            <Camera size={15} color="#22c55e" />
-            <span>Report Waste</span>
+            <AlertTriangle size={14} />
+            <span>Report Incident</span>
           </button>
 
-          {/* Copilot Chat Trigger (Desktop only) */}
-          <button
-            onClick={onOpenChatbot}
-            className="desktop-only-btn"
-            style={{
-              padding: '8px 14px',
-              borderRadius: '9999px',
-              backgroundColor: 'white',
-              color: '#092C5E',
-              border: '1px solid #cbd5e1',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
-            }}
-          >
-            <Bot size={15} color="#22c55e" />
-            <span>Ask Copilot</span>
-          </button>
-
-          {/* User Signout (Desktop only) */}
+          {/* Profile / Logout */}
           <button
             onClick={handleLogout}
-            className="desktop-only-btn"
-            style={{
-              padding: '8px 12px',
-              borderRadius: '9999px',
-              backgroundColor: '#fee2e2',
-              color: '#b91c1c',
-              border: '1px solid #fecaca',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer'
-            }}
+            className="gs-btn-ghost desktop-only-btn"
           >
-            <LogOut size={14} />
-            <span>Logout</span>
+            <User size={14} />
+            <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.displayName || user?.email?.split('@')[0] || 'Manager'}
+            </span>
+            <LogOut size={13} style={{ opacity: 0.5 }} />
           </button>
 
-          {/* Mobile Hamburger Drawer Button (ONLY icon visible on mobile right side) */}
+          {/* Mobile Hamburger */}
           <button
             onClick={() => setMobileDrawerOpen(true)}
             className="mobile-hamburger"
             style={{
-              width: '42px',
-              height: '42px',
+              width: '40px',
+              height: '40px',
               borderRadius: '10px',
-              backgroundColor: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              color: '#092C5E',
+              backgroundColor: 'rgba(15, 23, 42, 0.04)',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
+              color: '#0F172A',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer'
             }}
             aria-label="Open Mobile Menu"
           >
-            <Menu size={22} />
+            <Menu size={20} />
           </button>
         </div>
       </header>
 
-      {/* 2. COLLAPSIBLE LEFT-SIDE PANE (Desktop & Tablet) */}
+      {/* ═══════════════════════════════════════════════════════
+          2. COLLAPSIBLE LEFT PANE (Desktop)
+          ═══════════════════════════════════════════════════════ */}
       <aside
         style={{
           width: '260px',
-          height: 'calc(100vh - 68px)',
+          height: 'calc(100vh - 64px)',
           position: 'fixed',
           left: 0,
-          top: '68px',
+          top: '64px',
           zIndex: 90,
-          backgroundColor: 'rgba(255, 255, 255, 0.96)',
-          backdropFilter: 'blur(20px)',
-          borderRight: '1px solid #e2e8f0',
-          boxShadow: '4px 0 20px rgba(0,0,0,0.03)',
+          backgroundColor: 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+          borderRight: '1px solid rgba(15, 23, 42, 0.06)',
+          boxShadow: '4px 0 20px rgba(0,0,0,0.02)',
           display: 'flex',
           flexDirection: 'column',
           padding: '20px 16px',
@@ -242,7 +170,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 8px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             PORTAL CONTROLS
           </span>
           <button
@@ -250,12 +178,12 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
             title="Close Left Pane"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         {/* Navigation Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px' }}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -265,14 +193,14 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
-                  padding: '11px 14px',
-                  borderRadius: '12px',
+                  gap: '10px',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
                   textDecoration: 'none',
-                  fontSize: '0.88rem',
+                  fontSize: '0.85rem',
                   fontWeight: isActive ? 700 : 600,
                   color: isActive ? 'white' : '#334155',
-                  backgroundColor: isActive ? '#092C5E' : 'transparent',
+                  backgroundColor: isActive ? '#0F172A' : 'transparent',
                   transition: 'all 0.2s'
                 }}
               >
@@ -284,12 +212,12 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
         </div>
 
         {/* Dispatch Quick Links */}
-        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginBottom: 'auto' }}>
+        <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px', marginBottom: 'auto' }}>
           <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '10px' }}>
             SURGE DISPATCHES
           </span>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <Link
               to="/dashboard"
               style={{
@@ -298,16 +226,16 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 justifyContent: 'space-between',
                 padding: '9px 12px',
                 borderRadius: '8px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fee2e2',
+                backgroundColor: 'rgba(220, 38, 38, 0.06)',
+                border: '1px solid rgba(220, 38, 38, 0.10)',
                 textDecoration: 'none',
                 fontSize: '11px',
                 fontWeight: 700,
-                color: '#b91c1c'
+                color: '#DC2626'
               }}
             >
               <span>⚠️ Active Micro-Surges</span>
-              <span className="pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#ef4444' }} />
+              <span className="pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#DC2626' }} />
             </Link>
 
             <Link
@@ -318,12 +246,12 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 justifyContent: 'space-between',
                 padding: '9px 12px',
                 borderRadius: '8px',
-                backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a',
+                backgroundColor: 'rgba(217, 119, 6, 0.06)',
+                border: '1px solid rgba(217, 119, 6, 0.10)',
                 textDecoration: 'none',
                 fontSize: '11px',
                 fontWeight: 700,
-                color: '#b45309'
+                color: '#D97706'
               }}
             >
               <span>🏗️ C&D Debris Sites</span>
@@ -338,12 +266,12 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 justifyContent: 'space-between',
                 padding: '9px 12px',
                 borderRadius: '8px',
-                backgroundColor: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                backgroundColor: 'rgba(6, 182, 212, 0.06)',
+                border: '1px solid rgba(6, 182, 212, 0.10)',
                 textDecoration: 'none',
                 fontSize: '11px',
                 fontWeight: 700,
-                color: '#1d4ed8'
+                color: '#0891B2'
               }}
             >
               <span>🤖 Autonomous Fleet</span>
@@ -352,25 +280,27 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           </div>
         </div>
 
-        {/* Bottom Profile Info & Health */}
-        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#16a34a', fontWeight: 700, marginBottom: '8px' }}>
+        {/* Bottom Status & Profile */}
+        <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#059669', fontWeight: 700, marginBottom: '8px' }}>
             <Radio size={14} className="pulse-dot" />
-            <span>Telemetry Network: 100% Online</span>
+            <span>Telemetry Network: Online</span>
           </div>
-          <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {user?.email || user?.phoneNumber || 'Authenticated User'}
           </p>
         </div>
       </aside>
 
-      {/* 3. MOBILE SLIDE-IN DRAWER (Clean, uncluttered, accessible) */}
+      {/* ═══════════════════════════════════════════════════════
+          3. MOBILE SLIDE-IN DRAWER
+          ═══════════════════════════════════════════════════════ */}
       {mobileDrawerOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
           {/* Backdrop */}
           <div
             onClick={() => setMobileDrawerOpen(false)}
-            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
+            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.60)', backdropFilter: 'blur(6px)' }}
           />
 
           {/* Drawer Body */}
@@ -383,7 +313,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               width: '300px',
               maxWidth: '85vw',
               backgroundColor: '#ffffff',
-              boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
               padding: '24px 20px',
               display: 'flex',
               flexDirection: 'column',
@@ -393,21 +323,21 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             }}
           >
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(15, 23, 42, 0.06)', paddingBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <img src="/favicon.jpg" alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
-                  <span style={{ fontWeight: 900, color: '#092C5E', fontSize: '1.15rem' }}>GridShift-AI</span>
+                  <span style={{ fontWeight: 900, color: '#0F172A', fontSize: '1.1rem', letterSpacing: '-0.02em' }}>GridShift AI</span>
                 </div>
                 <button
                   onClick={() => setMobileDrawerOpen(false)}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
                 >
-                  <X size={24} />
+                  <X size={22} />
                 </button>
               </div>
 
-              {/* Navigation Links */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '20px' }}>
+              {/* Navigation */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '20px' }}>
                 {navItems.map((item) => (
                   <Link
                     key={item.path}
@@ -416,14 +346,14 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '12px',
+                      gap: '10px',
                       padding: '12px 14px',
-                      borderRadius: '12px',
+                      borderRadius: '10px',
                       textDecoration: 'none',
-                      fontSize: '0.95rem',
+                      fontSize: '0.92rem',
                       fontWeight: 700,
-                      color: location.pathname === item.path ? '#092C5E' : '#475569',
-                      backgroundColor: location.pathname === item.path ? 'rgba(34, 197, 94, 0.12)' : 'transparent'
+                      color: location.pathname === item.path ? '#0F172A' : '#475569',
+                      backgroundColor: location.pathname === item.path ? 'rgba(6, 182, 212, 0.08)' : 'transparent'
                     }}
                   >
                     {item.icon}
@@ -439,11 +369,11 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                     setMobileDrawerOpen(false);
                     onOpenWasteCamera();
                   }}
-                  className="btn btn-primary"
-                  style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  className="btn btn-cta-gradient"
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
-                  <Camera size={18} />
-                  Report Waste (Camera)
+                  <AlertTriangle size={16} />
+                  Report Incident
                 </button>
 
                 <button
@@ -454,25 +384,26 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                   style={{
                     width: '100%',
                     padding: '12px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    color: '#092C5E',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(15, 23, 42, 0.04)',
+                    border: '1px solid rgba(15, 23, 42, 0.08)',
+                    color: '#0F172A',
                     fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    cursor: 'pointer'
                   }}
                 >
-                  <Bot size={18} color="#16a34a" />
-                  Ask AI Copilot (RAG)
+                  <Bot size={16} color="#06B6D4" />
+                  Ask AI Copilot
                 </button>
               </div>
             </div>
 
-            {/* User Info & Logout */}
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+            {/* User & Logout */}
+            <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px' }}>
               <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>
                 {user?.email || user?.phoneNumber}
               </p>
@@ -481,19 +412,20 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 style={{
                   width: '100%',
                   padding: '11px',
-                  backgroundColor: '#fee2e2',
-                  color: '#b91c1c',
-                  border: 'none',
+                  backgroundColor: 'rgba(220, 38, 38, 0.06)',
+                  color: '#DC2626',
+                  border: '1px solid rgba(220, 38, 38, 0.10)',
                   borderRadius: '10px',
                   fontWeight: 700,
                   fontSize: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  cursor: 'pointer'
                 }}
               >
-                <LogOut size={16} />
+                <LogOut size={15} />
                 Sign Out
               </button>
             </div>

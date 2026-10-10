@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
-  ChevronLeft, 
-  ChevronRight, 
   Cpu, 
   Truck, 
   MapPin, 
@@ -15,59 +13,16 @@ import {
   Activity, 
   BarChart3,
   Radar,
-  Camera
+  Camera,
+  Radio,
+  AlertTriangle,
+  Eye,
+  Signal,
+  Globe
 } from 'lucide-react';
 import '../index.css';
 
 function Home({ onOpenWasteCamera }) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const slides = [
-    {
-      badge: 'URBAN METABOLISM & INTELLIGENCE',
-      title: 'Autonomous Waste Grid.',
-      subtitle: 'Zero Overflows.',
-      description: 'Predict micro-surges before bins overflow. Coordinate autonomous rovers, smart IoT kitchen bins, and dynamic municipal routing with AI precision.',
-      primaryBtn: { text: 'Launch Live Grid Map', link: '/dashboard' },
-      secondaryBtn: { text: 'View Fleet Status', link: '/fleet' },
-      image: '/grid-isometric.jpg',
-      imageAlt: 'GridShift 3D Digital Twin City Model',
-      cardBadge: '3D DIGITAL TWIN • ACTIVE'
-    },
-    {
-      badge: 'COMPUTER VISION SENTINEL',
-      title: 'Real-Time Street Detection.',
-      subtitle: 'Autonomous Rover Scouts.',
-      description: 'Smart edge cameras and autonomous sidewalk rovers scan urban corridors in real-time, detecting debris clusters and optimizing dispatch.',
-      primaryBtn: { text: 'Audit Detected Debris', link: '/dashboard' },
-      secondaryBtn: { text: 'Track Rover Fleet', link: '/fleet' },
-      image: '/street-detection.jpg',
-      imageAlt: 'AI Street Vision Object Detection',
-      cardBadge: 'AI VISION • OBJECT-ID #042'
-    },
-    {
-      badge: 'COMMERCIAL IOT HARDWARE',
-      title: 'Precision Kitchen Sensors.',
-      subtitle: 'Organics Waste Tech.',
-      description: 'Heavy-duty IoT sensor modules for commercial kitchens and high-density venues track real-time fill depth, weight, and automated collection thresholds.',
-      primaryBtn: { text: 'Explore Analytics', link: '/analytics' },
-      secondaryBtn: { text: 'Configure Sensor Nodes', link: '/dashboard' },
-      image: '/iot-organics.jpg',
-      imageAlt: 'Commercial Kitchen Organics Smart IoT Bin',
-      cardBadge: 'IOT TELEMETRY • FILL 90%'
-    }
-  ];
-
-  // Auto-advance slides every 6 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
-
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   const marqueeItems = [
     '🟢 Ward 4: Bin #104 emptied by Autonomous Rover R-3',
@@ -81,433 +36,259 @@ function Home({ onOpenWasteCamera }) {
   return (
     <div className="home-container">
       
-      {/* 1. HERO SLIDESHOW CONTAINER (Pukaar Apple-Style) */}
-      <section style={{ maxWidth: '1280px', margin: '0 auto 40px auto' }}>
-        <div className="hero-slide-container">
-          {slides.map((slide, index) => {
-            const isActive = index === currentSlide;
-            return (
-              <div
-                key={index}
-                className={`hero-slide ${isActive ? 'active' : ''}`}
-                style={{ width: '100%', height: '100%' }}
-              >
-                <div className="hero-slide-content">
-                  {/* Left Text Content */}
-                  <div className="hero-text-col">
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'white',
-                      color: '#092C5E',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      padding: '6px 14px',
-                      borderRadius: '9999px',
-                      marginBottom: '16px',
-                      boxShadow: '0 2px 10px rgba(9, 44, 94, 0.06)',
-                      border: '1px solid rgba(9, 44, 94, 0.1)'
-                    }}>
-                      <Sparkles size={13} color="#22c55e" />
-                      {slide.badge}
-                    </span>
-
-                    <h1 className="hero-title">
-                      {slide.title}<br />
-                      <span style={{ color: '#22c55e' }}>{slide.subtitle}</span>
-                    </h1>
-
-                    <p className="hero-desc">
-                      {slide.description}
-                    </p>
-
-                    <div className="hero-btn-group">
-                      <Link
-                        to={slide.primaryBtn.link}
-                        className="btn"
-                        style={{
-                          padding: '14px 28px',
-                          borderRadius: '9999px',
-                          backgroundColor: '#092C5E',
-                          color: 'white',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                          boxShadow: '0 10px 25px -5px rgba(9, 44, 94, 0.3)',
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                      >
-                        {slide.primaryBtn.text}
-                        <ArrowRight size={16} />
-                      </Link>
-
-                      <Link
-                        to={slide.secondaryBtn.link}
-                        style={{
-                          padding: '14px 26px',
-                          borderRadius: '9999px',
-                          backgroundColor: 'white',
-                          color: '#092C5E',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                          border: '2px solid rgba(9, 44, 94, 0.12)',
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                        }}
-                      >
-                        {slide.secondaryBtn.text}
-                      </Link>
-
-                      {onOpenWasteCamera && (
-                        <button
-                          onClick={onOpenWasteCamera}
-                          type="button"
-                          style={{
-                            padding: '14px 22px',
-                            borderRadius: '9999px',
-                            backgroundColor: '#ecfdf5',
-                            color: '#065f46',
-                            border: '2px solid #a7f3d0',
-                            fontWeight: 700,
-                            fontSize: '0.9rem',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <Camera size={16} color="#059669" />
-                          Report Waste
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right Visual Image */}
-                  <div className="hero-image-col">
-                    {/* Ambient Glow */}
-                    <div style={{
-                      position: 'absolute',
-                      width: '260px',
-                      height: '260px',
-                      background: 'rgba(34, 197, 94, 0.22)',
-                      borderRadius: '9999px',
-                      filter: 'blur(50px)',
-                      zIndex: 0
-                    }} />
-
-                    <div style={{
-                      position: 'relative',
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '24px',
-                      overflow: 'hidden',
-                      boxShadow: '0 20px 40px -10px rgba(9, 44, 94, 0.25)',
-                      border: '3px solid rgba(255, 255, 255, 0.8)',
-                      zIndex: 1
-                    }}>
-                      <img
-                        src={slide.image}
-                        alt={slide.imageAlt}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
-                        }}
-                      />
-
-                      {/* Floating badge inside image */}
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '14px',
-                        left: '14px',
-                        background: 'rgba(9, 44, 94, 0.88)',
-                        backdropFilter: 'blur(10px)',
-                        color: 'white',
-                        padding: '6px 14px',
-                        borderRadius: '9999px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        letterSpacing: '0.05em',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        border: '1px solid rgba(255,255,255,0.2)'
-                      }}>
-                        <span className="pulse-dot" style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-                        {slide.cardBadge}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Slider Arrow Controls */}
-          <button
-            onClick={prevSlide}
-            aria-label="Previous slide"
-            className="hero-arrow-btn"
-            style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.92)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 20,
-              color: '#092C5E'
-            }}
-          >
-            <ChevronLeft size={20} />
-          </button>
-
-          <button
-            onClick={nextSlide}
-            aria-label="Next slide"
-            className="hero-arrow-btn"
-            style={{
-              position: 'absolute',
-              right: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.92)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              zIndex: 20,
-              color: '#092C5E'
-            }}
-          >
-            <ChevronRight size={20} />
-          </button>
-
-          {/* Slider Pagination Dots */}
+      {/* ═══════════════════════════════════════════════════════════
+          1. HERO — COMMAND CENTER ENTRY POINT
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="hero-command">
+        {/* Left Column: Actionable Text */}
+        <div className="hero-text-col">
           <div style={{
-            position: 'absolute',
-            bottom: '16px',
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
+            display: 'inline-flex',
+            alignItems: 'center',
             gap: '8px',
-            zIndex: 20
+            background: 'rgba(6, 182, 212, 0.08)',
+            color: '#0891B2',
+            fontSize: '11px',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            padding: '6px 14px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid rgba(6, 182, 212, 0.15)'
           }}>
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                aria-label={`Go to slide ${i + 1}`}
-                className={`hero-dot ${i === currentSlide ? 'active' : ''}`}
-                style={{
-                  height: '8px',
-                  width: i === currentSlide ? '28px' : '10px',
-                  borderRadius: '99px',
-                  backgroundColor: i === currentSlide ? '#092C5E' : '#cbd5e1',
-                  border: 'none',
-                  outline: 'none',
-                  padding: 0
-                }}
-              />
-            ))}
+            <Signal size={13} />
+            MUNICIPAL WASTE INTELLIGENCE PLATFORM
+          </div>
+
+          <h1 className="hero-title">
+            Anticipate.<br />
+            Deploy.<br />
+            <span className="accent">Clear.</span>
+          </h1>
+
+          <p className="hero-desc">
+            Predict hyper-local waste surges 48 hours in advance and dynamically route municipal fleets to prevent overflow. Powered by real-time IoT telemetry and edge AI.
+          </p>
+
+          <div className="hero-btn-group">
+            <Link
+              to="/dashboard"
+              className="btn btn-cta-gradient"
+              style={{
+                padding: '14px 28px',
+                fontSize: '0.92rem',
+                gap: '8px'
+              }}
+            >
+              <Globe size={17} />
+              Launch Command Grid
+            </Link>
+
+            <Link
+              to="/fleet"
+              className="btn btn-outline"
+              style={{
+                padding: '14px 24px',
+                fontSize: '0.92rem'
+              }}
+            >
+              Fleet Dispatch Status
+            </Link>
           </div>
         </div>
-      </section>
 
-      {/* 2. IMPACT METRICS BAR (Pukaar Section 2 Style) */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 50px auto' }}>
-        <div className="metrics-grid">
-          <div style={{ textAlign: 'center', borderRight: '1px solid #f1f5f9', padding: '8px' }}>
-            <div className="metrics-stat-value">
-              18.4K+
-            </div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Tons Diverted
-            </div>
-          </div>
+        {/* Right Column: Isometric Map Card with AI Glow */}
+        <div className="hero-image-col">
+          {/* Ambient teal glow behind */}
+          <div style={{
+            position: 'absolute',
+            width: '300px',
+            height: '300px',
+            background: 'radial-gradient(circle, rgba(6, 182, 212, 0.20) 0%, transparent 70%)',
+            borderRadius: '50%',
+            filter: 'blur(40px)',
+            zIndex: 0,
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)'
+          }} />
 
-          <div style={{ textAlign: 'center', borderRight: '1px solid #f1f5f9', padding: '8px' }}>
-            <div className="metrics-stat-value">
-              99.2%
-            </div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Prediction Accuracy
-            </div>
-          </div>
+          <div className="hero-map-card">
+            {/* Animated glow ring */}
+            <div className="hero-glow-ring" />
+            
+            <img
+              src="/grid-isometric.jpg"
+              alt="GridShift 3D Digital Twin — Predictive Waste Grid"
+            />
 
-          <div style={{ textAlign: 'center', borderRight: '1px solid #f1f5f9', padding: '8px' }}>
-            <div className="metrics-stat-value">
-              140+
-            </div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Connected Sensors
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px' }}>
+            {/* Floating nodes overlay */}
             <div style={{
-              backgroundColor: 'rgba(34, 197, 94, 0.12)',
-              color: '#16a34a',
-              padding: '6px 14px',
-              borderRadius: '9999px',
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              background: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(12px)',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              fontWeight: 800,
-              fontSize: '12px',
-              marginBottom: '4px',
-              border: '1px solid rgba(34, 197, 94, 0.25)'
+              border: '1px solid rgba(6, 182, 212, 0.2)'
             }}>
-              <span className="pulse-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-              Active Sentinel
+              <span className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#06B6D4' }} />
+              AI PROCESSING ACTIVE
             </div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Real-Time Telematics
+
+            <div className="map-badge">
+              <span className="pulse-dot" style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+              3D DIGITAL TWIN • LIVE GRID
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. SPOTLIGHT SECTION 1: AI STREET SENTINEL (street-detection.jpg) */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
-        <div className="ios-card-white spotlight-card">
-          {/* Ambient Glow */}
+      {/* ═══════════════════════════════════════════════════════════
+          2. LIVE SYSTEM STATUS BAR
+          ═══════════════════════════════════════════════════════════ */}
+      <section className="live-status-bar">
+        {/* Segment 1: Ward Connectivity */}
+        <div className="status-segment">
+          <span className="status-dot green" />
+          <div>
+            <span className="status-label">Live Sync Status</span>
+            <span className="status-value">24/24 City Wards Connected</span>
+          </div>
+        </div>
+
+        {/* Segment 2: AI Forecasts */}
+        <div className="status-segment">
+          <span className="status-dot amber" />
+          <div>
+            <span className="status-label">Active AI Forecasts</span>
+            <span className="status-value">
+              <Link to="/analytics">3 Potential Surges Detected →</Link>
+            </span>
+          </div>
+        </div>
+
+        {/* Segment 3: Fleet Readiness */}
+        <div className="status-segment">
+          <span className="status-dot cyan" />
+          <div>
+            <span className="status-label">Fleet Readiness</span>
+            <span className="status-value">12/15 Mobile Compactors Available</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          3. AI STREET SENTINEL — Premium Spotlight Card
+          ═══════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto 56px auto' }}>
+        <div className="gs-card spotlight-card">
+          {/* Subtle ambient glow */}
           <div style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '260px',
-            height: '260px',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderRadius: '9999px',
-            filter: 'blur(70px)',
+            top: '-40px',
+            left: '-40px',
+            width: '280px',
+            height: '280px',
+            backgroundColor: 'rgba(6, 182, 212, 0.06)',
+            borderRadius: '50%',
+            filter: 'blur(60px)',
             pointerEvents: 'none'
           }} />
 
           {/* Left Text */}
-          <div style={{ flex: 1, zIndex: 10 }}>
+          <div style={{ flex: 1, zIndex: 10 }} className="spotlight-text-area">
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
               marginBottom: '16px',
-              backgroundColor: '#eff6ff',
-              color: '#092C5E',
+              backgroundColor: 'rgba(6, 182, 212, 0.08)',
+              color: '#0891B2',
               padding: '6px 14px',
-              borderRadius: '16px',
-              border: '1px solid #dbeafe'
+              borderRadius: '8px',
+              border: '1px solid rgba(6, 182, 212, 0.15)'
             }}>
-              <Radar size={16} color="#092C5E" />
+              <Radar size={14} color="#0891B2" />
               <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.1em' }}>
                 AI STREET SENTINEL
               </span>
             </div>
 
             <h2 style={{
-              fontSize: '2.4rem',
+              fontSize: '2.2rem',
               fontWeight: 900,
-              color: '#092C5E',
-              lineHeight: 1.2,
-              marginBottom: '18px',
-              letterSpacing: '-0.02em'
+              color: '#0F172A',
+              lineHeight: 1.15,
+              marginBottom: '16px',
+              letterSpacing: '-0.03em'
             }}>
               Autonomous Detection.<br />
-              <span style={{ color: '#2563eb' }}>Instant Rover Dispatch.</span>
+              <span style={{ background: 'linear-gradient(135deg, #06B6D4, #0EA5E9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                Instant Rover Dispatch.
+              </span>
             </h2>
 
             <p style={{
-              color: '#64748b',
-              fontSize: '1rem',
-              lineHeight: 1.6,
+              color: '#475569',
+              fontSize: '0.95rem',
+              lineHeight: 1.65,
               marginBottom: '24px',
               fontWeight: 500
             }}>
-              GridShift-AI deploys state-of-the-art computer vision to detect curbside debris, overflowing public bins, and litter hotspots in real time. Autonomous rovers and compactors receive dynamically prioritized dispatch vectors before community complaints arise.
+              State-of-the-art computer vision detects curbside debris, overflowing public bins, and litter hotspots in real time. Rovers receive dynamically prioritized dispatch vectors before community complaints arise.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: '#1f2937', fontWeight: 600 }}>
-                <CheckCircle2 size={18} color="#22c55e" />
-                <span>Real-time Object Classification: Recyclables, Organics, Hazardous Debris</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: '#1f2937', fontWeight: 600 }}>
-                <CheckCircle2 size={18} color="#22c55e" />
-                <span>Autonomous sidewalk rovers and compactor vehicle synchronization</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: '#1f2937', fontWeight: 600 }}>
-                <CheckCircle2 size={18} color="#22c55e" />
-                <span>Geotagged heatmaps mapped directly onto municipal GIS systems</span>
-              </div>
+              {[
+                'Real-time Object Classification: Recyclables, Organics, Hazardous',
+                'Autonomous rover and compactor vehicle synchronization',
+                'Geotagged heatmaps mapped directly onto municipal GIS'
+              ].map((text, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', color: '#1E293B', fontWeight: 600 }}>
+                  <CheckCircle2 size={16} color="#06B6D4" />
+                  <span>{text}</span>
+                </div>
+              ))}
             </div>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <Link
                 to="/dashboard"
-                className="btn"
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '9999px',
-                  backgroundColor: '#092C5E',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 8px 20px -4px rgba(9, 44, 94, 0.25)'
-                }}
+                className="btn btn-navy"
+                style={{ padding: '12px 22px', fontSize: '0.86rem', gap: '6px' }}
               >
+                <Eye size={15} />
                 Inspect Live Heatmap
               </Link>
               <Link
                 to="/fleet"
-                style={{
-                  padding: '12px 22px',
-                  borderRadius: '9999px',
-                  backgroundColor: 'white',
-                  color: '#092C5E',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  border: '2px solid rgba(9, 44, 94, 0.12)',
-                  textDecoration: 'none'
-                }}
+                className="btn btn-outline"
+                style={{ padding: '12px 20px', fontSize: '0.86rem' }}
               >
                 Fleet Telemetry
               </Link>
             </div>
           </div>
 
-          {/* Right Image Container */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10, width: '100%' }}>
+          {/* Right Image */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10, width: '100%' }} className="spotlight-img-area">
             <div style={{
               width: '100%',
               maxWidth: '500px',
-              borderRadius: '24px',
+              borderRadius: '12px',
               overflow: 'hidden',
-              boxShadow: '0 16px 36px -8px rgba(9, 44, 94, 0.2)',
-              border: '2px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 16px 40px -8px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
               position: 'relative'
             }}>
               <img
@@ -516,153 +297,150 @@ function Home({ onOpenWasteCamera }) {
                 style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '340px', objectFit: 'cover' }}
               />
 
-              {/* Heatmap overlay tag */}
+              {/* Location tag */}
               <div style={{
                 position: 'absolute',
                 top: '14px',
                 right: '14px',
                 background: 'rgba(15, 23, 42, 0.85)',
-                backdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(10px)',
                 color: 'white',
                 padding: '6px 12px',
                 borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: 600,
-                border: '1px solid rgba(255,255,255,0.15)'
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                border: '1px solid rgba(255,255,255,0.08)'
               }}>
                 LOCATION: BAYSHORE AVE
               </div>
 
+              {/* Detection info overlay */}
               <div style={{
                 position: 'absolute',
                 bottom: '14px',
                 left: '14px',
-                background: 'rgba(9, 44, 94, 0.9)',
-                backdropFilter: 'blur(10px)',
+                background: 'rgba(15, 23, 42, 0.90)',
+                backdropFilter: 'blur(12px)',
                 color: 'white',
-                padding: '8px 14px',
-                borderRadius: '12px',
+                padding: '10px 14px',
+                borderRadius: '10px',
                 fontSize: '11px',
-                lineHeight: 1.4,
-                border: '1px solid rgba(34, 197, 94, 0.4)'
+                lineHeight: 1.5,
+                border: '1px solid rgba(6, 182, 212, 0.20)'
               }}>
-                <div style={{ color: '#22c55e', fontWeight: 800 }}>OBJECT ID: DEBRIS-042</div>
-                <div>TYPE: RECYCLABLE (98.4%)</div>
-                <div style={{ color: '#cbd5e1', fontSize: '10px' }}>DISPATCH: ROVER-1 ASSIGNED</div>
+                <div style={{ color: '#06B6D4', fontWeight: 800, marginBottom: '2px' }}>OBJECT ID: DEBRIS-042</div>
+                <div style={{ color: 'rgba(255,255,255,0.8)' }}>TYPE: RECYCLABLE (98.4%)</div>
+                <div style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>DISPATCH: ROVER-1 ASSIGNED</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. SPOTLIGHT SECTION 2: COMMERCIAL KITCHENS & IOT TECH (iot-organics.jpg) */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
-        <div className="ios-card-white spotlight-card spotlight-reverse">
-          {/* Ambient Glow */}
+      {/* ═══════════════════════════════════════════════════════════
+          4. COMMERCIAL KITCHENS & IoT SPOTLIGHT
+          ═══════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto 56px auto' }}>
+        <div className="gs-card spotlight-card spotlight-reverse">
+          {/* Ambient glow */}
           <div style={{
             position: 'absolute',
-            bottom: 0,
-            right: 0,
-            width: '260px',
-            height: '260px',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            borderRadius: '9999px',
-            filter: 'blur(70px)',
+            bottom: '-40px',
+            right: '-40px',
+            width: '280px',
+            height: '280px',
+            backgroundColor: 'rgba(5, 150, 105, 0.06)',
+            borderRadius: '50%',
+            filter: 'blur(60px)',
             pointerEvents: 'none'
           }} />
 
           {/* Left Text */}
-          <div style={{ flex: 1, zIndex: 10 }}>
+          <div style={{ flex: 1, zIndex: 10 }} className="spotlight-text-area">
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
               marginBottom: '16px',
-              backgroundColor: '#ecfdf5',
-              color: '#065f46',
+              backgroundColor: 'rgba(5, 150, 105, 0.08)',
+              color: '#059669',
               padding: '6px 14px',
-              borderRadius: '16px',
-              border: '1px solid #a7f3d0'
+              borderRadius: '8px',
+              border: '1px solid rgba(5, 150, 105, 0.15)'
             }}>
-              <Cpu size={16} color="#059669" />
+              <Cpu size={14} color="#059669" />
               <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.1em' }}>
-                HEAVY-DUTY IOT TELEMETRY
+                HEAVY-DUTY IoT TELEMETRY
               </span>
             </div>
 
             <h2 style={{
-              fontSize: '2.4rem',
+              fontSize: '2.2rem',
               fontWeight: 900,
-              color: '#092C5E',
-              lineHeight: 1.2,
-              marginBottom: '18px',
-              letterSpacing: '-0.02em'
+              color: '#0F172A',
+              lineHeight: 1.15,
+              marginBottom: '16px',
+              letterSpacing: '-0.03em'
             }}>
               Precision Sensors.<br />
               <span style={{ color: '#059669' }}>From Kitchen to Curbside.</span>
             </h2>
 
             <p style={{
-              color: '#64748b',
-              fontSize: '1rem',
-              lineHeight: 1.6,
+              color: '#475569',
+              fontSize: '0.95rem',
+              lineHeight: 1.65,
               marginBottom: '24px',
               fontWeight: 500
             }}>
-              Commercial hospitality hubs and culinary facilities generate massive volumes of perishable organics. GridShift-AI hardware lids monitor fill height, weight, and internal temperatures—dispatching collections exactly when needed to eliminate odors and bacterial risks.
+              Commercial hospitality hubs generate massive volumes of perishable organics. GridShift AI hardware lids monitor fill height, weight, and internal temperatures—dispatching collections exactly when needed.
             </p>
 
+            {/* Stats mini-grid */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '12px',
+              gap: '10px',
               marginBottom: '28px'
             }}>
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#092C5E' }}>42%</div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Fuel Saved</div>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#059669' }}>0</div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Overflow Events</div>
-              </div>
-              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '16px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#092C5E' }}>3.4x</div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Faster Turnaround</div>
-              </div>
+              {[
+                { value: '42%', label: 'Fuel Saved', color: '#0F172A' },
+                { value: '0', label: 'Overflow Events', color: '#059669' },
+                { value: '3.4x', label: 'Faster Turnaround', color: '#0F172A' }
+              ].map((stat, i) => (
+                <div key={i} style={{
+                  background: 'rgba(15, 23, 42, 0.03)',
+                  padding: '14px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(15, 23, 42, 0.06)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 900, color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{stat.label}</div>
+                </div>
+              ))}
             </div>
 
             <Link
               to="/analytics"
-              className="btn"
-              style={{
-                padding: '12px 24px',
-                borderRadius: '9999px',
-                backgroundColor: '#092C5E',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                textDecoration: 'none',
-                boxShadow: '0 8px 20px -4px rgba(9, 44, 94, 0.25)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
+              className="btn btn-navy"
+              style={{ padding: '12px 22px', fontSize: '0.86rem', gap: '6px' }}
             >
-              <BarChart3 size={16} />
+              <BarChart3 size={15} />
               View Organics Analytics
             </Link>
           </div>
 
           {/* Right Image */}
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10, width: '100%' }}>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 10, width: '100%' }} className="spotlight-img-area">
             <div style={{
               width: '100%',
               maxWidth: '500px',
-              borderRadius: '24px',
+              borderRadius: '12px',
               overflow: 'hidden',
-              boxShadow: '0 16px 36px -8px rgba(9, 44, 94, 0.2)',
-              border: '2px solid rgba(255,255,255,0.9)',
+              boxShadow: '0 16px 40px -8px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+              border: '1px solid rgba(15, 23, 42, 0.08)',
               position: 'relative'
             }}>
               <img
@@ -671,19 +449,19 @@ function Home({ onOpenWasteCamera }) {
                 style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '340px', objectFit: 'cover' }}
               />
 
-              {/* Status overlay tag */}
               <div style={{
                 position: 'absolute',
                 top: '14px',
                 left: '14px',
-                background: 'rgba(9, 44, 94, 0.9)',
-                backdropFilter: 'blur(8px)',
+                background: 'rgba(15, 23, 42, 0.88)',
+                backdropFilter: 'blur(10px)',
                 color: 'white',
                 padding: '6px 12px',
                 borderRadius: '8px',
-                fontSize: '11px',
+                fontSize: '10px',
                 fontWeight: 700,
-                border: '1px solid rgba(255,255,255,0.15)'
+                letterSpacing: '0.04em',
+                border: '1px solid rgba(255,255,255,0.08)'
               }}>
                 COMMERCIAL ORGANICS NODE
               </div>
@@ -693,28 +471,30 @@ function Home({ onOpenWasteCamera }) {
                 bottom: '14px',
                 right: '14px',
                 background: 'rgba(15, 23, 42, 0.92)',
-                backdropFilter: 'blur(10px)',
+                backdropFilter: 'blur(12px)',
                 color: 'white',
-                padding: '8px 14px',
-                borderRadius: '12px',
+                padding: '10px 14px',
+                borderRadius: '10px',
                 fontSize: '11px',
-                lineHeight: 1.4,
-                border: '1px solid rgba(239, 68, 68, 0.5)'
+                lineHeight: 1.5,
+                border: '1px solid rgba(217, 119, 6, 0.25)'
               }}>
-                <div style={{ color: '#ef4444', fontWeight: 800 }}>⚠️ SURGE ALERT: 90% FULL</div>
-                <div>NODE ID: GW134 (KITCHEN BAY 2)</div>
-                <div style={{ color: '#22c55e', fontSize: '10px' }}>AI OPTIMIZED ROUTE QUEUED</div>
+                <div style={{ color: '#F59E0B', fontWeight: 800, marginBottom: '2px' }}>⚠ SURGE ALERT: 90% FULL</div>
+                <div style={{ color: 'rgba(255,255,255,0.8)' }}>NODE ID: GW134 (KITCHEN BAY 2)</div>
+                <div style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>AI OPTIMIZED ROUTE QUEUED</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. SERVICES & CAPABILITIES GRID */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
+      {/* ═══════════════════════════════════════════════════════════
+          5. CORE AI MODULES & CAPABILITIES GRID
+          ═══════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto 56px auto' }}>
         <div style={{ marginBottom: '36px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#092C5E', letterSpacing: '-0.02em', marginBottom: '8px' }}>
-            Core AI Modules & <span style={{ color: '#22c55e' }}>Platform Capabilities</span>
+          <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.03em', marginBottom: '10px' }}>
+            Core AI Modules & <span style={{ background: 'linear-gradient(135deg, #06B6D4, #0EA5E9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Platform Capabilities</span>
           </h2>
           <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: 500, maxWidth: '600px', margin: '0 auto' }}>
             Modular intelligence engineered for municipal sanitation divisions, facility managers, and smart city operators.
@@ -722,156 +502,106 @@ function Home({ onOpenWasteCamera }) {
         </div>
 
         <div className="three-col-grid">
-          
-          {/* Card 1 */}
-          <div className="ios-card-white" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(34, 197, 94, 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '18px'
-            }}>
-              <Layers size={26} color="#16a34a" />
-            </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#092C5E', marginBottom: '8px' }}>
-              Micro-Surge Forecasting
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
-              Our XGBoost and neural models correlate commercial building permits, weather patterns, and historical disposal cycles to forecast volume spikes up to 48 hours in advance.
-            </p>
-            <Link
-              to="/analytics"
-              style={{
-                width: '100%',
-                textAlign: 'center',
-                backgroundColor: '#092C5E',
-                color: 'white',
-                fontWeight: 700,
-                padding: '12px',
+          {[
+            {
+              icon: <Layers size={24} />,
+              iconBg: 'rgba(6, 182, 212, 0.10)',
+              iconColor: '#0891B2',
+              title: 'Micro-Surge Forecasting',
+              desc: 'XGBoost and neural models correlate building permits, weather patterns, and historical disposal cycles to forecast volume spikes up to 48 hours in advance.',
+              link: '/analytics',
+              linkText: 'Explore Forecasting'
+            },
+            {
+              icon: <Truck size={24} />,
+              iconBg: 'rgba(14, 165, 233, 0.10)',
+              iconColor: '#0284C7',
+              title: 'Autonomous Fleet Routing',
+              desc: 'Dynamic GPS waypoints automatically reroute municipal compactor trucks and sidewalk sweepers directly to critical load zones, cutting dead mileage.',
+              link: '/fleet',
+              linkText: 'Manage Fleet'
+            },
+            {
+              icon: <MapPin size={24} />,
+              iconBg: 'rgba(217, 119, 6, 0.08)',
+              iconColor: '#D97706',
+              title: '3D Spatial Hexagon Grids',
+              desc: 'DeckGL-powered H3 geospatial pillars provide intuitive visualization of waste accumulation rates for optimized bin placement decisions.',
+              link: '/dashboard',
+              linkText: 'Open Spatial Map'
+            }
+          ].map((card, i) => (
+            <div key={i} className="gs-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{
+                width: '48px',
+                height: '48px',
                 borderRadius: '12px',
-                textDecoration: 'none',
-                fontSize: '0.85rem'
-              }}
-            >
-              Explore Forecasting &rarr;
-            </Link>
-          </div>
-
-          {/* Card 2 */}
-          <div className="ios-card-white" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(59, 130, 246, 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '18px'
-            }}>
-              <Truck size={26} color="#2563eb" />
+                backgroundColor: card.iconBg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '18px',
+                color: card.iconColor
+              }}>
+                {card.icon}
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', marginBottom: '8px' }}>
+                {card.title}
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.86rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
+                {card.desc}
+              </p>
+              <Link
+                to={card.link}
+                className="btn btn-navy"
+                style={{
+                  width: '100%',
+                  textAlign: 'center',
+                  padding: '11px',
+                  fontSize: '0.84rem'
+                }}
+              >
+                {card.linkText} →
+              </Link>
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#092C5E', marginBottom: '8px' }}>
-              Autonomous Fleet Routing
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
-              Dynamic GPS waypoints automatically reroute municipal compactor trucks and sidewalk sweepers directly to critical load zones, cutting dead mileage and emissions.
-            </p>
-            <Link
-              to="/fleet"
-              style={{
-                width: '100%',
-                textAlign: 'center',
-                backgroundColor: '#092C5E',
-                color: 'white',
-                fontWeight: 700,
-                padding: '12px',
-                borderRadius: '12px',
-                textDecoration: 'none',
-                fontSize: '0.85rem'
-              }}
-            >
-              Manage Fleet &rarr;
-            </Link>
-          </div>
-
-          {/* Card 3 */}
-          <div className="ios-card-white" style={{ padding: '28px', display: 'flex', flexDirection: 'column' }}>
-            <div style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '16px',
-              backgroundColor: 'rgba(245, 158, 11, 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '18px'
-            }}>
-              <MapPin size={26} color="#d97706" />
-            </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#092C5E', marginBottom: '8px' }}>
-              3D Spatial Hexagon Grids
-            </h3>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, flex: 1, marginBottom: '20px' }}>
-              DeckGL-powered H3 geospatial pillars provide intuitive visualization of waste accumulation rates, allowing municipal planners to optimize bin placement.
-            </p>
-            <Link
-              to="/dashboard"
-              style={{
-                width: '100%',
-                textAlign: 'center',
-                backgroundColor: '#092C5E',
-                color: 'white',
-                fontWeight: 700,
-                padding: '12px',
-                borderRadius: '12px',
-                textDecoration: 'none',
-                fontSize: '0.85rem'
-              }}
-            >
-              Open Spatial Map &rarr;
-            </Link>
-          </div>
-
+          ))}
         </div>
       </section>
 
-      {/* 6. PILLARS BANNER */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto' }}>
+      {/* ═══════════════════════════════════════════════════════════
+          6. RESILIENCE PILLARS BANNER
+          ═══════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto 56px auto' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #092C5E 0%, #0B3B7B 50%, #061C3D 100%)',
-          borderRadius: '2.5rem',
+          background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
+          borderRadius: '16px',
           padding: '44px 32px',
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: '0 25px 60px -15px rgba(9, 44, 94, 0.35)',
-          border: '1px solid rgba(255,255,255,0.1)'
+          boxShadow: '0 24px 60px -12px rgba(15, 23, 42, 0.40)',
+          border: '1px solid rgba(255,255,255,0.06)'
         }}>
           {/* Ambient Glows */}
           <div style={{
             position: 'absolute',
-            top: 0,
-            right: 0,
+            top: '-50px',
+            right: '-50px',
             width: '300px',
             height: '300px',
-            background: 'rgba(59, 130, 246, 0.25)',
-            filter: 'blur(100px)',
-            borderRadius: '9999px',
+            background: 'rgba(6, 182, 212, 0.15)',
+            filter: 'blur(80px)',
+            borderRadius: '50%',
             pointerEvents: 'none'
           }} />
           <div style={{
             position: 'absolute',
-            bottom: 0,
-            left: 0,
+            bottom: '-50px',
+            left: '-50px',
             width: '300px',
             height: '300px',
-            background: 'rgba(34, 197, 94, 0.2)',
-            filter: 'blur(100px)',
-            borderRadius: '9999px',
+            background: 'rgba(14, 165, 233, 0.10)',
+            filter: 'blur(80px)',
+            borderRadius: '50%',
             pointerEvents: 'none'
           }} />
 
@@ -879,132 +609,97 @@ function Home({ onOpenWasteCamera }) {
           <div style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto 36px auto', position: 'relative', zIndex: 10 }}>
             <span style={{
               display: 'inline-block',
-              background: 'rgba(255,255,255,0.12)',
-              color: '#93c5fd',
-              fontSize: '11px',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#7DD3FC',
+              fontSize: '10px',
               fontWeight: 800,
               textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              padding: '6px 16px',
-              borderRadius: '9999px',
+              letterSpacing: '0.10em',
+              padding: '6px 14px',
+              borderRadius: '8px',
               backdropFilter: 'blur(10px)',
               marginBottom: '14px',
-              border: '1px solid rgba(255,255,255,0.15)'
+              border: '1px solid rgba(255,255,255,0.08)'
             }}>
               MUNICIPAL RESILIENCE & UPTIME
             </span>
-            <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'white', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
               Built For Zero-Latency Operations.
             </h2>
-            <p style={{ color: 'rgba(219, 234, 254, 0.8)', fontSize: '0.95rem', marginTop: '10px', fontWeight: 500 }}>
+            <p style={{ color: 'rgba(203, 213, 225, 0.7)', fontSize: '0.92rem', marginTop: '10px', fontWeight: 500 }}>
               End-to-end reliability from IoT bin telematics to cloud machine learning and autonomous dispatch.
             </p>
           </div>
 
           {/* 3 Pillars */}
           <div className="three-col-grid" style={{ position: 'relative', zIndex: 10 }}>
-            
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '1.5rem',
-              padding: '28px 20px',
-              textAlign: 'center',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                background: 'rgba(34, 197, 94, 0.15)',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-                color: '#4ade80'
+            {[
+              {
+                icon: <Zap size={24} />,
+                iconBg: 'rgba(6, 182, 212, 0.15)',
+                iconBorder: 'rgba(6, 182, 212, 0.3)',
+                iconColor: '#67E8F9',
+                title: '15-Second Telemetry',
+                desc: 'Edge-processed sensor events stream over cellular LoRaWAN to maintain sub-second updates without network bottleneck.'
+              },
+              {
+                icon: <Activity size={24} />,
+                iconBg: 'rgba(14, 165, 233, 0.15)',
+                iconBorder: 'rgba(14, 165, 233, 0.3)',
+                iconColor: '#7DD3FC',
+                title: 'Predictive Reroutes',
+                desc: 'Continuous algorithmic simulation generates dynamic waypoint updates as soon as trash capacity reaches 80%.'
+              },
+              {
+                icon: <ShieldCheck size={24} />,
+                iconBg: 'rgba(168, 85, 247, 0.12)',
+                iconBorder: 'rgba(168, 85, 247, 0.25)',
+                iconColor: '#C4B5FD',
+                title: 'End-to-End Encrypted',
+                desc: 'AES-256 encrypted payload channels for municipal compliance and secure data governance.'
+              }
+            ].map((pillar, i) => (
+              <div key={i} style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                backdropFilter: 'blur(16px)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '12px',
+                padding: '28px 20px',
+                textAlign: 'center',
+                transition: 'all 0.3s'
               }}>
-                <Zap size={26} />
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '12px',
+                  background: pillar.iconBg,
+                  border: `1px solid ${pillar.iconBorder}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px auto',
+                  color: pillar.iconColor
+                }}>
+                  {pillar.icon}
+                </div>
+                <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.1rem', marginBottom: '8px' }}>
+                  {pillar.title}
+                </h3>
+                <p style={{ color: 'rgba(203, 213, 225, 0.6)', fontSize: '0.84rem', lineHeight: 1.55 }}>
+                  {pillar.desc}
+                </p>
               </div>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
-                15-Second Telemetry
-              </h3>
-              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                Edge-processed sensor events stream over cellular LoRaWAN to maintain sub-second updates without network bottleneck.
-              </p>
-            </div>
-
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '1.5rem',
-              padding: '28px 20px',
-              textAlign: 'center',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                background: 'rgba(59, 130, 246, 0.15)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-                color: '#60a5fa'
-              }}>
-                <Activity size={26} />
-              </div>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
-                Predictive Reroutes
-              </h3>
-              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                Continuous algorithmic simulation generates dynamic waypoint updates as soon as trash capacity reaches 80%.
-              </p>
-            </div>
-
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '1.5rem',
-              padding: '28px 20px',
-              textAlign: 'center',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                background: 'rgba(168, 85, 247, 0.15)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px auto',
-                color: '#c084fc'
-              }}>
-                <ShieldCheck size={26} />
-              </div>
-              <h3 style={{ color: 'white', fontWeight: 800, fontSize: '1.15rem', marginBottom: '8px' }}>
-                End-to-End Encrypted
-              </h3>
-              <p style={{ color: 'rgba(219, 234, 254, 0.7)', fontSize: '0.85rem', lineHeight: 1.5 }}>
-                Military-grade AES-256 encrypted payload channels for municipal compliance and secure data governance.
-              </p>
-            </div>
-
+            ))}
           </div>
         </div>
       </section>
 
-      {/* 7. LIVE SYSTEM TICKER */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 60px auto', overflow: 'hidden' }}>
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+      {/* ═══════════════════════════════════════════════════════════
+          7. LIVE SYSTEM TICKER
+          ═══════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto 56px auto', overflow: 'hidden' }}>
+        <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.10em' }}>
             LIVE STREAM PULSE
           </span>
         </div>
@@ -1013,16 +708,16 @@ function Home({ onOpenWasteCamera }) {
           width: '100%',
           overflow: 'hidden',
           padding: '12px 0',
-          background: 'rgba(255, 255, 255, 0.6)',
+          background: 'rgba(255, 255, 255, 0.60)',
           backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          border: '1px solid rgba(0,0,0,0.04)'
+          borderRadius: '12px',
+          border: '1px solid rgba(15, 23, 42, 0.04)'
         }}>
           {/* Gradient Edges */}
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to right, #fbfbfd, transparent)', zIndex: 10 }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to left, #fbfbfd, transparent)', zIndex: 10 }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to right, var(--gs-bg), transparent)', zIndex: 10 }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to left, var(--gs-bg), transparent)', zIndex: 10 }} />
 
-          <div className="animate-scroll" style={{ display: 'flex', gap: '16px', padding: '0 16px' }}>
+          <div className="animate-scroll" style={{ display: 'flex', gap: '14px', padding: '0 16px' }}>
             {marqueeItems.concat(marqueeItems).map((text, idx) => (
               <div
                 key={idx}
@@ -1030,9 +725,9 @@ function Home({ onOpenWasteCamera }) {
                   flexShrink: 0,
                   backgroundColor: 'white',
                   padding: '7px 16px',
-                  borderRadius: '9999px',
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(15, 23, 42, 0.06)',
+                  boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
                   color: '#334155'
@@ -1045,53 +740,46 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 8. QUICK DISPATCH CTA */}
-      <section style={{ maxWidth: '1000px', margin: '0 auto 60px auto' }}>
-        <div className="ios-card-white" style={{
-          padding: '40px 24px',
+      {/* ═══════════════════════════════════════════════════════════
+          8. QUICK DISPATCH CTA
+          ═══════════════════════════════════════════════════════════ */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto 56px auto' }}>
+        <div className="gs-card" style={{
+          padding: '44px 24px',
           textAlign: 'center',
-          boxShadow: '0 20px 50px -10px rgba(9,44,94,0.08)',
-          border: '1px solid rgba(9,44,94,0.1)'
+          boxShadow: 'var(--gs-shadow-lg)'
         }}>
           <div style={{
-            width: '56px',
-            height: '56px',
-            backgroundColor: '#092C5E',
+            width: '52px',
+            height: '52px',
+            background: 'linear-gradient(135deg, #06B6D4, #0EA5E9)',
             color: 'white',
-            borderRadius: '18px',
+            borderRadius: '14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 20px auto',
-            boxShadow: '0 10px 25px rgba(9, 44, 94, 0.25)',
+            boxShadow: '0 8px 24px rgba(6, 182, 212, 0.30)',
             transform: 'rotate(-3deg)'
           }}>
-            <Sparkles size={28} />
+            <Sparkles size={26} />
           </div>
 
-          <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#092C5E', marginBottom: '10px' }}>
+          <h2 style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0F172A', marginBottom: '10px', letterSpacing: '-0.02em' }}>
             Ready to Monitor Urban Micro-Surges?
           </h2>
 
-          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 24px auto', fontWeight: 500 }}>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 28px auto', fontWeight: 500 }}>
             Inspect real-time 3D hexagonal density layers, manage municipal vehicle telemetry, and track commercial diversion rates.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link
               to="/dashboard"
-              className="btn"
+              className="btn btn-cta-gradient"
               style={{
-                padding: '14px 30px',
-                borderRadius: '9999px',
-                backgroundColor: '#092C5E',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                textDecoration: 'none',
-                boxShadow: '0 10px 25px -5px rgba(9, 44, 94, 0.3)',
-                display: 'inline-flex',
-                alignItems: 'center',
+                padding: '14px 28px',
+                fontSize: '0.92rem',
                 gap: '8px'
               }}
             >
@@ -1101,15 +789,10 @@ function Home({ onOpenWasteCamera }) {
 
             <Link
               to="/fleet"
+              className="btn btn-outline"
               style={{
-                padding: '14px 26px',
-                borderRadius: '9999px',
-                backgroundColor: 'white',
-                color: '#092C5E',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                border: '2px solid rgba(9, 44, 94, 0.15)',
-                textDecoration: 'none'
+                padding: '14px 24px',
+                fontSize: '0.92rem'
               }}
             >
               View Fleet Dispatches
@@ -1118,12 +801,14 @@ function Home({ onOpenWasteCamera }) {
         </div>
       </section>
 
-      {/* 9. FOOTER */}
+      {/* ═══════════════════════════════════════════════════════════
+          9. FOOTER
+          ═══════════════════════════════════════════════════════════ */}
       <footer style={{
-        maxWidth: '1200px',
+        maxWidth: '1280px',
         margin: '0 auto',
         paddingTop: '24px',
-        borderTop: '1px solid #e2e8f0',
+        borderTop: '1px solid rgba(15, 23, 42, 0.06)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -1131,19 +816,19 @@ function Home({ onOpenWasteCamera }) {
         gap: '16px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/favicon.jpg" alt="GridShift-AI" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
-          <span style={{ fontWeight: 800, color: '#092C5E', fontSize: '1rem' }}>GridShift-AI</span>
+          <img src="/favicon.jpg" alt="GridShift-AI" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+          <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.92rem', letterSpacing: '-0.02em' }}>GridShift AI</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '20px', fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
-          <Link to="/" style={{ color: '#092C5E', textDecoration: 'none' }}>Home</Link>
+        <div style={{ display: 'flex', gap: '20px', fontSize: '0.82rem', fontWeight: 600, color: '#64748b' }}>
+          <Link to="/" style={{ color: '#0F172A', textDecoration: 'none' }}>Home</Link>
           <Link to="/dashboard" style={{ color: '#64748b', textDecoration: 'none' }}>Live Grid</Link>
-          <Link to="/fleet" style={{ color: '#64748b', textDecoration: 'none' }}>Fleet Telemetry</Link>
+          <Link to="/fleet" style={{ color: '#64748b', textDecoration: 'none' }}>Fleet</Link>
           <Link to="/analytics" style={{ color: '#64748b', textDecoration: 'none' }}>Analytics</Link>
         </div>
 
-        <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500 }}>
-          &copy; 2026 GridShift-AI Platform. Autonomous Waste Management Intelligence.
+        <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 500 }}>
+          &copy; 2026 GridShift AI Platform. Autonomous Waste Management Intelligence.
         </div>
       </footer>
 

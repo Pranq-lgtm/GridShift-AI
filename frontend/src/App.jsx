@@ -99,10 +99,10 @@ function App() {
         <div 
           className="main-viewport"
           style={{ 
-            marginTop: '68px', 
+            marginTop: '64px', 
             marginLeft: sidebarOpen ? '260px' : '0px', 
             transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-            height: 'calc(100vh - 68px)', 
+            height: 'calc(100vh - 64px)', 
             position: 'relative',
             overflowY: 'auto'
           }}
