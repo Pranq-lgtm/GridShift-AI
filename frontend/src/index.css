@@ -48,6 +48,18 @@
   --gs-radius-lg: 12px;
   --gs-radius-xl: 16px;
 
+  /* ── Legacy Aliases (backward compat) ── */
+  --color-bg: var(--gs-bg);
+  --color-glass: var(--gs-glass);
+  --color-glass-border: var(--gs-glass-border);
+  --color-text-main: var(--gs-text);
+  --color-text-muted: var(--gs-text-muted);
+  --color-accent-green: #06B6D4;
+  --color-accent-green-light: var(--gs-cyan-soft);
+  --color-accent-brown: #0F172A;
+  --shadow-glass: var(--gs-shadow-md);
+  --blur-glass: blur(16px);
+
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
 }
