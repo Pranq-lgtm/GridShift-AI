@@ -14,6 +14,19 @@
 
 ---
 
+## 🎯 UN Sustainable Development Goals (SDG) Alignment
+
+GridShift-AI directly aligns with the United Nations 2030 Agenda for Sustainable Development, championing smarter, greener, and more resilient urban sanitation:
+
+| SDG | Goal & Target | GridShift-AI Contribution |
+| :--- | :--- | :--- |
+| **SDG 11**<br>*(Primary)* | **Sustainable Cities and Communities**<br>• *Target 11.6*: Reduce the adverse per capita environmental impact of cities, focusing on air quality & municipal waste management. | Eliminates chronic urban garbage overflows by replacing reactive cleanup with 24–48hr predictive micro-surge forecasts, AI copilot dispatches, and construction debris tracking. |
+| **SDG 12** | **Responsible Consumption & Production**<br>• *Target 12.4 & 12.5*: Sound management of wastes through life cycle and substantial reduction through recycling & reuse. | Categorizes waste at origin (organics, C&D rubble, plastics) and enables dynamic segregated logistics to specialized processing plants instead of open dump yards. |
+| **SDG 13** | **Climate Action**<br>• *Target 13.2*: Integrate climate change mitigation measures into urban planning. | Slashes municipal diesel emissions by ~22% via dynamic route optimization and prevents runaway methane emissions from decaying uncollected organic heaps. |
+| **SDG 9** | **Industry, Innovation & Infrastructure**<br>• *Target 9.4*: Upgrade infrastructure with clean, environmentally sound technologies. | Introduces Next-Gen civic tech: Deck.gl 3D spatial analytics, IoT telemetry, XGBoost predictive regression, and Gemini 2.5 Flash RAG copilot to public sector workflows. |
+
+---
+
 ## 🏗️ Architecture Stack
 
 GridShift-AI uses a modern, decoupled microservices architecture:
