@@ -5,6 +5,31 @@ import random
 from datetime import datetime, timedelta
 import os
 
+from pathlib import Path
+
+# Automatically load environment variables from .env
+def _load_env():
+    candidates = [
+        Path(__file__).resolve().parent / ".env",
+        Path(__file__).resolve().parent.parent / ".env",
+    ]
+    for env_file in candidates:
+        if env_file.exists():
+            try:
+                with open(env_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            k, v = k.strip(), v.strip().strip('"').strip("'")
+                            if k and k not in os.environ:
+                                os.environ[k] = v
+            except Exception:
+                pass
+            break
+
+_load_env()
+
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:5000")
 
 def scrape_municipal_permits():
@@ -56,8 +81,12 @@ def send_to_backend(permits):
         else:
             print(f"Failed to save to backend. Status code: {response.status_code}")
             print(response.text)
+    except requests.exceptions.ConnectionError:
+        print(f"\n[!] Connection Error: Could not reach Node.js backend at {BACKEND_URL}.")
+        print("    Please ensure the backend is running first:")
+        print("    Run: node server.js (or: cd backend && npm start)\n")
     except Exception as e:
-        print(f"Error communicating with backend: {e}")
+        print(f"\n[!] Error communicating with backend: {e}\n")
 
 if __name__ == "__main__":
     permits = scrape_municipal_permits()

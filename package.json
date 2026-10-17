@@ -1,0 +1,12 @@
+{
+  "name": "gridshift-ai",
+  "version": "1.0.0",
+  "description": "GridShift-AI root project runner",
+  "scripts": {
+    "start": "node server.js",
+    "backend": "npm --prefix backend start",
+    "frontend": "npm --prefix frontend dev",
+    "ml": "python ml_service/main.py",
+    "scraper": "python ml_service/scraper.py"
+  }
+}

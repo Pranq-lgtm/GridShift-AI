@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend (Node.js)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "program": "${workspaceFolder}/backend/server.js",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "ML Microservice (FastAPI)",
+      "type": "debugpy",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/ml_service",
+      "program": "${workspaceFolder}/ml_service/main.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Scraper (Python)",
+      "type": "debugpy",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/ml_service",
+      "program": "${workspaceFolder}/ml_service/scraper.py",
+      "console": "integratedTerminal"
+    }
+  ]
+}
