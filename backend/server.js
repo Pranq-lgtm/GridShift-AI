@@ -171,8 +171,8 @@ app.post('/api/permits/bulk', async (req, res) => {
 
         res.json({ message: `Successfully ingested and forecasted ${savedPermits.length} permits.`, data: savedPermits });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to process bulk permits' });
+        console.error('[/api/permits/bulk] Error:', err.message || err);
+        res.status(500).json({ error: 'Failed to process bulk permits', detail: err.message });
     }
 });
 
