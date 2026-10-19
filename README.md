@@ -2,7 +2,7 @@
 
 **GridShift-AI** is a data-driven micro-surge waste forecasting platform designed for municipal sanitation departments. By combining real-time city permit data with predictive Machine Learning (XGBoost) and Generative AI (Google Gemini 2.5 Flash), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering fleet managers to proactively deploy resources *before* trash overflows happen.
 
-> 🏆 **Submission for Seva Innovation Challenge 2026** — Theme: Governance & Civic Technology | UN SDG 11.6 & 12
+> UN SDG 11.6 & 12
 
 ---
 
@@ -328,6 +328,6 @@ Copyright (c) 2026 Pranav Kantak — ASSASSIN CODER'S
 
 ## 👥 Team
 
-**Team Name:** ASSASSIN CODER'S
-**Team Lead:** Pranav Sadanand Kantak | pranavkantak9@gmail.com
+**Team Name:** ASSASSIN CODER'S   
+   **Team Lead:** Pranav Sadanand Kantak |   pranavkantak9@gmail.com
 **GitHub:** https://github.com/Pranq-lgtm/GridShift-AI
