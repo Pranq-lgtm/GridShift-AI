@@ -320,7 +320,7 @@ GridShift-AI/
 
 ## 📜 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](https://github.com/Pranq-lgtm/GridShift-AI/blob/main/LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](https://github.com/Pranq-lgtm/GridShift-AI?tab=MIT-1-ov-file) file for details.
 
 Copyright (c) 2026 Pranav Kantak — ASSASSIN CODER'S
 
