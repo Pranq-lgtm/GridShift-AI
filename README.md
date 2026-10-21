@@ -320,7 +320,7 @@ GridShift-AI/
 
 ## 📜 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see the [LICENSE](https://github.com/Pranq-lgtm/GridShift-AI/blob/main/LICENSE) file for details.
 
 Copyright (c) 2026 Pranav Kantak — ASSASSIN CODER'S
 
@@ -329,5 +329,5 @@ Copyright (c) 2026 Pranav Kantak — ASSASSIN CODER'S
 ## 👥 Team
 
 **Team Name:** ASSASSIN CODER'S   
-   **Team Lead:** Pranav Sadanand Kantak |   pranavkantak9@gmail.com
+**Team Lead:** Pranav Kantak | pranavkantak9@gmail.com
 **GitHub:** https://github.com/Pranq-lgtm/GridShift-AI
