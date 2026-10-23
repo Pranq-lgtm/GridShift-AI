@@ -8,7 +8,7 @@ import { INITIAL_REDRESSAL_TICKETS } from './Redressal';
 import '../index.css';
 
 const RAW_GMAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
-const IS_AISTUDIO_DEMO_KEY = RAW_GMAPS_KEY === 'AIzaSyD907exSmrkdsn1tEc7PPH4kx8RpcPZwvw';
+const IS_AISTUDIO_DEMO_KEY = RAW_GMAPS_KEY === '[GCP_API_KEY]';
 const IS_AISTUDIO_HOST =
   typeof window !== 'undefined' &&
   (window.location.hostname.endsWith('.run.app') ||
