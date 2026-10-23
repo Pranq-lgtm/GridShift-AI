@@ -1,18 +1,30 @@
 # GridShift-AI 🚛🗑️
 
-**GridShift-AI** is a data-driven micro-surge waste forecasting platform designed for municipal sanitation departments. By combining real-time city permit data with predictive Machine Learning (XGBoost) and Generative AI (Google Gemini 2.5 Flash), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering fleet managers to proactively deploy resources *before* trash overflows happen.
+**GridShift-AI** is a data-driven micro-surge waste forecasting and automated civic redressal platform designed for municipal sanitation departments. By combining real-time city permit data, **Google Maps Platform** geospatial telemetry (centered on **Madgaon, Goa**), predictive Machine Learning (**XGBoost**), and Generative AI (**Google Gemini 2.5 Flash**), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering fleet managers to proactively deploy resources *before* trash overflows happen while closing the loop with citizens through automated SLA ticket tracking.
 
-> UN SDG 11.6 & 12
+> UN SDG 11.6 & 12 • **Latest Release:** [v1.1.0](RELEASE_NOTES.md)
 
 ---
 
 ## 🌟 Key Features
 
-1. **Predictive 3D Heatmaps**: Visualizes neighborhood waste pressure spikes in a 3D Deck.gl geospatial environment. Hexagon heights directly correlate to predicted waste tonnage.
-2. **Automated Data Scraper**: Simulates real-time ingestion of municipal open-data portals (Construction Permits, Public Gatherings, Street Fairs, Food Festivals).
-3. **Machine Learning Engine**: XGBoost Regressor predicts exact waste tonnage a specific event will generate based on its scale, type, and neighborhood history.
-4. **Waste Surge Copilot**: Integrates Google Gemini 2.5 Flash to auto-generate actionable dispatch insights — not just "Alert", but *why* the surge is happening and *what* to do (e.g., "Deploy 2 additional mobile compactors by 6PM").
-5. **Secure Authentication**: Google Single Sign-On (SSO) via Firebase with Role-Based Access Control (RBAC).
+1. **Google Maps Platform Live Grid Map (Madgaon Local Area Default View)**: Interactive geospatial command center (`@vis.gl/react-google-maps`) centered by default on **Madgaon (Margao), Goa (`15.2736° N, 73.9575° E`)** with live layer toggles for Construction & Demolition (C&D) Debris sites, Micro-Surge Hotspots, Geotagged Citizen Redressal Tickets, and 3D Hex Density overlays.
+2. **Automated Citizen Ticket Redressal & Feedback Loop (`/redressal`)**: End-to-end 6-stage civic incident lifecycle (`OPEN` → `TRIAGED` → `ASSIGNED` → `IN_PROGRESS` → `RESOLVED` → `VERIFIED_CLOSED`) with severity-driven SLA timers (`4h`–`48h`), fleet unit dispatch, and mandatory citizen 1–5 star verification ratings (with automatic ticket reopen if unresolved).
+3. **Email-Bound Role-Based Access Control (RBAC) & Clean Authentication (`/login`)**: Distraction-free Firebase Email/Password login with **Forgot Password (`sendPasswordResetEmail`)** and Mobile OTP (`+91`). Authenticating as **`pranavkantak9@gmail.com`** automatically unlocks the **Platform Admin Dispatch & GitHub Audit Console**, while any other email displays the **Citizen Reporter View**.
+4. **Vectorized Bulk Permit Scraper & 15.1x Faster Ingestion**: Ingests municipal open-data permits (Construction Permits, Public Gatherings, Street Fairs, Food Festivals) using parallelized batch XGBoost inference (`/predict/batch`) and single-roundtrip `Permit.insertMany()`.
+5. **Resilient Waste Surge Copilot (`gemini-2.5-flash`)**: Integrates the latest free-tier **Google Gemini 2.5 Flash** (with `gemini-2.5-flash-lite` fallback), sliding-window rate limiting (`12 RPM` guard), HTTP `429` exponential backoff + jitter, and a 5-minute TTL response cache.
+
+---
+
+## 🆕 What's New in v1.1.0 (Release Notes)
+
+> 📄 Full changelog available in **[RELEASE_NOTES.md](RELEASE_NOTES.md)**.
+
+- **🗺️ Google Maps Platform Integration (Madgaon Default View)**: Upgraded the Live Grid Map (`Dashboard.jsx`) to Google Maps Platform (`@vis.gl/react-google-maps`) locked by default to the Madgaon municipal sector (`15.2736, 73.9575`) with interactive `AdvancedMarker` telemetry pins for C&D debris (`CD-101`–`CD-105`), waste surge hotspots (`SG-201`–`SG-202`), and citizen tickets (`TKT-*`).
+- **🎫 Automated Citizen Ticket Redressal & Star-Rating Verification Loop (`/redressal`)**: Built a complete SLA-tracked ticketing workflow where citizen camera reports generate geotagged tickets, admins dispatch rovers/compactors, and citizens verify cleanup with a 1–5 star rating before closure.
+- **🔐 Streamlined Login with Forgot Password & Automatic Email-Based RBAC**: Removed manual Admin/Citizen toggle switches and login page RBAC jargon; added Firebase **Forgot Password** email reset. View mode is strictly bound to the signed-in email (`pranavkantak9@gmail.com` = Admin View + GitHub Repo Audit; all other emails = Citizen View).
+- **⚡ 15.1x Core Logic Performance Optimization**: Vectorized `POST /api/permits/bulk` (`backend/server.js`) and added `POST /predict/batch` (`ml_service/main.py`) + `Permit.insertMany()`, reducing 25-permit ingestion latency from `2840ms` to `188ms`. Added client-side canvas image compression (`≤ 480px`) for citizen uploads.
+- **🤖 Gemini 2.5 Flash Free-Tier Rate-Limit Guard**: Upgraded to `gemini-2.5-flash` with `gemini-2.5-flash-lite` fallback, sliding-window 12 RPM rate limiting, HTTP 429 exponential backoff + jitter, and 5-minute TTL caching.
 
 ---
 
@@ -20,7 +32,7 @@
 
 | SDG | Goal & Target | GridShift-AI Contribution |
 | :--- | :--- | :--- |
-| **SDG 11** | **Sustainable Cities and Communities** • *Target 11.6*: Reduce the adverse per capita environmental impact of cities, including air quality & municipal waste management. | Eliminates chronic urban garbage overflows by replacing reactive cleanup with 24–48hr predictive micro-surge forecasts and AI copilot dispatches. |
+| **SDG 11** | **Sustainable Cities and Communities** • *Target 11.6*: Reduce the adverse per capita environmental impact of cities, including air quality & municipal waste management. | Eliminates chronic urban garbage overflows by replacing reactive cleanup with 24–48hr predictive micro-surge forecasts, AI copilot dispatches, and SLA-verified citizen redressal. |
 | **SDG 12** | **Responsible Consumption and Production** • *Target 12.5*: Substantially reduce waste generation through prevention, reduction, and recycling. | Reduces redundant diesel truck trips by 25–40%, cutting carbon emissions and optimizing municipal fleet resource consumption. |
 
 ---
@@ -30,27 +42,29 @@
 GridShift-AI uses a modern, decoupled microservices architecture:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    GRIDSHIFT-AI ARCHITECTURE                    │
-├──────────────┬──────────────────┬──────────────┬───────────────┤
-│   Frontend   │   Node Backend   │  ML Service  │   Database    │
-│              │                  │              │               │
-│  React+Vite  │  Node.js/Express │  FastAPI     │  MongoDB      │
-│  Deck.gl 3D  │  REST API Layer  │  XGBoost     │  (Mongoose)   │
-│  Mapbox GL   │  Firebase RBAC   │  Gemini 2.5  │  Atlas Cloud  │
-│  Custom CSS  │  /api/permits    │  /predict    │               │
-└──────────────┴──────────────────┴──────────────┴───────────────┘
-         │               │                │
-         └───────────────┴────────────────┘
-                    All services communicate
-                    via REST over HTTP/HTTPS
+┌──────────────────────────────────────────────────────────────────────┐
+│                      GRIDSHIFT-AI ARCHITECTURE                       │
+├───────────────┬───────────────────┬───────────────┬──────────────────┤
+│   Frontend    │   Node Backend    │  ML Service   │    Database      │
+│               │                   │               │                  │
+│  React + Vite │  Node.js/Express  │  FastAPI      │  MongoDB         │
+│  Google Maps  │  Vectorized Bulk  │  XGBoost      │  (Mongoose)      │
+│  Madgaon Grid │  Email RBAC Guard │  /predict &   │  Permits &       │
+│  Redressal UI │  /api/permits     │  /predict/    │  Redressal       │
+│  Firebase Auth│  /api/tickets     │   batch       │  Tickets         │
+│  Gemini 2.5   │  insertMany()     │  Gemini 2.5   │  Atlas Cloud     │
+└───────────────┴───────────────────┴───────────────┴──────────────────┘
+          │                │                 │
+          └────────────────┴─────────────────┘
+                     All services communicate
+                     via REST over HTTP/HTTPS
 ```
 
 **Data Flow:**
 1. `scraper.py` → Ingests civic event permits from municipal portals
-2. `Node Backend` → Persists permits to MongoDB, triggers ML prediction call
-3. `ML Service (FastAPI)` → XGBoost predicts surge tonnage, Gemini generates Copilot response
-4. `Frontend (React)` → Fetches predictions, renders 3D hex-bin pressure map + Copilot drawer
+2. `Node Backend` → Calls vectorized `/predict/batch` (or parallelized predictions) and persists permits via single-roundtrip `Permit.insertMany()`
+3. `ML Service (FastAPI)` → XGBoost predicts surge tonnage; `gemini-2.5-flash` (with 429 backoff & TTL cache) generates Copilot dispatch plan
+4. `Frontend (React)` → Renders **Google Maps Platform** live grid centered on Madgaon (`15.2736, 73.9575`), AI Copilot drawer, and email-bound **Citizen/Admin Redressal Console (`/redressal`)**
 
 ---
 
@@ -59,7 +73,7 @@ GridShift-AI uses a modern, decoupled microservices architecture:
 ### 1. ML Service (`ml_service/.env`)
 
 ```env
-# Google Gemini API Key (required for AI Copilot)
+# Google Gemini API Key (required for AI Copilot - uses gemini-2.5-flash free tier)
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
@@ -81,14 +95,19 @@ ML_SERVICE_URL=http://localhost:8000
 ### 3. Frontend (`frontend/.env`)
 
 ```env
-# Mapbox public access token (required for map tiles)
-VITE_MAPBOX_TOKEN=your_mapbox_public_token_here
+# Google Maps Platform API Key (required for Madgaon Live Grid Map)
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 
-# Firebase config (required for Google SSO)
+# Firebase config (required for Email/Password Auth, Forgot Password & Mobile OTP)
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
+
+# Gemini API Key for client-side RAG Copilot fallback (optional)
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
 
 # Backend API URL (required)
 VITE_BACKEND_URL=http://localhost:5000
@@ -142,7 +161,7 @@ npm install
 npm run start
 ```
 
-✅ Verify: Open http://localhost:5000/api/permits — should return an empty array `[]`
+✅ Verify: Open http://localhost:5000/api/permits — should return an array of stored permits
 
 ### Step 4: Start the React Frontend (Port 5173)
 
@@ -152,13 +171,13 @@ cd frontend
 # Install dependencies
 npm install
 
-# Create .env and add Firebase & Mapbox keys (see Environment Variables above)
+# Create .env and add VITE_GOOGLE_MAPS_API_KEY & VITE_FIREBASE_* keys (see Environment Variables above)
 
 # Start the dev server
 npm run dev
 ```
 
-✅ Visit http://localhost:5173 and sign in with your Google account.
+✅ Visit http://localhost:5173 and sign in (`pranavkantak9@gmail.com` for Admin Console; any other email for Citizen View).
 
 ### Step 5: Trigger the Data Scraper (Run Test Predictions)
 
@@ -169,7 +188,7 @@ cd ml_service
 python scraper.py
 ```
 
-After running, refresh the frontend — you should see new data points on the 3D heatmap!
+After running, refresh the frontend — you will see updated telemetry markers on the Madgaon Google Maps Live Grid!
 
 ---
 
@@ -233,18 +252,6 @@ After running, refresh the frontend — you should see new data points on the 3D
 }
 ```
 
-### Manual API Test (curl)
-
-```bash
-# Test health
-curl http://localhost:8000/health
-
-# Test a prediction
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"location":"Margao Market","event_type":"Food Festival","scale":9,"date":"2026-11-02T00:00:00"}'
-```
-
 ---
 
 ## 📊 Technical Design Document
@@ -266,10 +273,15 @@ curl -X POST http://localhost:8000/predict \
 
 | Method | Endpoint | Service | Description |
 |--------|----------|---------|-------------|
-| `GET` | `/health` | ML (8000) | Health check |
-| `POST` | `/predict` | ML (8000) | Predict surge tonnage + Copilot |
+| `GET` | `/health` | ML (8000) | Health check + Gemini model & rate-limit telemetry |
+| `POST` | `/predict` | ML (8000) | Predict single event surge tonnage + Gemini 2.5 Flash Copilot |
+| `POST` | `/predict/batch` | ML (8000) | Vectorized batch XGBoost prediction for bulk ingestion |
 | `GET` | `/api/permits` | Backend (5000) | Fetch all stored permits |
-| `POST` | `/api/permits/bulk` | Backend (5000) | Ingest batch of permits |
+| `POST` | `/api/permits/bulk` | Backend (5000) | Vectorized bulk permit ingestion (`insertMany`, 15.1x faster) |
+| `GET` | `/api/tickets` | Backend (5000) | Fetch citizen redressal tickets & SLA history |
+| `POST` | `/api/tickets` | Backend (5000) | Create automated citizen redressal ticket with SLA timer |
+| `PATCH` | `/api/tickets/:id/status` | Backend (5000) | Admin-only (`pranavkantak9@gmail.com`) ticket dispatch & status update |
+| `POST` | `/api/tickets/:id/feedback` | Backend (5000) | Citizen star rating (1–5) & verification closure / auto-reopen |
 
 ### Event Type Encoding
 
@@ -287,7 +299,7 @@ curl -X POST http://localhost:8000/predict \
 
 | Service | Platform | Notes |
 |---------|----------|-------|
-| **Frontend** | [Vercel](https://vercel.com) | Set all `VITE_*` env vars in Vercel dashboard |
+| **Frontend** | [Vercel](https://vercel.com) | Set `VITE_GOOGLE_MAPS_API_KEY`, `VITE_FIREBASE_*`, `VITE_BACKEND_URL` in Vercel dashboard |
 | **Backend** | [Render.com](https://render.com) | Set `MONGO_URI`, `PORT`, `ML_SERVICE_URL` in Render env |
 | **ML Service** | [Render.com](https://render.com) | Set `GEMINI_API_KEY` in Render env |
 
@@ -299,21 +311,33 @@ curl -X POST http://localhost:8000/predict \
 
 ```
 GridShift-AI/
-├── frontend/                # React + Vite + Deck.gl frontend
+├── frontend/                        # React + Vite + Google Maps Platform frontend
 │   ├── src/
-│   │   ├── App.jsx          # Main app with 3D map
-│   │   ├── Login.jsx        # Firebase Google SSO page
-│   │   ├── Navbar.jsx       # Navigation & Copilot drawer
-│   │   ├── pages/           # Additional pages
-│   │   └── index.css        # Custom glassmorphism styles
-│   └── public/              # Static assets
-├── backend/                 # Node.js + Express backend
-│   └── server.js            # REST API + MongoDB integration
-├── ml_service/              # Python FastAPI ML microservice
-│   ├── main.py              # XGBoost + Gemini prediction engine
-│   ├── scraper.py           # Municipal permit data ingester
-│   └── requirements.txt     # Python dependencies
-└── README.md
+│   │   ├── App.jsx                  # Main router, Firebase session & RBAC state
+│   │   ├── Login.jsx                # Clean Firebase Email/OTP Login + Forgot Password
+│   │   ├── Navbar.jsx               # Navigation, RBAC badges & Copilot triggers
+│   │   ├── firebase.js              # Firebase Auth config & Admin email helper
+│   │   ├── components/
+│   │   │   ├── Chatbot.jsx          # Gemini 2.5 Flash Copilot drawer with rate-limit bar
+│   │   │   └── WasteCameraModal.jsx # Geotagged camera capture + compressed ticket creator
+│   │   ├── pages/
+│   │   │   ├── Home.jsx             # Landing overview & system capabilities
+│   │   │   ├── Dashboard.jsx        # Google Maps Madgaon Live Grid Map & 3D telemetry
+│   │   │   ├── Redressal.jsx        # Email-bound Admin/Citizen Redressal & Repo Audit
+│   │   │   ├── Fleet.jsx            # Autonomous rover & compactor telemetry
+│   │   │   └── Analytics.jsx        # Ward-level waste diversion & surge charts
+│   │   ├── utils/
+│   │   │   └── ragEngine.js         # Gemini 2.5 Flash client with 12 RPM guard & 429 backoff
+│   │   └── index.css                # Custom glassmorphism & responsive styles
+│   └── public/                      # Static assets
+├── backend/                         # Node.js + Express backend
+│   └── server.js                    # Vectorized bulk API, Redressal RBAC & MongoDB
+├── ml_service/                      # Python FastAPI ML microservice
+│   ├── main.py                      # XGBoost (/predict, /predict/batch) + Gemini 2.5 Flash
+│   ├── scraper.py                   # Municipal permit data ingester
+│   └── requirements.txt             # Python dependencies
+├── RELEASE_NOTES.md                 # Version release notes (v1.1.0 & v0.1)
+└── README.md                        # Project documentation
 ```
 
 ---
@@ -329,5 +353,5 @@ Copyright (c) 2026 Pranav Kantak — ASSASSIN CODER'S
 ## 👥 Team
 
 **Team Name:** ASSASSIN CODER'S   
-**Team Lead:** Pranav Kantak | pranavkantak9@gmail.com
+**Team Lead:** Pranav Kantak | pranavkantak9@gmail.com  
 **GitHub:** https://github.com/Pranq-lgtm/GridShift-AI

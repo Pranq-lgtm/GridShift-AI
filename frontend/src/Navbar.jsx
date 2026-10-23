@@ -1,33 +1,33 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from './firebase';
-import { 
-  Home as HomeIcon, 
-  LayoutDashboard, 
-  Truck, 
-  BarChart3, 
-  LogOut, 
-  Menu, 
-  X, 
-  Camera, 
-  Bot, 
-  Radio, 
+import { auth, isAdminUser } from './firebase';
+import {
+  Home as HomeIcon,
+  LayoutDashboard,
+  Truck,
+  BarChart3,
+  LogOut,
+  Menu,
+  X,
+  Bot,
+  Radio,
   ChevronLeft,
-  Activity,
-  Layers,
   AlertTriangle,
-  User
+  User,
+  ShieldCheck
 } from 'lucide-react';
 import './index.css';
 
 function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenChatbot }) {
   const location = useLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const isAdmin = isAdminUser(user);
 
   const handleLogout = async () => {
-    localStorage.removeItem("gridshift_demo_user");
-    window.dispatchEvent(new Event("gridshift_auth_change"));
+    sessionStorage.setItem('gridshift_signed_out', 'true');
+    localStorage.removeItem('gridshift_demo_user');
+    window.dispatchEvent(new Event('gridshift_auth_change'));
     try {
       await signOut(auth);
     } catch (e) {
@@ -38,6 +38,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
   const navItems = [
     { path: '/', label: 'Overview', icon: <HomeIcon size={16} /> },
     { path: '/dashboard', label: 'Live Grid Map', icon: <LayoutDashboard size={16} /> },
+    { path: '/redressal', label: 'Ticket Redressal', icon: <ShieldCheck size={16} /> },
     { path: '/fleet', label: 'Fleet Dispatch', icon: <Truck size={16} /> },
     { path: '/analytics', label: 'Surge Analytics', icon: <BarChart3 size={16} /> },
   ];
@@ -72,9 +73,9 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           </button>
 
           <Link to="/" className="gs-brand">
-            <img 
-              src="/favicon.jpg" 
-              alt="GridShift Logo" 
+            <img
+              src="/favicon.jpg"
+              alt="GridShift Logo"
               className="gs-brand-logo"
             />
             <div>
@@ -101,27 +102,46 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           })}
         </nav>
 
-        {/* Right: Action Buttons */}
+        {/* Right: Action Buttons & Authenticated Profile */}
         <div className="gs-nav-actions">
           {/* Report Incident — Glossy Primary */}
           <button
             onClick={onOpenWasteCamera}
             className="gs-btn-primary desktop-only-btn"
+            style={{ padding: '7px 14px', fontSize: '0.78rem' }}
           >
-            <AlertTriangle size={14} />
+            <AlertTriangle size={13} />
             <span>Report Incident</span>
           </button>
 
-          {/* Profile / Logout */}
+          {/* Authenticated User Display (No Role Switcher) */}
+          <div
+            className="desktop-only-btn"
+            style={{
+              padding: '6px 12px',
+              borderRadius: '9999px',
+              border: isAdmin ? '1px solid rgba(22, 163, 74, 0.35)' : '1px solid rgba(15, 23, 42, 0.12)',
+              backgroundColor: isAdmin ? 'rgba(22, 163, 74, 0.08)' : 'rgba(15, 23, 42, 0.04)',
+              color: isAdmin ? '#15803d' : '#334155',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.76rem',
+              fontWeight: 700
+            }}
+          >
+            {isAdmin ? <ShieldCheck size={13} /> : <User size={13} />}
+            <span>{user?.email || 'User'}</span>
+          </div>
+
+          {/* Compact Logout Button */}
           <button
             onClick={handleLogout}
             className="gs-btn-ghost desktop-only-btn"
+            title={`Sign Out (${user?.email || ''})`}
+            aria-label="Sign Out"
+            style={{ padding: '7px 9px' }}
           >
-            <User size={14} />
-            <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.displayName || user?.email?.split('@')[0] || 'Manager'}
-            </span>
-            <LogOut size={13} style={{ opacity: 0.5 }} />
+            <LogOut size={14} style={{ opacity: 0.7 }} />
           </button>
 
           {/* Mobile Hamburger */}
@@ -183,7 +203,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
         </div>
 
         {/* Navigation Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '20px' }}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -214,10 +234,30 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
         {/* Dispatch Quick Links */}
         <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px', marginBottom: 'auto' }}>
           <span style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '10px' }}>
-            SURGE DISPATCHES
+            SURGE & REDRESSAL
           </span>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <Link
+              to="/redressal"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(22, 163, 74, 0.08)',
+                border: '1px solid rgba(22, 163, 74, 0.16)',
+                textDecoration: 'none',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#15803d'
+              }}
+            >
+              <span>🎫 Ticket Redressal SLA</span>
+              <span>Active</span>
+            </Link>
+
             <Link
               to="/dashboard"
               style={{
@@ -236,26 +276,6 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             >
               <span>⚠️ Active Micro-Surges</span>
               <span className="pulse-dot" style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#DC2626' }} />
-            </Link>
-
-            <Link
-              to="/dashboard"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '9px 12px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(217, 119, 6, 0.06)',
-                border: '1px solid rgba(217, 119, 6, 0.10)',
-                textDecoration: 'none',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: '#D97706'
-              }}
-            >
-              <span>🏗️ C&D Debris Sites</span>
-              <span>Active</span>
             </Link>
 
             <Link
@@ -280,15 +300,39 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           </div>
         </div>
 
-        {/* Bottom Status & Profile */}
-        <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#059669', fontWeight: 700, marginBottom: '8px' }}>
-            <Radio size={14} className="pulse-dot" />
-            <span>Telemetry Network: Online</span>
+        {/* Bottom Authenticated Account Info */}
+        <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', backgroundColor: isAdmin ? '#dcfce7' : '#e0f2fe', color: isAdmin ? '#15803d' : '#0369a1' }}>
+              {isAdmin ? 'ADMINISTRATOR' : 'AUTHENTICATED USER'}
+            </span>
+            <Radio size={13} color="#059669" className="pulse-dot" />
           </div>
-          <p style={{ fontSize: '0.72rem', color: '#64748b', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user?.email || user?.phoneNumber || 'Authenticated User'}
+          <p style={{ fontSize: '0.76rem', fontWeight: 700, color: '#092C5E', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user?.email}
           </p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              borderRadius: '8px',
+              border: '1px solid rgba(220, 38, 38, 0.2)',
+              backgroundColor: 'rgba(220, 38, 38, 0.06)',
+              color: '#DC2626',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <LogOut size={13} />
+            Sign Out
+          </button>
         </div>
       </aside>
 
@@ -297,13 +341,11 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           ═══════════════════════════════════════════════════════ */}
       {mobileDrawerOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
-          {/* Backdrop */}
           <div
             onClick={() => setMobileDrawerOpen(false)}
             style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.60)', backdropFilter: 'blur(6px)' }}
           />
 
-          {/* Drawer Body */}
           <div
             style={{
               position: 'fixed',
@@ -336,7 +378,6 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 </button>
               </div>
 
-              {/* Navigation */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '20px' }}>
                 {navItems.map((item) => (
                   <Link
@@ -362,7 +403,6 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 ))}
               </div>
 
-              {/* Quick Actions */}
               <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
                   onClick={() => {
@@ -402,10 +442,9 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               </div>
             </div>
 
-            {/* User & Logout */}
             <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px' }}>
               <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>
-                {user?.email || user?.phoneNumber}
+                {user?.email}
               </p>
               <button
                 onClick={handleLogout}

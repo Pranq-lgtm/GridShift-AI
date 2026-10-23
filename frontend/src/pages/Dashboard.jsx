@@ -1,31 +1,21 @@
-import { useState, useEffect } from 'react';
-import DeckGL from '@deck.gl/react';
-import { HexagonLayer } from '@deck.gl/aggregation-layers';
-import { ScatterplotLayer, TextLayer } from '@deck.gl/layers';
-import { Map } from 'react-map-gl/mapbox';
+import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import axios from 'axios';
-import { Layers, X, Sparkles, Activity, Maximize2, MapPin, AlertTriangle, Truck, Camera } from 'lucide-react';
+import { Layers, X, Maximize2, AlertTriangle, Truck, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
+import { ADMIN_EMAIL, isAdminUser } from '../firebase';
+import { INITIAL_REDRESSAL_TICKETS } from './Redressal';
 import '../index.css';
 
-const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || 'pk.eyJ1IjoiZHVtbXkiLCJhIjoiY2x4eXh5eXh5eXh5eXh5eXh5eXh5eXh5eSJ9.dummy';
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
-const INITIAL_VIEW_STATE = {
-  longitude: 73.9575,
-  latitude: 15.2736,
-  zoom: 12.8,
-  pitch: 45,
-  bearing: -10
+// Default Madgaon (Margao), Goa Local Area Coordinates
+const MADGAON_DEFAULT_CENTER = {
+  lat: 15.2736,
+  lng: 73.9575
 };
-
-const colorRange = [
-  [34, 197, 94],
-  [134, 239, 172],
-  [253, 224, 71],
-  [245, 158, 11],
-  [217, 119, 6],
-  [139, 90, 43]
-];
+const MADGAON_DEFAULT_ZOOM = 14;
 
 // Verified Construction & Demolition (C&D) Debris Sites in Madgaon, Goa
 const CONSTRUCTION_DEBRIS = [
@@ -38,7 +28,7 @@ const CONSTRUCTION_DEBRIS = [
     permit: 'GS-MUN/BLD/2026/044',
     status: 'Demolition Active',
     severity: 'High',
-    color: [245, 158, 11], // Amber
+    color: [245, 158, 11],
     assigned: 'Truck T-304'
   },
   {
@@ -62,7 +52,7 @@ const CONSTRUCTION_DEBRIS = [
     permit: 'PWD/HW/2026/089',
     status: 'Heavy Transfer Required',
     severity: 'Critical',
-    color: [234, 88, 12], // Deep Orange
+    color: [234, 88, 12],
     assigned: 'Compactor T-402'
   },
   {
@@ -100,7 +90,7 @@ const SURGE_HOTSPOTS = [
     type: 'Organic Waste & Commercial Produce',
     status: 'Critical Surge Alarm (90% Fill)',
     severity: 'Critical',
-    color: [239, 68, 68], // Red
+    color: [239, 68, 68],
     assigned: 'Truck T-402 En Route'
   },
   {
@@ -116,12 +106,14 @@ const SURGE_HOTSPOTS = [
   }
 ];
 
-function Dashboard() {
+function Dashboard({ user }) {
+  const isAdmin = isAdminUser(user);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [predictions, setPredictions] = useState([]);
   const [showGridModal, setShowGridModal] = useState(false);
-  
+  const [toastMsg, setToastMsg] = useState(null);
+
   // Layer Toggles
   const [showDebris, setShowDebris] = useState(true);
   const [showSurges, setShowSurges] = useState(true);
@@ -133,83 +125,82 @@ function Dashboard() {
   const [citizenReports, setCitizenReports] = useState([]);
   const [mobileTelemetryOpen, setMobileTelemetryOpen] = useState(false);
 
-  // Load Citizen Reports from LocalStorage
-  const loadCitizenReports = () => {
-    const saved = JSON.parse(localStorage.getItem('gridshift_citizen_reports') || '[]');
-    if (saved.length === 0) {
-      const defaultReports = [
-        {
-          id: 'WD-401',
-          category: 'Construction Debris',
-          severity: 'Critical',
-          description: 'Large pile of masonry and concrete blocks blocking sidewalk',
-          coordinates: { lng: 73.9610, lat: 15.2790 },
-          location: 'Station Road, Margao',
-          timestamp: 'Today, 08:30 AM'
-        },
-        {
-          id: 'WD-402',
-          category: 'Overflowing Bin',
-          severity: 'High',
-          description: 'Cardboard and plastic boxes overflowing onto road',
-          coordinates: { lng: 73.9650, lat: 15.2650 },
-          location: 'Aquem Market Lane',
-          timestamp: 'Today, 07:15 AM'
-        }
-      ];
-      setCitizenReports(defaultReports);
-    } else {
-      setCitizenReports(saved);
+  const showNotification = useCallback((text) => {
+    setToastMsg(text);
+    setTimeout(() => setToastMsg(null), 4000);
+  }, []);
+
+  // Load Citizen Reports & Redressal Tickets from LocalStorage
+  const loadCitizenReports = useCallback(() => {
+    try {
+      const savedTickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+      if (savedTickets.length > 0) {
+        setCitizenReports(savedTickets);
+        return;
+      }
+      localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(INITIAL_REDRESSAL_TICKETS));
+      setCitizenReports(INITIAL_REDRESSAL_TICKETS);
+    } catch {
+      setCitizenReports(INITIAL_REDRESSAL_TICKETS);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadCitizenReports();
     const handleReportEvent = (e) => {
-      setCitizenReports((prev) => [e.detail, ...prev]);
-      setSelectedMarker({
-        id: e.detail.id,
-        name: `Citizen Report: ${e.detail.category}`,
-        coordinates: [e.detail.coordinates.lng, e.detail.coordinates.lat],
-        tonnage: 'Field Verified',
-        type: e.detail.category,
-        permit: 'Citizen Geo-Tag',
-        status: 'Dispatched to Rover R-1',
-        severity: e.detail.severity,
-        assigned: 'Autonomous Unit R-1',
-        photo: e.detail.photo
-      });
+      loadCitizenReports();
+      if (e.detail) {
+        setSelectedMarker({
+          id: e.detail.id,
+          name: `Citizen Ticket: ${e.detail.category}`,
+          coordinates: [e.detail.coordinates.lng, e.detail.coordinates.lat],
+          tonnage: 'Field Verified',
+          type: e.detail.category,
+          permit: `Ticket ${e.detail.id} (${e.detail.slaHours || 12}h SLA)`,
+          status: `${e.detail.status || 'TRIAGED'} — ${e.detail.assignedUnit || 'Rover R-1'}`,
+          severity: e.detail.severity,
+          assigned: e.detail.assignedUnit || 'Autonomous Unit R-1',
+          photo: e.detail.photo
+        });
+      }
     };
     window.addEventListener('citizenReportAdded', handleReportEvent);
-    return () => window.removeEventListener('citizenReportAdded', handleReportEvent);
-  }, []);
+    window.addEventListener('redressalTicketUpdated', loadCitizenReports);
+    return () => {
+      window.removeEventListener('citizenReportAdded', handleReportEvent);
+      window.removeEventListener('redressalTicketUpdated', loadCitizenReports);
+    };
+  }, [loadCitizenReports]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${BACKEND_URL}/api/permits`);
+      const apiPath = BACKEND_URL ? `${BACKEND_URL}/api/permits` : '/api/permits';
+      const response = await axios.get(apiPath);
       const realPermits = response.data;
-      
-      const mappedData = realPermits.map(permit => ({
-        position: [permit.coordinates.lng, permit.coordinates.lat],
-        weight: permit.forecast.predicted_surge_tonnage
-      }));
-      setData(mappedData);
-      
-      const alerts = realPermits
-        .filter(p => p.forecast.alert_triggered || p.forecast.pressure_level === 'High' || p.forecast.pressure_level === 'Critical')
-        .map(p => ({
-          location: p.location,
-          surge: p.forecast.predicted_surge_tonnage.toFixed(1),
-          level: p.forecast.pressure_level,
-          copilot: p.forecast.copilot
-        }))
-        .slice(0, 5);
-      
-      setPredictions(alerts);
-    } catch (err) {
-      console.warn("Backend permits offline, using default Goan coordinates:", err);
-      // Fallback synthetic permits
+
+      if (Array.isArray(realPermits) && realPermits.length > 0) {
+        const mappedData = realPermits.map((permit) => ({
+          position: [permit.coordinates.lng, permit.coordinates.lat],
+          weight: permit.forecast?.predicted_surge_tonnage || 10
+        }));
+        setData(mappedData);
+
+        const alerts = realPermits
+          .filter((p) => p.forecast?.alert_triggered || p.forecast?.pressure_level === 'High' || p.forecast?.pressure_level === 'Critical')
+          .map((p) => ({
+            location: p.location,
+            surge: Number(p.forecast.predicted_surge_tonnage).toFixed(1),
+            level: p.forecast.pressure_level,
+            copilot: p.forecast.copilot
+          }))
+          .slice(0, 5);
+
+        setPredictions(alerts);
+        return;
+      }
+      throw new Error('Empty permits list');
+    } catch {
       const fallbackPoints = [
         { position: [73.9575, 15.2736], weight: 18.0 },
         { position: [73.9620, 15.2891], weight: 14.5 },
@@ -222,171 +213,222 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  // DeckGL Layers
-  const layers = [
-    // 1. 3D Hexagon Density Heatmap
-    showHexagons && new HexagonLayer({
-      id: 'heatmap',
-      colorRange,
-      coverage: 0.9,
-      data,
-      elevationRange: [0, 1000],
-      elevationScale: data && data.length ? 40 : 0,
-      extruded: true,
-      getPosition: d => d.position,
-      getElevationValue: points => points.reduce((sum, p) => sum + p.weight, 0),
-      getColorValue: points => points.reduce((sum, p) => sum + p.weight, 0),
-      pickable: true,
-      radius: 350,
-      upperPercentile: 100,
-      material: {
-        ambient: 0.64,
-        diffuse: 0.6,
-        shininess: 32,
-        specularColor: [51, 51, 51]
-      }
-    }),
-
-    // 2. Construction Debris Scatterplot Markers (Amber/Orange)
-    showDebris && new ScatterplotLayer({
-      id: 'construction-debris-markers',
-      data: CONSTRUCTION_DEBRIS,
-      pickable: true,
-      opacity: 0.85,
-      stroked: true,
-      filled: true,
-      radiusScale: 1,
-      radiusMinPixels: 10,
-      radiusMaxPixels: 24,
-      lineWidthMinPixels: 2,
-      getPosition: d => d.coordinates,
-      getRadius: d => d.tonnage * 18,
-      getFillColor: d => [...d.color, 220],
-      getLineColor: [255, 255, 255, 255],
-      onClick: info => info.object && setSelectedMarker(info.object)
-    }),
-
-    // 2b. Construction Debris Labels
-    showDebris && new TextLayer({
-      id: 'construction-debris-labels',
-      data: CONSTRUCTION_DEBRIS,
-      pickable: true,
-      getPosition: d => d.coordinates,
-      getText: d => `🏗️ ${d.tonnage}T`,
-      getSize: 12,
-      getColor: [15, 23, 42, 255],
-      getTextAnchor: 'middle',
-      getAlignmentBaseline: 'bottom',
-      getPixelOffset: [0, -14],
-      backgroundColor: [255, 255, 255, 220],
-      backgroundPadding: [4, 2]
-    }),
-
-    // 3. Municipal Surge Hotspot Markers (Red)
-    showSurges && new ScatterplotLayer({
-      id: 'surge-hotspots-markers',
-      data: SURGE_HOTSPOTS,
-      pickable: true,
-      opacity: 0.9,
-      stroked: true,
-      filled: true,
-      radiusScale: 1,
-      radiusMinPixels: 12,
-      radiusMaxPixels: 26,
-      lineWidthMinPixels: 3,
-      getPosition: d => d.coordinates,
-      getRadius: d => d.tonnage * 20,
-      getFillColor: [239, 68, 68, 220],
-      getLineColor: [255, 255, 255, 255],
-      onClick: info => info.object && setSelectedMarker(info.object)
-    }),
-
-    showSurges && new TextLayer({
-      id: 'surge-hotspots-labels',
-      data: SURGE_HOTSPOTS,
-      pickable: true,
-      getPosition: d => d.coordinates,
-      getText: d => `⚠️ ${d.tonnage}T`,
-      getSize: 12,
-      getColor: [185, 28, 28, 255],
-      getTextAnchor: 'middle',
-      getAlignmentBaseline: 'bottom',
-      getPixelOffset: [0, -14],
-      backgroundColor: [254, 242, 242, 240],
-      backgroundPadding: [4, 2]
-    }),
-
-    // 4. Citizen Reported Waste Markers (Purple)
-    showCitizenReports && new ScatterplotLayer({
-      id: 'citizen-reports-markers',
-      data: citizenReports,
-      pickable: true,
-      opacity: 0.9,
-      stroked: true,
-      filled: true,
-      radiusMinPixels: 9,
-      radiusMaxPixels: 20,
-      lineWidthMinPixels: 2,
-      getPosition: d => [d.coordinates.lng, d.coordinates.lat],
-      getRadius: 160,
-      getFillColor: [168, 85, 247, 220], // Purple
-      getLineColor: [255, 255, 255, 255],
-      onClick: info => {
-        if (info.object) {
-          setSelectedMarker({
-            id: info.object.id,
-            name: `Citizen Report: ${info.object.category}`,
-            coordinates: [info.object.coordinates.lng, info.object.coordinates.lat],
-            tonnage: 'Field Incident',
-            type: info.object.category,
-            permit: 'Citizen Report',
-            status: 'Verified Hotspot',
-            severity: info.object.severity,
-            assigned: 'Rover R-1 En Route',
-            photo: info.object.photo,
-            description: info.object.description
-          });
-        }
-      }
-    }),
-
-    showCitizenReports && new TextLayer({
-      id: 'citizen-reports-labels',
-      data: citizenReports,
-      pickable: true,
-      getPosition: d => [d.coordinates.lng, d.coordinates.lat],
-      getText: () => '📸',
-      getSize: 14,
-      getColor: [107, 33, 168, 255],
-      getTextAnchor: 'middle',
-      getAlignmentBaseline: 'bottom',
-      getPixelOffset: [0, -12]
-    })
-  ].filter(Boolean);
+  const handleDispatchFromMap = () => {
+    if (!isAdmin) return;
+    setSelectedMarker((prev) =>
+      prev ? { ...prev, status: `ASSIGNED — Dispatched by ${ADMIN_EMAIL}` } : prev
+    );
+    showNotification(`Compactor dispatched to ${selectedMarker.name} by Admin (${ADMIN_EMAIL})!`);
+  };
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      
-      {/* 1. DECK.GL + MAPBOX BASEMAP */}
-      <div style={{ position: 'absolute', inset: 0 }}>
-        <DeckGL
-          initialViewState={INITIAL_VIEW_STATE}
-          controller={true}
-          layers={layers}
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1200,
+            backgroundColor: '#092C5E',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '14px',
+            boxShadow: '0 14px 36px rgba(0,0,0,0.3)',
+            fontSize: '0.84rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <Map mapStyle="mapbox://styles/mapbox/light-v10" mapboxAccessToken={MAPBOX_ACCESS_TOKEN} />
-        </DeckGL>
+          <ShieldCheck size={16} color="#4ade80" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* 1. GOOGLE MAPS PLATFORM LIVE GRID MAP (Default View: Madgaon Local Area 15.2736, 73.9575) */}
+      <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <APIProvider apiKey={GOOGLE_MAPS_API_KEY} libraries={['marker']}>
+          <Map
+            defaultCenter={MADGAON_DEFAULT_CENTER}
+            defaultZoom={MADGAON_DEFAULT_ZOOM}
+            mapId="DEMO_MAP_ID"
+            internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio', 'gmp_git_agentskills_v1']}
+            gestureHandling="greedy"
+            disableDefaultUI={false}
+            style={{ width: '100%', height: '100%' }}
+          >
+            {/* Layer 0: Madgaon Hex Density Zones */}
+            {showHexagons &&
+              data.map((pt, idx) => {
+                const sizePx = Math.max(54, Math.min(110, Math.round(pt.weight * 4.5)));
+                return (
+                  <AdvancedMarker
+                    key={`hex-${idx}`}
+                    position={{ lat: pt.position[1], lng: pt.position[0] }}
+                    zIndex={1}
+                  >
+                    <div
+                      style={{
+                        width: `${sizePx}px`,
+                        height: `${sizePx}px`,
+                        borderRadius: '50%',
+                        background:
+                          pt.weight >= 16
+                            ? 'radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, rgba(239, 68, 68, 0.08) 70%, transparent 100%)'
+                            : 'radial-gradient(circle, rgba(34, 197, 94, 0.35) 0%, rgba(34, 197, 94, 0.08) 70%, transparent 100%)',
+                        border:
+                          pt.weight >= 16
+                            ? '1.5px dashed rgba(239, 68, 68, 0.55)'
+                            : '1.5px dashed rgba(22, 163, 74, 0.55)',
+                        pointerEvents: 'none',
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    />
+                  </AdvancedMarker>
+                );
+              })}
+
+            {/* Layer 1: Madgaon Construction & Demolition (C&D) Debris Pointers */}
+            {showDebris &&
+              CONSTRUCTION_DEBRIS.map((item) => {
+                const isSelected = selectedMarker?.id === item.id;
+                return (
+                  <AdvancedMarker
+                    key={item.id}
+                    position={{ lat: item.coordinates[1], lng: item.coordinates[0] }}
+                    title={`${item.name} (${item.tonnage}T)`}
+                    onClick={() => setSelectedMarker(item)}
+                    zIndex={10}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 10px',
+                        borderRadius: '9999px',
+                        backgroundColor: item.severity === 'Critical' ? '#ea580c' : '#f59e0b',
+                        color: 'white',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        border: isSelected ? '3px solid #092C5E' : '2px solid white',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.28)',
+                        cursor: 'pointer',
+                        transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      <span>🏗️ {item.tonnage}T</span>
+                    </div>
+                  </AdvancedMarker>
+                );
+              })}
+
+            {/* Layer 2: Madgaon Micro-Surge Hotspot Pointers */}
+            {showSurges &&
+              SURGE_HOTSPOTS.map((spot) => {
+                const isSelected = selectedMarker?.id === spot.id;
+                return (
+                  <AdvancedMarker
+                    key={spot.id}
+                    position={{ lat: spot.coordinates[1], lng: spot.coordinates[0] }}
+                    title={`${spot.name} (${spot.tonnage}T)`}
+                    onClick={() => setSelectedMarker(spot)}
+                    zIndex={20}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 11px',
+                        borderRadius: '9999px',
+                        backgroundColor: '#ef4444',
+                        color: 'white',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        border: isSelected ? '3px solid #092C5E' : '2px solid white',
+                        boxShadow: '0 6px 16px rgba(239, 68, 68, 0.45)',
+                        cursor: 'pointer',
+                        transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      <span>⚠️ {spot.tonnage}T</span>
+                    </div>
+                  </AdvancedMarker>
+                );
+              })}
+
+            {/* Layer 3: Geotagged Citizen Redressal Ticket Pointers */}
+            {showCitizenReports &&
+              citizenReports.map((ticket) => {
+                if (!ticket?.coordinates?.lat || !ticket?.coordinates?.lng) return null;
+                const isSelected = selectedMarker?.id === ticket.id;
+                return (
+                  <AdvancedMarker
+                    key={ticket.id}
+                    position={{
+                      lat: Number(ticket.coordinates.lat),
+                      lng: Number(ticket.coordinates.lng)
+                    }}
+                    title={`Ticket ${ticket.id}: ${ticket.category}`}
+                    zIndex={30}
+                    onClick={() =>
+                      setSelectedMarker({
+                        id: ticket.id,
+                        name: `Citizen Ticket: ${ticket.category}`,
+                        coordinates: [ticket.coordinates.lng, ticket.coordinates.lat],
+                        tonnage: 'Field Incident',
+                        type: ticket.category,
+                        permit: `${ticket.id} (${ticket.slaHours || 12}h SLA)`,
+                        status: `${ticket.status || 'TRIAGED'} — ${ticket.assignedUnit || 'Rover R-1'}`,
+                        severity: ticket.severity,
+                        assigned: ticket.assignedUnit || 'Rover R-1 En Route',
+                        photo: ticket.photo,
+                        description: ticket.description
+                      })
+                    }
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 10px',
+                        borderRadius: '9999px',
+                        backgroundColor: '#9333ea',
+                        color: 'white',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        border: isSelected ? '3px solid #092C5E' : '2px solid white',
+                        boxShadow: '0 4px 12px rgba(147, 51, 234, 0.38)',
+                        cursor: 'pointer',
+                        transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                        transition: 'transform 0.15s ease'
+                      }}
+                    >
+                      <span>🎫 {ticket.id?.replace('TKT-2026-', '#') || 'Ticket'}</span>
+                    </div>
+                  </AdvancedMarker>
+                );
+              })}
+          </Map>
+        </APIProvider>
       </div>
 
       {/* 2. LAYER FILTER CONTROLS BAR (Top Center) */}
       <div className="dashboard-filter-bar">
-        {/* Mobile Toggle Button for Telemetry Drawer */}
         <button
           onClick={() => setMobileTelemetryOpen(!mobileTelemetryOpen)}
           className="mobile-panel-toggle"
@@ -413,11 +455,11 @@ function Dashboard() {
             padding: '8px 14px',
             borderRadius: '9999px',
             border: 'none',
-            backgroundColor: showDebris ? '#f59e0b' : 'rgba(255,255,255,0.85)',
+            backgroundColor: showDebris ? '#f59e0b' : 'rgba(255,255,255,0.9)',
             color: showDebris ? 'white' : '#092C5E',
             fontWeight: 700,
             fontSize: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -433,11 +475,11 @@ function Dashboard() {
             padding: '8px 14px',
             borderRadius: '9999px',
             border: 'none',
-            backgroundColor: showSurges ? '#ef4444' : 'rgba(255,255,255,0.85)',
+            backgroundColor: showSurges ? '#ef4444' : 'rgba(255,255,255,0.9)',
             color: showSurges ? 'white' : '#092C5E',
             fontWeight: 700,
             fontSize: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -453,18 +495,18 @@ function Dashboard() {
             padding: '8px 14px',
             borderRadius: '9999px',
             border: 'none',
-            backgroundColor: showCitizenReports ? '#a855f7' : 'rgba(255,255,255,0.85)',
+            backgroundColor: showCitizenReports ? '#a855f7' : 'rgba(255,255,255,0.9)',
             color: showCitizenReports ? 'white' : '#092C5E',
             fontWeight: 700,
             fontSize: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
           }}
         >
-          📸 Citizen Reports ({citizenReports.length})
+          🎫 Citizen Tickets ({citizenReports.length})
         </button>
 
         <button
@@ -473,11 +515,11 @@ function Dashboard() {
             padding: '8px 14px',
             borderRadius: '9999px',
             border: 'none',
-            backgroundColor: showHexagons ? '#22c55e' : 'rgba(255,255,255,0.85)',
+            backgroundColor: showHexagons ? '#22c55e' : 'rgba(255,255,255,0.9)',
             color: showHexagons ? 'white' : '#092C5E',
             fontWeight: 700,
             fontSize: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -496,7 +538,7 @@ function Dashboard() {
             position: 'absolute',
             bottom: '20px',
             left: '20px',
-            width: '360px',
+            width: '375px',
             maxWidth: 'calc(100% - 40px)',
             borderRadius: '20px',
             padding: '18px 20px',
@@ -536,34 +578,61 @@ function Dashboard() {
           </h4>
 
           <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.4, marginBottom: '10px' }}>
-            <div><strong>Tonnage / Volume:</strong> {selectedMarker.tonnage} Tons</div>
+            <div><strong>Tonnage / Volume:</strong> {selectedMarker.tonnage} {typeof selectedMarker.tonnage === 'number' ? 'Tons' : ''}</div>
             <div><strong>Material Type:</strong> {selectedMarker.type}</div>
-            {selectedMarker.permit && <div><strong>Permit Ref:</strong> {selectedMarker.permit}</div>}
-            <div><strong>Dispatch Status:</strong> <span style={{ color: '#16a34a', fontWeight: 600 }}>{selectedMarker.status}</span></div>
+            {selectedMarker.permit && <div><strong>Reference:</strong> {selectedMarker.permit}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+              <MapPin size={12} color="#0284c7" />
+              <span>Madgaon Coordinates: {selectedMarker.coordinates?.[1]?.toFixed(4)}, {selectedMarker.coordinates?.[0]?.toFixed(4)}</span>
+            </div>
+            <div><strong>Dispatch Status:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedMarker.status}</span></div>
           </div>
 
           {selectedMarker.photo && (
-            <div style={{ width: '100%', height: '110px', borderRadius: '10px', overflow: 'hidden', marginBottom: '10px' }}>
+            <div style={{ width: '100%', height: '105px', borderRadius: '10px', overflow: 'hidden', marginBottom: '10px' }}>
               <img src={selectedMarker.photo} alt="Reported Waste" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => alert(`🚛 Dispatch confirmation sent! Compactor assigned to ${selectedMarker.name}.`)}
-              className="btn btn-primary"
-              style={{ flex: 1, padding: '8px 12px', fontSize: '0.8rem', borderRadius: '8px' }}
+            {isAdmin && (
+              <button
+                onClick={handleDispatchFromMap}
+                className="btn btn-primary"
+                style={{ flex: 1, padding: '8px 12px', fontSize: '0.78rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}
+              >
+                <Truck size={14} />
+                Dispatch Fleet Unit
+              </button>
+            )}
+
+            <Link
+              to="/redressal"
+              style={{
+                flex: isAdmin ? 'initial' : 1,
+                padding: '8px 12px',
+                fontSize: '0.78rem',
+                borderRadius: '8px',
+                backgroundColor: isAdmin ? '#f1f5f9' : '#092C5E',
+                color: isAdmin ? '#092C5E' : 'white',
+                fontWeight: 800,
+                textDecoration: 'none',
+                border: '1px solid #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '4px'
+              }}
             >
-              <Truck size={14} style={{ marginRight: '6px' }} />
-              Dispatch Compactor
-            </button>
+              <span>{isAdmin ? 'Redressal' : 'Track Ticket in Redressal'}</span>
+              <ArrowRight size={13} />
+            </Link>
           </div>
         </div>
       )}
 
       {/* 4. FLOATING RIGHT TELEMETRY PANELS */}
       <div className={`dashboard-telemetry-panel ${mobileTelemetryOpen ? 'open' : ''}`}>
-        {/* Mobile drawer header */}
         <div className="mobile-panel-toggle" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', width: '100%' }}>
           <span style={{ fontSize: '12px', fontWeight: 800, color: '#092C5E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             TELEMETRY & LIVE PREDICTIONS
@@ -575,7 +644,7 @@ function Dashboard() {
             <X size={20} />
           </button>
         </div>
-        
+
         {/* 3D Cyber Grid Digital Twin Model Card */}
         <div className="glass-panel card" style={{ pointerEvents: 'auto', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -584,26 +653,26 @@ function Dashboard() {
               <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#092C5E' }}>3D Grid Digital Twin</h4>
             </div>
             <span style={{ fontSize: '10px', background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', padding: '3px 8px', borderRadius: '9999px', fontWeight: 800 }}>
-              LIVE SYNC
+              MADGAON LIVE
             </span>
           </div>
 
-          <div 
+          <div
             onClick={() => setShowGridModal(true)}
-            style={{ 
-              position: 'relative', 
-              borderRadius: '12px', 
-              overflow: 'hidden', 
-              height: '130px', 
+            style={{
+              position: 'relative',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              height: '130px',
               cursor: 'pointer',
               border: '1px solid rgba(0,0,0,0.08)',
               boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
             }}
           >
-            <img 
-              src="/grid-isometric.jpg" 
-              alt="3D Digital Twin City Model" 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            <img
+              src="/grid-isometric.jpg"
+              alt="3D Digital Twin City Model"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
             <div style={{
               position: 'absolute',
@@ -634,8 +703,8 @@ function Dashboard() {
               {loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
-          <p style={{ fontSize: '0.8rem', marginTop: '4px', marginBottom: '12px' }}>AI-Driven Deployment Recommendations</p>
-          
+          <p style={{ fontSize: '0.8rem', marginTop: '4px', marginBottom: '12px' }}>Gemini 3.8 Flash + XGBoost Recommendations</p>
+
           <div style={{ maxHeight: '220px', overflowY: 'auto', paddingRight: '5px' }}>
             {predictions.length === 0 ? (
               <div style={{ padding: '10px', background: 'rgba(255,255,255,0.4)', borderRadius: '10px', fontSize: '0.82rem' }}>
@@ -673,8 +742,8 @@ function Dashboard() {
             <span className="stat-value" style={{ color: '#d97706' }}>62.9 Tons Total</span>
           </div>
           <div className="stat-row">
-            <span>Active Smart Sensors</span>
-            <span className="stat-value">140 Units (12ms)</span>
+            <span>Redressal Tickets</span>
+            <span className="stat-value" style={{ color: '#9333ea' }}>{citizenReports.length} Tracked</span>
           </div>
         </div>
       </div>
@@ -746,36 +815,6 @@ function Dashboard() {
                 alt="Full Resolution 3D Digital Twin City Model"
                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
-
-              <div style={{
-                position: 'absolute',
-                top: '20px',
-                left: '20px',
-                background: 'rgba(9, 44, 94, 0.88)',
-                backdropFilter: 'blur(10px)',
-                color: 'white',
-                padding: '14px 18px',
-                borderRadius: '16px',
-                fontSize: '12px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
-              }}>
-                <div style={{ fontWeight: 800, fontSize: '13px', marginBottom: '8px', color: '#4ade80' }}>
-                  CENTRAL HUB & TOPOLOGY NODES
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#06b6d4' }} />
-                  <span>Cyan Corridors: Autonomous Rover Pathways</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                  <span>Red Hotspots: Critical Surging Smart Bins</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-                  <span>Central Core: Autonomous Compactor & Sorting Depot</span>
-                </div>
-              </div>
             </div>
 
             <div style={{
@@ -807,7 +846,6 @@ function Dashboard() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

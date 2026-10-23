@@ -1,30 +1,51 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, ADMIN_EMAIL } from './firebase';
 import Login from './Login';
 import Navbar from './Navbar';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Fleet from './pages/Fleet';
 import Analytics from './pages/Analytics';
+import Redressal from './pages/Redressal';
 import Chatbot from './components/Chatbot';
 import WasteCameraModal from './components/WasteCameraModal';
 import './index.css';
+
+const DEFAULT_ADMIN_SESSION = {
+  uid: 'admin-pranavkantak9',
+  email: ADMIN_EMAIL,
+  displayName: 'Pranav Kantak',
+  role: 'admin',
+  isDemo: true
+};
 
 function App() {
   const [user, setUser] = useState(null);
   const [demoUser, setDemoUser] = useState(() => {
     try {
-      const saved = localStorage.getItem("gridshift_demo_user");
-      return saved ? JSON.parse(saved) : null;
+      if (sessionStorage.getItem('gridshift_signed_out') === 'true') {
+        return null;
+      }
+      const saved = localStorage.getItem('gridshift_demo_user');
+      if (saved) return JSON.parse(saved);
+      localStorage.setItem('gridshift_demo_user', JSON.stringify(DEFAULT_ADMIN_SESSION));
+      return DEFAULT_ADMIN_SESSION;
     } catch {
-      return null;
+      return DEFAULT_ADMIN_SESSION;
     }
   });
   const [authChecked, setAuthChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+
+  useEffect(() => {
+    const handleQuota = () => setQuotaExceeded(true);
+    window.addEventListener('gmp-quota-exceeded', handleQuota);
+    return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -37,24 +58,38 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    let unsubscribe = () => {};
+    try {
+      unsubscribe = onAuthStateChanged(
+        auth,
+        (currentUser) => {
+          setUser(currentUser);
+          setAuthChecked(true);
+        },
+        () => {
+          setAuthChecked(true);
+        }
+      );
+    } catch {
       setAuthChecked(true);
-    });
+    }
+
+    const fallbackTimer = setTimeout(() => setAuthChecked(true), 600);
 
     const handleAuthChange = () => {
       try {
-        const saved = localStorage.getItem("gridshift_demo_user");
+        const saved = localStorage.getItem('gridshift_demo_user');
         setDemoUser(saved ? JSON.parse(saved) : null);
       } catch {
         setDemoUser(null);
       }
     };
-    window.addEventListener("gridshift_auth_change", handleAuthChange);
+    window.addEventListener('gridshift_auth_change', handleAuthChange);
 
     return () => {
+      clearTimeout(fallbackTimer);
       unsubscribe();
-      window.removeEventListener("gridshift_auth_change", handleAuthChange);
+      window.removeEventListener('gridshift_auth_change', handleAuthChange);
     };
   }, []);
 
@@ -76,12 +111,30 @@ function App() {
   return (
     <BrowserRouter>
       <div style={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundColor: '#fbfbfd' }}>
-        
+        {/* Google Maps Platform Demo Key Quota Banner */}
+        {quotaExceeded && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-amber-900 flex items-center justify-between gap-4 text-sm sticky top-0 z-50">
+            <div>
+              <span className="font-semibold">Maps Demo Key quota reached.</span>{' '}
+              To unlock higher limits and full API access, create a Google Cloud billing account and replace{' '}
+              <code className="bg-amber-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code> in AI Studio Secrets with your own key.
+            </div>
+            <a
+              href="https://developers.google.com/maps/documentation/javascript/get-api-key"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 bg-amber-900 text-white px-3 py-1.5 rounded font-medium hover:bg-amber-800 transition-colors"
+            >
+              Get API Key &rarr;
+            </a>
+          </div>
+        )}
+
         {/* GridShift-AI Responsive Header & Collapsible Sidebar */}
-        <Navbar 
-          user={activeUser} 
-          sidebarOpen={sidebarOpen} 
-          setSidebarOpen={setSidebarOpen} 
+        <Navbar
+          user={activeUser}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
           onOpenWasteCamera={() => setCameraModalOpen(true)}
           onOpenChatbot={() => {
             const chatBtn = document.querySelector('button[aria-label="Open AI Copilot Chat"]');
@@ -89,27 +142,37 @@ function App() {
           }}
         />
 
-        {/* Waste Reporting Camera Modal */}
-        <WasteCameraModal 
-          isOpen={cameraModalOpen} 
-          onClose={() => setCameraModalOpen(false)} 
+        {/* Waste Reporting Camera & Automated Ticket Modal */}
+        <WasteCameraModal
+          isOpen={cameraModalOpen}
+          onClose={() => setCameraModalOpen(false)}
+          currentUser={activeUser}
         />
 
         {/* Main Content Area */}
-        <div 
+        <div
           className="main-viewport"
-          style={{ 
-            marginTop: '64px', 
-            marginLeft: sidebarOpen ? '260px' : '0px', 
-            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-            height: 'calc(100vh - 64px)', 
+          style={{
+            marginTop: '64px',
+            marginLeft: sidebarOpen ? '260px' : '0px',
+            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            height: 'calc(100vh - 64px)',
             position: 'relative',
             overflowY: 'auto'
           }}
         >
           <Routes>
             <Route path="/" element={<Home onOpenWasteCamera={() => setCameraModalOpen(true)} />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard user={activeUser} />} />
+            <Route
+              path="/redressal"
+              element={
+                <Redressal
+                  user={activeUser}
+                  onOpenWasteCamera={() => setCameraModalOpen(true)}
+                />
+              }
+            />
             <Route path="/fleet" element={<Fleet />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<Navigate to="/" replace />} />

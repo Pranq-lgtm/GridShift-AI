@@ -175,21 +175,20 @@ p {
 .gs-nav-center {
   display: flex;
   align-items: center;
-  gap: 2px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  gap: 4px;
+  position: relative;
 }
 
 .gs-nav-link {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 8px 12px;
   text-decoration: none;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--gs-text-muted);
   border-radius: var(--gs-radius);
   transition: color 0.2s, background 0.2s;

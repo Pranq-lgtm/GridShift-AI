@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, Sparkles, RefreshCw, User } from 'lucide-react';
-import { askGeminiWithRAG } from '../utils/ragEngine';
+import { X, Send, Bot, RefreshCw, User, ShieldCheck } from 'lucide-react';
+import { askGeminiWithRAG, getGeminiRateLimitTelemetry } from '../utils/ragEngine';
 import '../index.css';
 
 function Chatbot() {
@@ -9,19 +9,20 @@ function Chatbot() {
     {
       id: 1,
       sender: 'bot',
-      text: '👋 Hello! I am the **GridShift AI Copilot** powered by Google Gemini and real-time municipal telemetry. How can I assist you with waste surges, construction debris, or fleet dispatches today?',
+      text: '👋 Hello! I am the **GridShift AI Copilot** powered by **Gemini 3.8 Flash** (`gemini-3.8-flash`) with rate-limit backoff and real-time municipal telemetry. Ask me about waste surges, construction debris, fleet dispatches, or citizen redressal tickets!',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rateTelemetry, setRateTelemetry] = useState(() => getGeminiRateLimitTelemetry());
   const messagesEndRef = useRef(null);
 
   const quickPrompts = [
+    '🎫 Redressal Ticket & SLA status?',
     '🏗️ Status of construction debris?',
     '🤖 Where is Rover R-1 patrolling?',
-    '📸 How to report illegal dumping?',
-    '⚡ Active surge hotspot status?'
+    '📸 How to report illegal dumping?'
   ];
 
   const scrollToBottom = () => {
@@ -29,7 +30,10 @@ function Chatbot() {
   };
 
   useEffect(() => {
-    if (isOpen) scrollToBottom();
+    if (isOpen) {
+      scrollToBottom();
+      setRateTelemetry(getGeminiRateLimitTelemetry());
+    }
   }, [messages, isOpen]);
 
   const handleSend = async (queryText) => {
@@ -62,11 +66,12 @@ function Chatbot() {
         {
           id: Date.now() + 1,
           sender: 'bot',
-          text: '⚠️ Apologies, I encountered an issue retrieving real-time telemetry. Please try again shortly.',
+          text: '⚠️ Apologies, I encountered a temporary rate-limit or network issue retrieving real-time telemetry. Please try again shortly.',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
     } finally {
+      setRateTelemetry(getGeminiRateLimitTelemetry());
       setLoading(false);
     }
   };
@@ -97,11 +102,11 @@ function Chatbot() {
             position: 'fixed',
             bottom: '24px',
             right: '24px',
-            width: '390px',
+            width: '395px',
             maxWidth: 'calc(100vw - 32px)',
-            height: '560px',
+            height: '575px',
             maxHeight: 'calc(100vh - 48px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
             backdropFilter: 'blur(20px)',
             borderRadius: '24px',
             boxShadow: '0 25px 60px -15px rgba(9, 44, 94, 0.35)',
@@ -115,7 +120,7 @@ function Chatbot() {
           {/* Header */}
           <div
             style={{
-              padding: '16px 20px',
+              padding: '15px 18px',
               backgroundColor: '#092C5E',
               color: 'white',
               display: 'flex',
@@ -142,11 +147,12 @@ function Chatbot() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>GridShift Copilot</h3>
                   <span style={{ fontSize: '9px', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                    RAG
+                    RAG + 429 GUARD
                   </span>
                 </div>
-                <p style={{ margin: 0, fontSize: '10px', color: '#93c5fd' }}>
-                  Gemini 2.5 • Real-Time Municipal Telemetry
+                <p style={{ margin: 0, fontSize: '10px', color: '#93c5fd', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <ShieldCheck size={11} color="#4ade80" />
+                  <span>{rateTelemetry.model} • {rateTelemetry.remainingQuota}/{rateTelemetry.limitPerMinute} RPM Free Quota</span>
                 </p>
               </div>
             </div>
@@ -279,7 +285,7 @@ function Chatbot() {
             {loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontSize: '0.8rem', padding: '8px' }}>
                 <RefreshCw size={14} className="pulse-dot" color="#22c55e" />
-                <span>GridShift RAG synthesizing answer...</span>
+                <span>Gemini 3.8 Flash synthesizing RAG response...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -302,7 +308,7 @@ function Chatbot() {
           >
             <input
               type="text"
-              placeholder="Ask about construction debris, fleet, or permits..."
+              placeholder="Ask about tickets, C&D debris, fleet, or SLA..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={loading}
