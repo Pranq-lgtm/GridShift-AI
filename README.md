@@ -1,6 +1,6 @@
 # GridShift-AI 🚛🗑️
 
-**GridShift-AI** is a data-driven micro-surge waste forecasting and automated civic redressal platform designed for municipal sanitation departments. By combining real-time city permit data, **Google Maps Platform** geospatial telemetry (centered on **Madgaon, Goa**), predictive Machine Learning (**XGBoost**), and Generative AI (**Google Gemini 2.5 Flash**), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering fleet managers to proactively deploy resources *before* trash overflows happen while closing the loop with citizens through automated SLA ticket tracking.
+**GridShift-AI** is a data-driven micro-surge waste forecasting and automated civic redressal platform designed for municipal sanitation departments. By combining real-time city permit data, **Google Maps Platform** geospatial telemetry (centered on **Madgaon, Goa**), predictive Machine Learning (**XGBoost**), and Generative AI (**Google Gemini 3.8 Flash**), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering fleet managers to proactively deploy resources *before* trash overflows happen while closing the loop with citizens through automated SLA ticket tracking.
 
 > UN SDG 11.6 & 12 • **Latest Release:** [v1.1.0](RELEASE_NOTES.md)
 
@@ -12,7 +12,7 @@
 2. **Automated Citizen Ticket Redressal & Feedback Loop (`/redressal`)**: End-to-end 6-stage civic incident lifecycle (`OPEN` → `TRIAGED` → `ASSIGNED` → `IN_PROGRESS` → `RESOLVED` → `VERIFIED_CLOSED`) with severity-driven SLA timers (`4h`–`48h`), fleet unit dispatch, and mandatory citizen 1–5 star verification ratings (with automatic ticket reopen if unresolved).
 3. **Email-Bound Role-Based Access Control (RBAC) & Clean Authentication (`/login`)**: Distraction-free Firebase Email/Password login with **Forgot Password (`sendPasswordResetEmail`)** and Mobile OTP (`+91`). Authenticating as **`pranavkantak9@gmail.com`** automatically unlocks the **Platform Admin Dispatch & GitHub Audit Console**, while any other email displays the **Citizen Reporter View**.
 4. **Vectorized Bulk Permit Scraper & 15.1x Faster Ingestion**: Ingests municipal open-data permits (Construction Permits, Public Gatherings, Street Fairs, Food Festivals) using parallelized batch XGBoost inference (`/predict/batch`) and single-roundtrip `Permit.insertMany()`.
-5. **Resilient Waste Surge Copilot (`gemini-2.5-flash`)**: Integrates the latest free-tier **Google Gemini 2.5 Flash** (with `gemini-2.5-flash-lite` fallback), sliding-window rate limiting (`12 RPM` guard), HTTP `429` exponential backoff + jitter, and a 5-minute TTL response cache.
+5. **Resilient Waste Surge Copilot (`gemini-3.8-flash`)**: Integrates the latest free-tier **Google Gemini 3.8 Flash** (with `gemini-3.8-flash` fallback), sliding-window rate limiting (`12 RPM` guard), HTTP `429` exponential backoff + jitter, and a 5-minute TTL response cache.
 
 ---
 
@@ -24,7 +24,7 @@
 - **🎫 Automated Citizen Ticket Redressal & Star-Rating Verification Loop (`/redressal`)**: Built a complete SLA-tracked ticketing workflow where citizen camera reports generate geotagged tickets, admins dispatch rovers/compactors, and citizens verify cleanup with a 1–5 star rating before closure.
 - **🔐 Streamlined Login with Forgot Password & Automatic Email-Based RBAC**: Removed manual Admin/Citizen toggle switches and login page RBAC jargon; added Firebase **Forgot Password** email reset. View mode is strictly bound to the signed-in email (`pranavkantak9@gmail.com` = Admin View + GitHub Repo Audit; all other emails = Citizen View).
 - **⚡ 15.1x Core Logic Performance Optimization**: Vectorized `POST /api/permits/bulk` (`backend/server.js`) and added `POST /predict/batch` (`ml_service/main.py`) + `Permit.insertMany()`, reducing 25-permit ingestion latency from `2840ms` to `188ms`. Added client-side canvas image compression (`≤ 480px`) for citizen uploads.
-- **🤖 Gemini 2.5 Flash Free-Tier Rate-Limit Guard**: Upgraded to `gemini-2.5-flash` with `gemini-2.5-flash-lite` fallback, sliding-window 12 RPM rate limiting, HTTP 429 exponential backoff + jitter, and 5-minute TTL caching.
+- **🤖 Gemini 3.8 Flash Free-Tier Rate-Limit Guard**: Upgraded to `gemini-3.8-flash` with `gemini-3.5-flash` fallback, sliding-window 12 RPM rate limiting, HTTP 429 exponential backoff + jitter, and 5-minute TTL caching.
 
 ---
 
@@ -52,7 +52,7 @@ GridShift-AI uses a modern, decoupled microservices architecture:
 │  Madgaon Grid │  Email RBAC Guard │  /predict &   │  Permits &       │
 │  Redressal UI │  /api/permits     │  /predict/    │  Redressal       │
 │  Firebase Auth│  /api/tickets     │   batch       │  Tickets         │
-│  Gemini 2.5   │  insertMany()     │  Gemini 2.5   │  Atlas Cloud     │
+│  Gemini 3.8   │  insertMany()     │  Gemini 3.8   │  Atlas Cloud     │
 └───────────────┴───────────────────┴───────────────┴──────────────────┘
           │                │                 │
           └────────────────┴─────────────────┘
@@ -63,7 +63,7 @@ GridShift-AI uses a modern, decoupled microservices architecture:
 **Data Flow:**
 1. `scraper.py` → Ingests civic event permits from municipal portals
 2. `Node Backend` → Calls vectorized `/predict/batch` (or parallelized predictions) and persists permits via single-roundtrip `Permit.insertMany()`
-3. `ML Service (FastAPI)` → XGBoost predicts surge tonnage; `gemini-2.5-flash` (with 429 backoff & TTL cache) generates Copilot dispatch plan
+3. `ML Service (FastAPI)` → XGBoost predicts surge tonnage; `gemini-3.8-flash` (with 429 backoff & TTL cache) generates Copilot dispatch plan
 4. `Frontend (React)` → Renders **Google Maps Platform** live grid centered on Madgaon (`15.2736, 73.9575`), AI Copilot drawer, and email-bound **Citizen/Admin Redressal Console (`/redressal`)**
 
 ---
@@ -73,7 +73,7 @@ GridShift-AI uses a modern, decoupled microservices architecture:
 ### 1. ML Service (`ml_service/.env`)
 
 ```env
-# Google Gemini API Key (required for AI Copilot - uses gemini-2.5-flash free tier)
+# Google Gemini API Key (required for AI Copilot - uses gemini-3.8-flash free tier)
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
@@ -88,8 +88,8 @@ MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/gridshift?retryWri
 # Port for the Node.js server (optional, defaults to 5000)
 PORT=5000
 
-# URL of the ML FastAPI service (optional, defaults to localhost:8000)
-ML_SERVICE_URL=http://localhost:8000
+# URL of the ML FastAPI service (required)
+ML_SERVICE_URL=your_render_url
 ```
 
 ### 3. Frontend (`frontend/.env`)
@@ -108,9 +108,6 @@ VITE_FIREBASE_APP_ID=your_firebase_app_id
 
 # Gemini API Key for client-side RAG Copilot fallback (optional)
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
-
-# Backend API URL (required)
-VITE_BACKEND_URL=http://localhost:5000
 ```
 
 ---
@@ -318,7 +315,7 @@ GridShift-AI/
 │   │   ├── Navbar.jsx               # Navigation, RBAC badges & Copilot triggers
 │   │   ├── firebase.js              # Firebase Auth config & Admin email helper
 │   │   ├── components/
-│   │   │   ├── Chatbot.jsx          # Gemini 2.5 Flash Copilot drawer with rate-limit bar
+│   │   │   ├── Chatbot.jsx          # Gemini 3.8 Flash Copilot drawer with rate-limit bar
 │   │   │   └── WasteCameraModal.jsx # Geotagged camera capture + compressed ticket creator
 │   │   ├── pages/
 │   │   │   ├── Home.jsx             # Landing overview & system capabilities
@@ -327,13 +324,13 @@ GridShift-AI/
 │   │   │   ├── Fleet.jsx            # Autonomous rover & compactor telemetry
 │   │   │   └── Analytics.jsx        # Ward-level waste diversion & surge charts
 │   │   ├── utils/
-│   │   │   └── ragEngine.js         # Gemini 2.5 Flash client with 12 RPM guard & 429 backoff
+│   │   │   └── ragEngine.js         # Gemini 3.8 Flash client with 12 RPM guard & 429 backoff
 │   │   └── index.css                # Custom glassmorphism & responsive styles
 │   └── public/                      # Static assets
 ├── backend/                         # Node.js + Express backend
 │   └── server.js                    # Vectorized bulk API, Redressal RBAC & MongoDB
 ├── ml_service/                      # Python FastAPI ML microservice
-│   ├── main.py                      # XGBoost (/predict, /predict/batch) + Gemini 2.5 Flash
+│   ├── main.py                      # XGBoost (/predict, /predict/batch) + Gemini 3.8 Flash
 │   ├── scraper.py                   # Municipal permit data ingester
 │   └── requirements.txt             # Python dependencies
 ├── RELEASE_NOTES.md                 # Version release notes (v1.1.0 & v0.1)
