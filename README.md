@@ -12,7 +12,7 @@
 2. **Automated Citizen Ticket Redressal & Feedback Loop (`/redressal`)**: End-to-end 6-stage civic incident lifecycle (`OPEN` → `TRIAGED` → `ASSIGNED` → `IN_PROGRESS` → `RESOLVED` → `VERIFIED_CLOSED`) with severity-driven SLA timers (`4h`–`48h`), fleet unit dispatch, and mandatory citizen 1–5 star verification ratings (with automatic ticket reopen if unresolved).
 3. **Email-Bound Role-Based Access Control (RBAC) & Clean Authentication (`/login`)**: Distraction-free Firebase Email/Password login with **Forgot Password (`sendPasswordResetEmail`)** and Mobile OTP (`+91`). Authenticating as **`pranavkantak9@gmail.com`** automatically unlocks the **Platform Admin Dispatch & GitHub Audit Console**, while any other email displays the **Citizen Reporter View**.
 4. **Vectorized Bulk Permit Scraper & 15.1x Faster Ingestion**: Ingests municipal open-data permits (Construction Permits, Public Gatherings, Street Fairs, Food Festivals) using parallelized batch XGBoost inference (`/predict/batch`) and single-roundtrip `Permit.insertMany()`.
-5. **Resilient Waste Surge Copilot (`gemini-3.8-flash`)**: Integrates the latest free-tier **Google Gemini 3.8 Flash** (with `gemini-3.8-flash` fallback), sliding-window rate limiting (`12 RPM` guard), HTTP `429` exponential backoff + jitter, and a 5-minute TTL response cache.
+5. **Resilient Waste Surge Copilot (`gemini-3.8-flash`)**: Integrates the latest free-tier **Google Gemini 3.8 Flash** (with `gemini-3.5-flash` fallback), sliding-window rate limiting (`12 RPM` guard), HTTP `429` exponential backoff + jitter, and a 5-minute TTL response cache.
 
 ---
 
