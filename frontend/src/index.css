@@ -916,13 +916,25 @@ p {
 /* Dashboard-specific panels */
 .dashboard-filter-bar {
   position: absolute;
-  top: 16px;
-  left: 20px;
-  z-index: 10;
+  top: 14px;
+  left: 16px;
+  z-index: 25;
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   max-width: calc(100% - 420px);
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.dashboard-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-filter-bar button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .dashboard-telemetry-panel {
@@ -934,7 +946,7 @@ p {
   flex-direction: column;
   gap: 14px;
   pointer-events: none;
-  z-index: 10;
+  z-index: 20;
 }
 
 .mobile-panel-toggle {
@@ -943,13 +955,13 @@ p {
 
 @media (max-width: 1024px) {
   .dashboard-filter-bar {
-    max-width: calc(100% - 20px);
-    left: 10px;
-    top: 10px;
+    max-width: calc(100% - 24px);
+    left: 12px;
+    top: 12px;
     gap: 6px;
     overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
     scrollbar-width: none;
   }
 

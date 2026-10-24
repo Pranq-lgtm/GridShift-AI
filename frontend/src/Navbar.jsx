@@ -294,8 +294,8 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                 color: '#0891B2'
               }}
             >
-              <span>🤖 Autonomous Fleet</span>
-              <span>Monitoring</span>
+              <span>🚶 Staff & Pickup Vans</span>
+              <span>Active</span>
             </Link>
           </div>
         </div>

@@ -14,21 +14,23 @@ function Fleet() {
   }, []);
 
   const initialTrucks = [
-    { id: 'T-402', status: 'Active', zone: 'Downtown Hub', load: 85, driver: 'M. Rodriguez', fuel: 72, eta: '12 min' },
-    { id: 'T-119', status: 'Rerouted', zone: 'Ward 1', load: 42, driver: 'S. Chen', fuel: 58, eta: '28 min' },
-    { id: 'T-882', status: 'Maintenance', zone: 'Depot', load: 0, driver: 'N/A', fuel: 100, eta: '—' },
-    { id: 'T-304', status: 'Active', zone: 'Commercial Block A', load: 92, driver: 'J. Smith', fuel: 34, eta: '6 min' },
-    { id: 'T-517', status: 'Active', zone: 'Ward 3 Residential', load: 61, driver: 'R. Patel', fuel: 81, eta: '18 min' },
-    { id: 'T-208', status: 'Rerouted', zone: 'Waterfront South', load: 73, driver: 'L. Kim', fuel: 45, eta: '22 min' },
+    { id: 'V-102 (Pickup Van)', status: 'Active', zone: 'Ward 14 — Aquem & Borda', load: 54, driver: 'R. Naik (Staff)', fuel: 84, eta: '8 min' },
+    { id: 'Foot Crew W-7', status: 'Active', zone: 'Ward 7 — Margao Market (On Foot)', load: 40, driver: 'Sanitation Beat Crew (4 Staff)', fuel: 100, eta: '5 min' },
+    { id: 'V-104 (Pickup Van)', status: 'Rerouted', zone: 'Ward 10 — Comba Heritage', load: 62, driver: 'D. Kerkar (Staff)', fuel: 76, eta: '11 min' },
+    { id: 'T-402 (Compactor)', status: 'Active', zone: 'Margao Fish Market Gate', load: 85, driver: 'M. Rodriguez', fuel: 72, eta: '12 min' },
+    { id: 'T-119 (Compactor)', status: 'Rerouted', zone: 'Ward 2 — Fatorda Sector', load: 42, driver: 'S. Chen', fuel: 58, eta: '24 min' },
+    { id: 'T-304 (Tipping Truck)', status: 'Active', zone: 'Bypass C&D Corridor', load: 92, driver: 'J. Smith', fuel: 34, eta: '6 min' },
+    { id: 'T-882 (Compactor)', status: 'Maintenance', zone: 'Municipal Depot', load: 0, driver: 'N/A', fuel: 100, eta: '—' },
   ];
 
   const optimizedTrucks = [
-    { id: 'T-402', status: 'Active', zone: 'Downtown Hub', load: 85, driver: 'M. Rodriguez', fuel: 72, eta: '8 min' },
-    { id: 'T-119', status: 'Optimized', zone: 'Ward 1 → Ward 3', load: 42, driver: 'S. Chen', fuel: 58, eta: '15 min' },
-    { id: 'T-882', status: 'Maintenance', zone: 'Depot', load: 0, driver: 'N/A', fuel: 100, eta: '—' },
-    { id: 'T-304', status: 'Optimized', zone: 'Block A → Downtown', load: 92, driver: 'J. Smith', fuel: 34, eta: '4 min' },
-    { id: 'T-517', status: 'Active', zone: 'Ward 3 Residential', load: 61, driver: 'R. Patel', fuel: 81, eta: '12 min' },
-    { id: 'T-208', status: 'Optimized', zone: 'Waterfront → Block B', load: 73, driver: 'L. Kim', fuel: 45, eta: '10 min' },
+    { id: 'V-102 (Pickup Van)', status: 'Optimized', zone: 'Aquem → Station Road', load: 54, driver: 'R. Naik (Staff)', fuel: 84, eta: '4 min' },
+    { id: 'Foot Crew W-7', status: 'Optimized', zone: 'Market Footpath Sweep (On Foot)', load: 40, driver: 'Sanitation Beat Crew (4 Staff)', fuel: 100, eta: '3 min' },
+    { id: 'V-104 (Pickup Van)', status: 'Optimized', zone: 'Comba → Borda Sector', load: 62, driver: 'D. Kerkar (Staff)', fuel: 76, eta: '6 min' },
+    { id: 'T-402 (Compactor)', status: 'Active', zone: 'Margao Fish Market Gate', load: 85, driver: 'M. Rodriguez', fuel: 72, eta: '8 min' },
+    { id: 'T-119 (Compactor)', status: 'Optimized', zone: 'Ward 2 → Ward 7 Support', load: 42, driver: 'S. Chen', fuel: 58, eta: '14 min' },
+    { id: 'T-304 (Tipping Truck)', status: 'Optimized', zone: 'Bypass → Cacora C&D Plant', load: 92, driver: 'J. Smith', fuel: 34, eta: '4 min' },
+    { id: 'T-882 (Compactor)', status: 'Maintenance', zone: 'Municipal Depot', load: 0, driver: 'N/A', fuel: 100, eta: '—' },
   ];
 
   const trucks = optimized ? optimizedTrucks : initialTrucks;

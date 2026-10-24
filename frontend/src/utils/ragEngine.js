@@ -12,17 +12,17 @@ const KNOWLEDGE_BASE = [
   {
     topic: "Madgaon City Wards & Collection Zones",
     keywords: ["madgaon", "margao", "fatorda", "borda", "navelim", "comba", "aquem", "pajifond", "goa", "market"],
-    content: "Madgaon Municipality comprises 25 wards managed by the Margao Municipal Council (MMC). High micro-surge risk sectors include: (1) Margao Municipal Fish & Vegetable Market (Ward 7) with 18.5 Tons daily organic output; (2) Fatorda Stadium & Commercial Zone (Ward 2) experiencing weekend event spikes; (3) Aquem Commercial Complex (Ward 14); (4) Borda Residential Corridor (Ward 18); and (5) Comba Heritage District (Ward 10). Autonomous rovers R-1 and R-3 patrol curbside litter in commercial zones."
+    content: "Madgaon Municipality comprises 25 wards managed by the Margao Municipal Council (MMC). High micro-surge risk sectors include: (1) Margao Municipal Fish & Vegetable Market (Ward 7) with 18.5 Tons daily organic output; (2) Fatorda Stadium & Commercial Zone (Ward 2) experiencing weekend event spikes; (3) Aquem Commercial Complex (Ward 14); (4) Borda Residential Corridor (Ward 18); and (5) Comba Heritage District (Ward 10). Existing Municipal Sanitation Staff (on foot) and Small Pickup Vans V-102 and V-104 handle curbside litter and narrow-lane pickups at zero extra capital expense."
   },
   {
-    topic: "Smart IoT Organics Bins & Hardware",
+    topic: "Zero-Capex Municipal Waste Forecasting",
     keywords: ["iot", "sensor", "organics", "kitchen", "hardware", "fill", "temperature", "methane", "gw134", "bin"],
-    content: "GridShift-AI IoT pods (such as Node GW-134 installed in commercial restaurant kitchens) employ ultrasonic depth sensors, load-cell weight sensors, and volatile gas detectors. Telemetry is transmitted every 15 seconds over LoRaWAN. When a commercial bin exceeds 80% fill capacity or 45kg load, the central server initiates an automated priority dispatch for organics collection within 30 minutes, preventing bacterial decomposition and odor issues."
+    content: "GridShift-AI eliminates expensive IoT bin hardware by combining municipal permit filings, commercial market schedules, and citizen geotagged camera reports. When a commercial zone or market sector approaches capacity, the central platform initiates an automated priority dispatch for Municipal Small Pickup Vans (V-102, V-104) or Ward Sanitation Staff on foot within 30 minutes."
   },
   {
-    topic: "Autonomous Fleet & Rover Telemetry",
-    keywords: ["fleet", "truck", "rover", "driver", "dispatch", "reroute", "t-402", "t-119", "t-304", "t-882", "r-1", "r-3"],
-    content: "Active fleet vehicles: (1) Truck T-402 (Driver: M. Rodriguez, Downtown Hub, Load: 85%, Status: Active); (2) Truck T-119 (Driver: S. Chen, Ward 1, Load: 42%, Status: Rerouted); (3) Truck T-304 (Driver: J. Smith, Commercial Block A, Load: 92%, Status: Critical Alert); (4) Truck T-882 (Depot Maintenance). Autonomous Rovers R-1 and R-3 patrol pedestrian pathways along Bayshore Avenue and Margao Market with real-time computer vision debris detection."
+    topic: "Municipal Fleet, Pickup Vans & Foot Crew Telemetry",
+    keywords: ["fleet", "truck", "van", "pickup", "foot", "crew", "staff", "driver", "dispatch", "reroute", "t-402", "t-119", "t-304", "t-882", "v-102", "v-104"],
+    content: "Active municipal response units: (1) Small Pickup Van V-102 (Ward 14 Aquem & Borda); (2) Small Pickup Van V-104 (Ward 10 Comba Heritage); (3) Municipal Sanitation Staff On Foot (Ward 7 Market Beat Crew); (4) Compactor Truck T-402 (Driver: M. Rodriguez, Fish Market Hub, Load: 85%, Status: Active); (5) Compactor Truck T-119 (Driver: S. Chen, Ward 2 Fatorda, Load: 42%, Status: Rerouted); (6) Tipping Truck T-304 (Driver: J. Smith, Bypass C&D Corridor, Load: 92%, Status: Active)."
   },
   {
     topic: "Citizen Waste Reporting, Ticket Redressal & Feedback Loop",
@@ -196,10 +196,10 @@ export async function askGeminiWithRAG(userQuery, activeContext = {}) {
 
   const liveContextText = `
 CURRENT SYSTEM TELEMETRY (Madgaon Municipal Area, Goa):
-- Monitored Nodes: 140 Smart Units (All Online, 12ms latency)
+- Monitored Sectors: 25 Municipal Wards (Zero-Capex Software Grid)
 - Construction Debris Hotspots: 5 active sites (Fatorda High-Rise 14.5T, Aquem Commercial 8.2T, Margao Bypass 22T, Navelim 11.4T, Borda 6.8T)
 - Active Municipal Trucks: 3 en route (T-402, T-119, T-304), 1 in maintenance (T-882)
-- Autonomous Rovers: R-1 (Active Bayshore), R-3 (Margao Market)
+- Zero-Extra-Cost Units: Small Pickup Vans V-102 & V-104 + Municipal Sanitation Staff (On Foot — Ward Beat Crews)
 - Redressal Tickets: ${ticketStats.total} total (${ticketStats.open} active in SLA queue, ${ticketStats.resolved} awaiting citizen verification, ${ticketStats.verified} verified closed)
 - Platform Admin (RBAC): pranavkantak9@gmail.com
 - Active Surges: Margao Fish Market (18T Critical), Comba Ward (9.5T High)
@@ -271,20 +271,20 @@ ${liveContextText}
 
 function buildLocalFallbackResponse(queryLower, ticketStats) {
   if (queryLower.includes("ticket") || queryLower.includes("redressal") || queryLower.includes("sla") || queryLower.includes("feedback") || queryLower.includes("admin")) {
-    return `🎫 **Automated Citizen Ticket Redressal & RBAC Status:**\n\n* **Live Queue:** **${ticketStats.total} total tickets** tracked (**${ticketStats.open} active in SLA**, **${ticketStats.resolved} awaiting citizen verification**, **${ticketStats.verified} verified closed**).\n* **Admin Authority:** Account **pranavkantak9@gmail.com** has full RBAC privileges to override triage severity, assign compactors/rovers (T-402, T-304, R-1), and mark incidents **RESOLVED**.\n* **Citizen Verification Loop:** Once marked resolved, the reporting citizen rates the cleanup (1–5 stars). Ratings **≥ 3 stars** transition the ticket to **VERIFIED_CLOSED**; ratings **≤ 2 stars** automatically **REOPEN** and escalate the ticket to **Critical (4h SLA)**.`;
+    return `🎫 **Automated Citizen Ticket Redressal & RBAC Status:**\n\n* **Live Queue:** **${ticketStats.total} total tickets** tracked (**${ticketStats.open} active in SLA**, **${ticketStats.resolved} awaiting citizen verification**, **${ticketStats.verified} verified closed**).\n* **Admin Authority:** Account **pranavkantak9@gmail.com** has full RBAC privileges to override triage severity, assign existing municipal sanitation staff (on foot) or small pickup vans (V-102, V-104) & compactors (T-402, T-304), and mark incidents **RESOLVED**.\n* **Citizen Verification Loop:** Once marked resolved, the reporting citizen rates the cleanup (1–5 stars). Ratings **≥ 3 stars** transition the ticket to **VERIFIED_CLOSED**; ratings **≤ 2 stars** automatically **REOPEN** and escalate the ticket to **Critical (4h SLA)**.`;
   }
 
   if (queryLower.includes("construction") || queryLower.includes("debris") || queryLower.includes("demolition")) {
-    return `🏗️ **Construction & Demolition Debris Overview (Madgaon, Goa):**\n\nThere are currently **5 active C&D debris zones** marked on the Live Map, including the **Margao Bypass Flyover expansion (22.0 Tons)** and **Fatorda High-Rise demolition (14.5 Tons)**.\n\n* **Regulations:** Under Goa Municipal Solid Waste & C&D Rules 2016, all masonry and concrete must be segregated from municipal household waste and hauled to designated facilities (e.g. Cacora treatment plant).\n* **Dispatch Status:** Heavy dump truck T-304 is assigned for commercial bulk transfer, while Rover R-1 continues curbside dust and rubble monitoring.`;
+    return `🏗️ **Construction & Demolition Debris Overview (Madgaon, Goa):**\n\nThere are currently **5 active C&D debris zones** marked on the Live Map, including the **Margao Bypass Flyover expansion (22.0 Tons)** and **Fatorda High-Rise demolition (14.5 Tons)**.\n\n* **Regulations:** Under Goa Municipal Solid Waste & C&D Rules 2016, all masonry and concrete must be segregated from municipal household waste and hauled to designated facilities (e.g. Cacora treatment plant).\n* **Dispatch Status:** Heavy dump truck T-304 is assigned for commercial bulk transfer, while Small Pickup Van V-102 and Municipal Ward Staff handle smaller roadside rubble clearances.`;
   }
 
-  if (queryLower.includes("rover") || queryLower.includes("truck") || queryLower.includes("fleet")) {
-    return `🚛 **Fleet & Autonomous Rover Status:**\n\n* **Active Vehicles:** 24 municipal units total; 3 compactor trucks currently active (T-402, T-119, T-304).\n* **Autonomous Rovers:** Rover R-1 is patrolling Bayshore Avenue with real-time AI object detection; Rover R-3 is clearing pedestrian corridors around Margao Municipal Fish Market.\n* **Reroutes Today:** 3 automated reroutes were initiated by the XGBoost forecasting model to prevent dumpster overflow in Ward 7.`;
+  if (queryLower.includes("rover") || queryLower.includes("truck") || queryLower.includes("fleet") || queryLower.includes("foot") || queryLower.includes("van") || queryLower.includes("pickup") || queryLower.includes("crew")) {
+    return `🚛 **Zero-Extra-Cost Municipal Staff & Fleet Status:**\n\n* **Municipal Sanitation Staff (On Foot):** Ward Beat Crews are actively sweeping pedestrian corridors around Margao Municipal Fish Market (Ward 7) and Comba Heritage lanes (Ward 10).\n* **Small Pickup Vans:** **V-102** is servicing Aquem & Borda commercial lanes; **V-104** is assigned to Comba & Pajifond narrow lanes.\n* **Heavy Compactors:** 3 municipal compactor/tipping trucks active (T-402, T-119, T-304) for high-tonnage waste and C&D transfer.`;
   }
 
   if (queryLower.includes("report") || queryLower.includes("photo") || queryLower.includes("camera")) {
-    return `📸 **Citizen Waste Reporting & Ticket Redressal Guide:**\n\n1. Click **Report Incident** in the top navigation bar to open the live geotagging camera.\n2. Snap or upload a photo and choose category (**Construction Debris**, **Illegal Dump**, or **Overflowing Bin**).\n3. Your report automatically generates a tracked **Redressal Ticket (TKT-2026-XXXX)** with an SLA countdown timer and pins to the Live Map.\n4. Track dispatch progress and verify resolution in the **Ticket Redressal** tab!`;
+    return `📸 **Citizen Waste Reporting & Ticket Redressal Guide:**\n\n1. Click **Report Waste** in the top navigation bar from any page to open the live geotagging camera.\n2. Snap or upload a photo and choose category (**Construction Debris**, **Illegal Dump**, or **Overflowing Bin**).\n3. Your report automatically generates a tracked **Redressal Ticket (TKT-2026-XXXX)**, pins immediately to the **Live Grid Map** (auto-opening in the Fleet Dispatch popup), and dispatches Municipal Sanitation Staff (on foot) or a Small Pickup Van!`;
   }
 
-  return `🤖 **GridShift AI Telemetry Report (Madgaon, Goa):**\n\nAll **140 Smart IoT units** are operating online over LoRaWAN (12ms latency). Current highest priority sector is the **Margao Municipal Market** with an 18-ton organic surge projected for peak evening hours.\n\n* **Ticket Redressal Queue:** ${ticketStats.open} open tickets being serviced, ${ticketStats.resolved} awaiting citizen star-rating verification.\n* **AI Engine:** Powered by **gemini-3.8-flash** with sliding-window rate-limit protection and exponential backoff.`;
+  return `🤖 **GridShift AI Telemetry Report (Madgaon, Goa):**\n\nAll **25 Madgaon municipal wards** are monitored with zero extra hardware burden on municipal resources. Current highest priority sector is the **Margao Municipal Market** with an 18-ton organic surge projected for peak evening hours.\n\n* **Ticket Redressal Queue:** ${ticketStats.open} open tickets being serviced by Municipal Foot Crews & Small Pickup Vans, ${ticketStats.resolved} awaiting citizen star-rating verification.\n* **AI Engine:** Powered by **gemini-3.8-flash** with sliding-window rate-limit protection and exponential backoff.`;
 }

@@ -8,7 +8,7 @@ import { INITIAL_REDRESSAL_TICKETS } from './Redressal';
 import '../index.css';
 
 const RAW_GMAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
-const IS_AISTUDIO_DEMO_KEY = RAW_GMAPS_KEY === '[GCP_API_KEY]';
+const IS_AISTUDIO_DEMO_KEY = RAW_GMAPS_KEY === 'AIzaSyD907exSmrkdsn1tEc7PPH4kx8RpcPZwvw';
 const IS_AISTUDIO_HOST =
   typeof window !== 'undefined' &&
   (window.location.hostname.endsWith('.run.app') ||
@@ -29,6 +29,40 @@ const MADGAON_DEFAULT_CENTER = {
   lng: 73.9575
 };
 const MADGAON_DEFAULT_ZOOM = 14;
+
+function sanitizeLegacyUnitName(unitText) {
+  if (!unitText || typeof unitText !== 'string') {
+    return 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)';
+  }
+  return unitText
+    .replace(/Autonomous Rover R-1\s*\([^)]*\)/gi, 'Municipal Small Pickup Van V-102 (Light Response)')
+    .replace(/Autonomous Rover R-3\s*\([^)]*\)/gi, 'Municipal Sanitation Staff (On Foot — Market Crew)')
+    .replace(/Autonomous Rover R-1/gi, 'Municipal Small Pickup Van V-102')
+    .replace(/Autonomous Rover R-3/gi, 'Municipal Sanitation Staff (On Foot)')
+    .replace(/Rover R-1/gi, 'Municipal Small Pickup Van V-102')
+    .replace(/Rover R-3/gi, 'Municipal Sanitation Staff (On Foot)')
+    .replace(/Autonomous Unit R-1/gi, 'Municipal Small Pickup Van V-102');
+}
+
+function formatTicketAsMarker(ticket) {
+  if (!ticket) return null;
+  const lat = Number(ticket.coordinates?.lat) || MADGAON_DEFAULT_CENTER.lat;
+  const lng = Number(ticket.coordinates?.lng) || MADGAON_DEFAULT_CENTER.lng;
+  const cleanUnit = sanitizeLegacyUnitName(ticket.assignedUnit);
+  return {
+    id: ticket.id,
+    name: `Citizen Ticket: ${ticket.category}`,
+    coordinates: [lng, lat],
+    tonnage: 'Field Verified Incident',
+    type: `${ticket.category} (${ticket.ward || 'Madgaon Municipal Ward'})`,
+    permit: `Ticket ${ticket.id} (${ticket.slaHours || 12}h SLA)`,
+    status: `${ticket.status || 'TRIAGED'} — ${cleanUnit}`,
+    severity: ticket.severity || 'High',
+    assigned: cleanUnit,
+    photo: ticket.photo,
+    description: sanitizeLegacyUnitName(ticket.description || '')
+  };
+}
 
 // Web Mercator projection helpers (EPSG:3857) for exact geographic marker & tile alignment
 function latLngToWorldPx(lat, lng, zoom) {
@@ -59,10 +93,10 @@ const CONSTRUCTION_DEBRIS = [
     tonnage: 14.5,
     type: 'Concrete, Brick & Plaster Rubble',
     permit: 'GS-MUN/BLD/2026/044',
-    status: 'Demolition Active',
+    status: 'Demolition Active — Tipping Truck T-304 Assigned',
     severity: 'High',
     color: [245, 158, 11],
-    assigned: 'Truck T-304'
+    assigned: 'Municipal Tipping Truck T-304'
   },
   {
     id: 'CD-102',
@@ -71,10 +105,10 @@ const CONSTRUCTION_DEBRIS = [
     tonnage: 8.2,
     type: 'Drywall, Tiles & Masonry Scraps',
     permit: 'GS-MUN/COMM/2026/119',
-    status: 'Segregation Underway',
+    status: 'Segregation Underway — Ward Crew + Van V-102',
     severity: 'Medium',
     color: [245, 158, 11],
-    assigned: 'Truck T-119'
+    assigned: 'Municipal Small Pickup Van V-102'
   },
   {
     id: 'CD-103',
@@ -83,10 +117,10 @@ const CONSTRUCTION_DEBRIS = [
     tonnage: 22.0,
     type: 'Pavement Concrete & Excavated Soil',
     permit: 'PWD/HW/2026/089',
-    status: 'Heavy Transfer Required',
+    status: 'Heavy Transfer Required — Compactor T-402',
     severity: 'Critical',
     color: [234, 88, 12],
-    assigned: 'Compactor T-402'
+    assigned: 'Municipal Compactor T-402'
   },
   {
     id: 'CD-104',
@@ -95,10 +129,10 @@ const CONSTRUCTION_DEBRIS = [
     tonnage: 11.4,
     type: 'Asphalt Millings & Sand Sub-base',
     permit: 'GS-MUN/RD/2026/201',
-    status: 'Scheduled for Clearing',
+    status: 'Scheduled — Municipal Pickup Van V-104 & Foot Crew',
     severity: 'High',
     color: [245, 158, 11],
-    assigned: 'Rover R-1 Monitoring'
+    assigned: 'Municipal Small Pickup Van V-104'
   },
   {
     id: 'CD-105',
@@ -107,10 +141,10 @@ const CONSTRUCTION_DEBRIS = [
     tonnage: 6.8,
     type: 'Laterite Stone & Lime Plaster',
     permit: 'GS-MUN/HERIT/2026/012',
-    status: 'Salvage Sorted',
+    status: 'Salvage Sorted by Municipal Staff (On Foot)',
     severity: 'Medium',
     color: [245, 158, 11],
-    assigned: 'Depot Scheduled'
+    assigned: 'Municipal Staff (On Foot — Borda Beat)'
   }
 ];
 
@@ -121,10 +155,10 @@ const SURGE_HOTSPOTS = [
     coordinates: [73.9575, 15.2736],
     tonnage: 18.0,
     type: 'Organic Waste & Commercial Produce',
-    status: 'Critical Surge Alarm (90% Fill)',
+    status: 'Critical Surge Alarm (90% Fill) — Pickup Van + Staff Dispatched',
     severity: 'Critical',
     color: [239, 68, 68],
-    assigned: 'Truck T-402 En Route'
+    assigned: 'Municipal Pickup Van V-102 + Compactor T-402'
   },
   {
     id: 'SG-202',
@@ -132,22 +166,23 @@ const SURGE_HOTSPOTS = [
     coordinates: [73.9590, 15.2705],
     tonnage: 9.5,
     type: 'Commercial Packaging & Plastic Cluster',
-    status: 'High Accumulation',
+    status: 'High Accumulation — Municipal Staff (On Foot) En Route',
     severity: 'High',
     color: [239, 68, 68],
-    assigned: 'Rover R-3 Dispatched'
+    assigned: 'Municipal Sanitation Staff (On Foot) + Pickup Van V-104'
   }
 ];
 
 /**
  * Watermark-free Interactive Google Maps Tile Engine for Madgaon, Goa.
- * Renders real Google Maps Roadmap (lyrs=m) & Hybrid Satellite (lyrs=y) tiles
+ * Renders real Google Maps Roadmap (lyrs=m), Terrain (lyrs=p), & Hybrid Satellite (lyrs=y) tiles
  * with smooth drag-panning, scroll zoom, and exact geographic markers without
  * triggering "For development purposes only" or "This page can't load Google Maps correctly"
  * on Vercel or restricted domains.
  */
 function MadgaonInteractiveTileMap({
   data,
+  mapType,
   showHexagons,
   showDebris,
   showSurges,
@@ -160,7 +195,6 @@ function MadgaonInteractiveTileMap({
   const [viewport, setViewport] = useState({ width: 1280, height: 800 });
   const [center, setCenter] = useState(MADGAON_DEFAULT_CENTER);
   const [zoom, setZoom] = useState(MADGAON_DEFAULT_ZOOM);
-  const [mapType, setMapType] = useState('roadmap'); // 'roadmap' | 'satellite'
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef(null);
   const wheelTimeoutRef = useRef(null);
@@ -178,6 +212,16 @@ function MadgaonInteractiveTileMap({
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
+
+  // Automatically pan to newly selected citizen ticket if coordinates are valid
+  useEffect(() => {
+    if (selectedMarker?.id?.startsWith('TKT-') && Array.isArray(selectedMarker.coordinates)) {
+      const [lng, lat] = selectedMarker.coordinates;
+      if (lat && lng) {
+        setCenter({ lat: Number(lat), lng: Number(lng) });
+      }
+    }
+  }, [selectedMarker?.id]);
 
   const handlePointerDown = (e) => {
     if (e.target.closest('[data-map-interactive="true"]')) return;
@@ -235,7 +279,7 @@ function MadgaonInteractiveTileMap({
   const tiles = [];
   for (let tx = startTileX; tx <= endTileX; tx++) {
     for (let ty = startTileY; ty <= endTileY; ty++) {
-      const lyrs = mapType === 'satellite' ? 'y' : 'm';
+      const lyrs = mapType === 'satellite' ? 'y' : mapType === 'terrain' ? 'p' : 'm';
       const subdomain = (tx + ty) % 4;
       tiles.push({
         key: `${mapType}-${zoom}-${tx}-${ty}`,
@@ -432,19 +476,7 @@ function MadgaonInteractiveTileMap({
               title={`Ticket ${ticket.id}: ${ticket.category}`}
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedMarker({
-                  id: ticket.id,
-                  name: `Citizen Ticket: ${ticket.category}`,
-                  coordinates: [ticket.coordinates.lng, ticket.coordinates.lat],
-                  tonnage: 'Field Incident',
-                  type: ticket.category,
-                  permit: `${ticket.id} (${ticket.slaHours || 12}h SLA)`,
-                  status: `${ticket.status || 'TRIAGED'} — ${ticket.assignedUnit || 'Rover R-1'}`,
-                  severity: ticket.severity,
-                  assigned: ticket.assignedUnit || 'Rover R-1 En Route',
-                  photo: ticket.photo,
-                  description: ticket.description
-                });
+                setSelectedMarker(formatTicketAsMarker(ticket));
               }}
               style={{
                 position: 'absolute',
@@ -473,62 +505,13 @@ function MadgaonInteractiveTileMap({
           );
         })}
 
-      {/* Google Maps-style Map / Satellite Switcher + Zoom Controls (Top Left) */}
+      {/* Zoom & Recenter Madgaon Controls (Positioned cleanly below the Map | Terrain | Satellite bar) */}
       <div
         data-map-interactive="true"
         style={{
           position: 'absolute',
-          top: '66px',
-          left: '20px',
-          zIndex: 12,
-          display: 'inline-flex',
-          backgroundColor: 'rgba(255, 255, 255, 0.96)',
-          borderRadius: '10px',
-          boxShadow: '0 4px 14px rgba(15, 23, 42, 0.16)',
-          border: '1px solid rgba(226, 232, 240, 0.95)',
-          overflow: 'hidden'
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setMapType('roadmap')}
-          style={{
-            padding: '7px 14px',
-            border: 'none',
-            backgroundColor: mapType === 'roadmap' ? '#092C5E' : 'transparent',
-            color: mapType === 'roadmap' ? '#ffffff' : '#334155',
-            fontWeight: 700,
-            fontSize: '12px',
-            cursor: 'pointer'
-          }}
-        >
-          Map
-        </button>
-        <button
-          type="button"
-          onClick={() => setMapType('satellite')}
-          style={{
-            padding: '7px 14px',
-            border: 'none',
-            borderLeft: '1px solid #e2e8f0',
-            backgroundColor: mapType === 'satellite' ? '#092C5E' : 'transparent',
-            color: mapType === 'satellite' ? '#ffffff' : '#334155',
-            fontWeight: 700,
-            fontSize: '12px',
-            cursor: 'pointer'
-          }}
-        >
-          Satellite
-        </button>
-      </div>
-
-      {/* Zoom & Recenter Madgaon Controls */}
-      <div
-        data-map-interactive="true"
-        style={{
-          position: 'absolute',
-          top: '112px',
-          left: '20px',
+          top: '108px',
+          left: '16px',
           zIndex: 12,
           display: 'flex',
           flexDirection: 'column',
@@ -641,6 +624,9 @@ function Dashboard({ user }) {
   const [showGridModal, setShowGridModal] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
 
+  // Unified Map Mode ('roadmap' | 'terrain' | 'satellite') shared by Google Maps SDK & Tile Engine
+  const [mapType, setMapType] = useState('roadmap');
+
   // Automatically fall back to Watermark-Free Google Maps Tile Engine when key is absent or restricted on Vercel
   const [gmSdkFailed, setGmSdkFailed] = useState(!HAS_CUSTOM_GMAPS_KEY);
 
@@ -650,8 +636,28 @@ function Dashboard({ user }) {
   const [showCitizenReports, setShowCitizenReports] = useState(true);
   const [showHexagons, setShowHexagons] = useState(true);
 
-  // Selected Marker for Details Card
-  const [selectedMarker, setSelectedMarker] = useState(CONSTRUCTION_DEBRIS[0]);
+  // Selected Marker for Details Card (Automatically selects latest citizen report if present, even if reported on another page)
+  const [selectedMarker, setSelectedMarker] = useState(() => {
+    try {
+      const latestRaw = localStorage.getItem('gridshift_latest_reported_ticket');
+      if (latestRaw) {
+        const parsedLatest = JSON.parse(latestRaw);
+        if (parsedLatest && parsedLatest.id) {
+          return formatTicketAsMarker(parsedLatest);
+        }
+      }
+      const savedTickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+      const initialIds = new Set(INITIAL_REDRESSAL_TICKETS.map((t) => t.id));
+      const userSubmitted = savedTickets.find((t) => t?.id && !initialIds.has(t.id));
+      if (userSubmitted) {
+        return formatTicketAsMarker(userSubmitted);
+      }
+    } catch {
+      // ignore
+    }
+    return CONSTRUCTION_DEBRIS[0];
+  });
+
   const [citizenReports, setCitizenReports] = useState([]);
   const [mobileTelemetryOpen, setMobileTelemetryOpen] = useState(false);
 
@@ -688,45 +694,53 @@ function Dashboard({ user }) {
     setTimeout(() => setToastMsg(null), 4000);
   }, []);
 
-  // Load Citizen Reports & Redressal Tickets from LocalStorage
-  const loadCitizenReports = useCallback(() => {
+  // Load Citizen Reports & Redressal Tickets from LocalStorage and sanitize any legacy rover labels
+  const loadCitizenReports = useCallback((autoSelectLatest = false) => {
     try {
       const savedTickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
-      if (savedTickets.length > 0) {
-        setCitizenReports(savedTickets);
-        return;
+      const rawList = savedTickets.length > 0 ? savedTickets : INITIAL_REDRESSAL_TICKETS;
+      const normalizedList = rawList.map((t) => ({
+        ...t,
+        assignedUnit: sanitizeLegacyUnitName(t.assignedUnit),
+        description: sanitizeLegacyUnitName(t.description),
+        adminNotes: sanitizeLegacyUnitName(t.adminNotes)
+      }));
+
+      localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(normalizedList));
+      setCitizenReports(normalizedList);
+
+      if (autoSelectLatest) {
+        const latestRaw = localStorage.getItem('gridshift_latest_reported_ticket');
+        if (latestRaw) {
+          const latestObj = JSON.parse(latestRaw);
+          const matched = normalizedList.find((t) => t.id === latestObj?.id) || latestObj;
+          if (matched?.id) {
+            setSelectedMarker(formatTicketAsMarker(matched));
+          }
+        }
       }
-      localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(INITIAL_REDRESSAL_TICKETS));
-      setCitizenReports(INITIAL_REDRESSAL_TICKETS);
     } catch {
       setCitizenReports(INITIAL_REDRESSAL_TICKETS);
     }
   }, []);
 
   useEffect(() => {
-    loadCitizenReports();
+    loadCitizenReports(true);
     const handleReportEvent = (e) => {
-      loadCitizenReports();
+      loadCitizenReports(false);
       if (e.detail) {
-        setSelectedMarker({
-          id: e.detail.id,
-          name: `Citizen Ticket: ${e.detail.category}`,
-          coordinates: [e.detail.coordinates.lng, e.detail.coordinates.lat],
-          tonnage: 'Field Verified',
-          type: e.detail.category,
-          permit: `Ticket ${e.detail.id} (${e.detail.slaHours || 12}h SLA)`,
-          status: `${e.detail.status || 'TRIAGED'} — ${e.detail.assignedUnit || 'Rover R-1'}`,
-          severity: e.detail.severity,
-          assigned: e.detail.assignedUnit || 'Autonomous Unit R-1',
-          photo: e.detail.photo
-        });
+        setShowCitizenReports(true);
+        setSelectedMarker(formatTicketAsMarker(e.detail));
       }
     };
+    const handleTicketUpdated = () => {
+      loadCitizenReports(false);
+    };
     window.addEventListener('citizenReportAdded', handleReportEvent);
-    window.addEventListener('redressalTicketUpdated', loadCitizenReports);
+    window.addEventListener('redressalTicketUpdated', handleTicketUpdated);
     return () => {
       window.removeEventListener('citizenReportAdded', handleReportEvent);
-      window.removeEventListener('redressalTicketUpdated', loadCitizenReports);
+      window.removeEventListener('redressalTicketUpdated', handleTicketUpdated);
     };
   }, [loadCitizenReports]);
 
@@ -778,11 +792,35 @@ function Dashboard({ user }) {
   }, [fetchData]);
 
   const handleDispatchFromMap = () => {
-    if (!isAdmin) return;
+    if (!isAdmin || !selectedMarker) return;
+    const assignedCrew = selectedMarker.assigned || 'Municipal Sanitation Staff (On Foot) + Small Pickup Van V-102';
+    const nextStatusText = `ASSIGNED — ${assignedCrew} Dispatched by ${ADMIN_EMAIL}`;
+
     setSelectedMarker((prev) =>
-      prev ? { ...prev, status: `ASSIGNED — Dispatched by ${ADMIN_EMAIL}` } : prev
+      prev ? { ...prev, status: nextStatusText } : prev
     );
-    showNotification(`Compactor dispatched to ${selectedMarker.name} by Admin (${ADMIN_EMAIL})!`);
+
+    if (selectedMarker.id?.startsWith('TKT-')) {
+      try {
+        const saved = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+        const updated = saved.map((t) =>
+          t.id === selectedMarker.id
+            ? {
+                ...t,
+                status: 'ASSIGNED',
+                assignedUnit: assignedCrew,
+                adminNotes: `Dispatched ${assignedCrew} from Live Grid Map by ${ADMIN_EMAIL}.`
+              }
+            : t
+        );
+        localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(updated));
+        setCitizenReports(updated);
+      } catch {
+        // ignore
+      }
+    }
+
+    showNotification(`${assignedCrew} dispatched to ${selectedMarker.name} by Admin (${ADMIN_EMAIL})!`);
   };
 
   return (
@@ -818,6 +856,7 @@ function Dashboard({ user }) {
         {gmSdkFailed ? (
           <MadgaonInteractiveTileMap
             data={data}
+            mapType={mapType}
             showHexagons={showHexagons}
             showDebris={showDebris}
             showSurges={showSurges}
@@ -832,6 +871,10 @@ function Dashboard({ user }) {
               defaultCenter={MADGAON_DEFAULT_CENTER}
               defaultZoom={MADGAON_DEFAULT_ZOOM}
               mapId="DEMO_MAP_ID"
+              mapTypeId={mapType}
+              mapTypeControl={false}
+              streetViewControl={false}
+              fullscreenControl={false}
               internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio', 'gmp_git_agentskills_v1']}
               gestureHandling="greedy"
               disableDefaultUI={false}
@@ -954,21 +997,7 @@ function Dashboard({ user }) {
                       }}
                       title={`Ticket ${ticket.id}: ${ticket.category}`}
                       zIndex={30}
-                      onClick={() =>
-                        setSelectedMarker({
-                          id: ticket.id,
-                          name: `Citizen Ticket: ${ticket.category}`,
-                          coordinates: [ticket.coordinates.lng, ticket.coordinates.lat],
-                          tonnage: 'Field Incident',
-                          type: ticket.category,
-                          permit: `${ticket.id} (${ticket.slaHours || 12}h SLA)`,
-                          status: `${ticket.status || 'TRIAGED'} — ${ticket.assignedUnit || 'Rover R-1'}`,
-                          severity: ticket.severity,
-                          assigned: ticket.assignedUnit || 'Rover R-1 En Route',
-                          photo: ticket.photo,
-                          description: ticket.description
-                        })
-                      }
+                      onClick={() => setSelectedMarker(formatTicketAsMarker(ticket))}
                     >
                       <div
                         style={{
@@ -998,7 +1027,7 @@ function Dashboard({ user }) {
         )}
       </div>
 
-      {/* 2. LAYER FILTER CONTROLS BAR (Top Left) */}
+      {/* 2. LAYER FILTER CONTROLS BAR (Top Row — Single Line, Never Overlaps Map Mode Switcher) */}
       <div className="dashboard-filter-bar">
         <button
           onClick={() => setMobileTelemetryOpen(!mobileTelemetryOpen)}
@@ -1101,7 +1130,81 @@ function Dashboard({ user }) {
         </button>
       </div>
 
-      {/* 3. SELECTED MARKER INSPECTION CARD (Bottom Left — High-Contrast Opaque Card) */}
+      {/* 2B. UNOBSTRUCTED GOOGLE MAPS MODE SWITCHER (Map | Terrain | Satellite — Dedicated Row Below Filter Bar) */}
+      <div
+        data-map-interactive="true"
+        style={{
+          position: 'absolute',
+          top: '60px',
+          left: '16px',
+          zIndex: 25,
+          display: 'inline-flex',
+          backgroundColor: 'rgba(255, 255, 255, 0.97)',
+          borderRadius: '12px',
+          boxShadow: '0 6px 18px rgba(9, 44, 94, 0.18)',
+          border: '1.5px solid rgba(203, 213, 225, 0.95)',
+          overflow: 'hidden'
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setMapType('roadmap')}
+          style={{
+            padding: '7px 14px',
+            border: 'none',
+            backgroundColor: mapType === 'roadmap' ? '#092C5E' : 'transparent',
+            color: mapType === 'roadmap' ? '#ffffff' : '#0f172a',
+            fontWeight: 800,
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}
+        >
+          <span>🗺️ Map</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapType('terrain')}
+          style={{
+            padding: '7px 14px',
+            border: 'none',
+            borderLeft: '1px solid #e2e8f0',
+            backgroundColor: mapType === 'terrain' ? '#092C5E' : 'transparent',
+            color: mapType === 'terrain' ? '#ffffff' : '#0f172a',
+            fontWeight: 800,
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}
+        >
+          <span>⛰️ Terrain</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMapType('satellite')}
+          style={{
+            padding: '7px 14px',
+            border: 'none',
+            borderLeft: '1px solid #e2e8f0',
+            backgroundColor: mapType === 'satellite' ? '#092C5E' : 'transparent',
+            color: mapType === 'satellite' ? '#ffffff' : '#0f172a',
+            fontWeight: 800,
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px'
+          }}
+        >
+          <span>🛰️ Satellite</span>
+        </button>
+      </div>
+
+      {/* 3. SELECTED MARKER INSPECTION & MUNICIPAL DISPATCH CARD (Bottom Left — High-Contrast Opaque Card) */}
       {selectedMarker && (
         <div
           className="ios-glass"
@@ -1158,8 +1261,9 @@ function Dashboard({ user }) {
             {selectedMarker.permit && <div><strong>Reference:</strong> {selectedMarker.permit}</div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
               <MapPin size={12} color="#0284c7" />
-              <span>Madgaon Coordinates: {selectedMarker.coordinates?.[1]?.toFixed(4)}, {selectedMarker.coordinates?.[0]?.toFixed(4)}</span>
+              <span>Madgaon Coordinates: {Number(selectedMarker.coordinates?.[1] || MADGAON_DEFAULT_CENTER.lat).toFixed(4)}, {Number(selectedMarker.coordinates?.[0] || MADGAON_DEFAULT_CENTER.lng).toFixed(4)}</span>
             </div>
+            <div><strong>Assigned Municipal Crew:</strong> <span style={{ color: '#092C5E', fontWeight: 700 }}>{selectedMarker.assigned || 'Municipal Staff (On Foot) / Small Pickup Van'}</span></div>
             <div><strong>Dispatch Status:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedMarker.status}</span></div>
           </div>
 
@@ -1188,7 +1292,7 @@ function Dashboard({ user }) {
                 }}
               >
                 <Truck size={14} />
-                Dispatch Fleet Unit
+                Dispatch Staff / Pickup Van
               </button>
             )}
 
@@ -1272,10 +1376,10 @@ function Dashboard({ user }) {
             }}>
               <div style={{ fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-                Zone Core: 8 Autonomous Corridors
+                Zone Core: 8 Municipal Staff & Pickup Van Beat Corridors
               </div>
               <div style={{ fontSize: '10px', color: '#93c5fd', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Maximize2 size={11} /> Click to expand cyber topology view
+                <Maximize2 size={11} /> Click to expand ward routing topology view
               </div>
             </div>
           </div>
@@ -1294,12 +1398,12 @@ function Dashboard({ user }) {
               {loading ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
-          <p style={{ fontSize: '0.8rem', marginTop: '4px', marginBottom: '12px' }}>Gemini 3.8 Flash + XGBoost Recommendations</p>
+          <p style={{ fontSize: '0.8rem', marginTop: '4px', marginBottom: '12px' }}>Zero-Capex Municipal Staff & Pickup Van Routing</p>
 
           <div style={{ maxHeight: '220px', overflowY: 'auto', paddingRight: '5px' }}>
             {predictions.length === 0 ? (
               <div style={{ padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: '0.82rem', color: '#1e293b' }}>
-                🟢 <strong>Margao Market Ward:</strong> Pre-emptive compactor T-402 recommended for evening market clearance (18.0 Tons projected).
+                🟢 <strong>Margao Market Ward:</strong> Municipal Small Pickup Van V-102 & Ward Foot Crew pre-assigned for evening market clearance (18.0 Tons projected).
               </div>
             ) : (
               predictions.map((p, idx) => (
@@ -1311,7 +1415,7 @@ function Dashboard({ user }) {
                   {p.copilot && (
                     <ul style={{ margin: 0, fontSize: '0.78rem', listStyleType: 'none', padding: 0, color: '#334155' }}>
                       {p.copilot.recommendations.map((rec, i) => (
-                        <li key={i} style={{ marginBottom: '2px' }}>🚛 {rec}</li>
+                        <li key={i} style={{ marginBottom: '2px' }}>🚛 {sanitizeLegacyUnitName(rec)}</li>
                       ))}
                     </ul>
                   )}
@@ -1374,10 +1478,10 @@ function Dashboard({ user }) {
                 <Layers size={22} color="#16a34a" />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#092C5E' }}>
-                    GridShift-AI 3D Digital Twin Architecture
+                    GridShift-AI 3D Ward Topology Architecture
                   </h3>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
-                    Autonomous Sidewalk Rover Lanes & Multi-Zone Bin Telemetry
+                    Zero-Capex Municipal Sanitation Staff Foot Patrols & Small Pickup Van Dispatch Lanes
                   </span>
                 </div>
               </div>
@@ -1417,7 +1521,7 @@ function Dashboard({ user }) {
               alignItems: 'center'
             }}>
               <span style={{ fontSize: '12px', color: '#64748b' }}>
-                Model Version: GridShift-Twin v3.4 • Refreshed every 15s
+                Model Version: GridShift-Twin v3.4 • Zero-Extra-Budget Municipal Dispatch
               </span>
               <button
                 onClick={() => setShowGridModal(false)}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, RefreshCw, X, Check, MapPin, Upload, ShieldCheck, Clock, ArrowRight } from 'lucide-react';
+import { INITIAL_REDRESSAL_TICKETS } from '../pages/Redressal';
 import '../index.css';
 
 const SLA_HOURS_BY_SEVERITY = {
@@ -9,12 +10,25 @@ const SLA_HOURS_BY_SEVERITY = {
   Low: 48
 };
 
+// Zero-extra-budget municipal resource allocation: existing municipal staff on foot or in small pickup vans
 const DEFAULT_UNIT_BY_SEVERITY = {
-  Critical: 'Compactor T-402 (Priority Surge)',
-  High: 'Autonomous Rover R-1',
-  Medium: 'Truck T-119 (Ward Patrol)',
-  Low: 'Rover R-3 (Scheduled Sweep)'
+  Critical: 'Municipal Small Pickup Van V-102 + Tipping Truck T-304',
+  High: 'Municipal Small Pickup Van V-102 (Rapid Cleanup)',
+  Medium: 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)',
+  Low: 'Municipal Sanitation Staff (On Foot Patrol)'
 };
+
+const WARD_COORDINATES_MAP = {
+  'Ward 7 — Margao Central Market': { lat: 15.2736, lng: 73.9575 },
+  'Ward 2 — Fatorda Stadium Sector': { lat: 15.2891, lng: 73.9620 },
+  'Ward 14 — Aquem Commercial': { lat: 15.2680, lng: 73.9740 },
+  'Ward 10 — Comba Heritage Zone': { lat: 15.2705, lng: 73.9590 },
+  'Ward 18 — Borda Residential': { lat: 15.2820, lng: 73.9560 }
+};
+
+function isWithinMadgaonBounds(lat, lng) {
+  return lat >= 15.20 && lat <= 15.35 && lng >= 73.90 && lng <= 74.05;
+}
 
 // Optimize base64 thumbnail to <= 480px width at 0.68 JPEG quality so LocalStorage 5MB quota never overflows
 function compressDataUrl(dataUrl, maxWidth = 480, quality = 0.68) {
@@ -81,28 +95,46 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
     }
   };
 
+  // Keep coordinates synced with selected Madgaon ward unless user is physically inside Madgaon
+  const handleWardChange = (nextWard) => {
+    setWard(nextWard);
+    const wardBase = WARD_COORDINATES_MAP[nextWard] || { lat: 15.2736, lng: 73.9575 };
+    const jitterLat = Number((wardBase.lat + (Math.random() - 0.5) * 0.0018).toFixed(4));
+    const jitterLng = Number((wardBase.lng + (Math.random() - 0.5) * 0.0018).toFixed(4));
+    setCoords({ lat: jitterLat, lng: jitterLng });
+  };
+
   useEffect(() => {
     if (isOpen && !photoData && !submittedTicket) {
       startCamera(facingMode);
+      const wardBase = WARD_COORDINATES_MAP[ward] || { lat: 15.2736, lng: 73.9575 };
       if (navigator.geolocation) {
         setLocating(true);
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            setCoords({
-              lat: Number(pos.coords.latitude.toFixed(4)),
-              lng: Number(pos.coords.longitude.toFixed(4))
-            });
+            const rawLat = Number(pos.coords.latitude.toFixed(4));
+            const rawLng = Number(pos.coords.longitude.toFixed(4));
+            if (isWithinMadgaonBounds(rawLat, rawLng)) {
+              setCoords({ lat: rawLat, lng: rawLng });
+            } else {
+              setCoords(wardBase);
+            }
             setLocating(false);
           },
-          () => setLocating(false),
-          { timeout: 6000 }
+          () => {
+            setCoords(wardBase);
+            setLocating(false);
+          },
+          { timeout: 5000 }
         );
+      } else {
+        setCoords(wardBase);
       }
     } else {
       stopCamera();
     }
     return () => stopCamera();
-  }, [isOpen, facingMode, photoData, submittedTicket]);
+  }, [isOpen, facingMode, photoData, submittedTicket, ward]);
 
   const toggleCamera = () => {
     const nextMode = facingMode === 'environment' ? 'user' : 'environment';
@@ -146,10 +178,24 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
     const ticketNum = Math.floor(1000 + Math.random() * 9000);
     const ticketId = `TKT-2026-${ticketNum}`;
     const slaHours = SLA_HOURS_BY_SEVERITY[severity] || 24;
-    const assignedUnit = DEFAULT_UNIT_BY_SEVERITY[severity] || 'Rover R-1';
+    const assignedUnit =
+      category === 'Illegal Curbside Dump' || category === 'Overflowing Bin'
+        ? severity === 'Critical' || severity === 'High'
+          ? 'Municipal Small Pickup Van V-102 (Light Response)'
+          : 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)'
+        : DEFAULT_UNIT_BY_SEVERITY[severity] || 'Municipal Sanitation Staff (On Foot)';
     const reporterEmail = currentUser?.email || 'citizen.margao@goa.gov.in';
     const createdAtIso = new Date().toISOString();
     const slaDeadlineIso = new Date(Date.now() + slaHours * 3600 * 1000).toISOString();
+
+    const wardFallback = WARD_COORDINATES_MAP[ward] || { lat: 15.2736, lng: 73.9575 };
+    const safeCoords =
+      coords?.lat && coords?.lng && isWithinMadgaonBounds(Number(coords.lat), Number(coords.lng))
+        ? { lat: Number(coords.lat), lng: Number(coords.lng) }
+        : {
+            lat: Number((wardFallback.lat + (Math.random() - 0.5) * 0.0012).toFixed(4)),
+            lng: Number((wardFallback.lng + (Math.random() - 0.5) * 0.0012).toFixed(4))
+          };
 
     const newTicket = {
       id: ticketId,
@@ -159,8 +205,8 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       status: 'TRIAGED',
       ward,
       description: description || `${category} reported at ${ward}`,
-      coordinates: coords,
-      location: `${ward} (${coords.lat}, ${coords.lng})`,
+      coordinates: safeCoords,
+      location: `${ward} (${safeCoords.lat}, ${safeCoords.lng})`,
       photo: photoData,
       reporterEmail,
       assignedUnit,
@@ -168,7 +214,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       createdAt: createdAtIso,
       slaDeadline: slaDeadlineIso,
       timestamp: new Date().toLocaleString(),
-      adminNotes: `AI Triage confirmed ${severity} urgency (${slaHours}h SLA). Auto-queued ${assignedUnit}.`,
+      adminNotes: `AI Triage confirmed ${severity} urgency (${slaHours}h SLA). Zero-capex dispatch queued: ${assignedUnit}.`,
       feedback: null,
       history: [
         {
@@ -180,19 +226,33 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
         {
           status: 'TRIAGED',
           by: 'GridShift AI Triage Engine',
-          note: `Classified as ${category} (${severity} priority • ${slaHours}h SLA window).`,
+          note: `Classified as ${category} (${severity} priority • ${slaHours}h SLA). Assigned ${assignedUnit}.`,
           timestamp: createdAtIso
         }
       ]
     };
 
-    // 1. Save to Redressal Tickets Storage (capped at 30 items to protect storage quota)
+    // 1. Save to Redressal Tickets Storage & persist latest reported ticket so Dashboard map always pins & selects it even across page navigation
     try {
-      const existingTickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
-      const updatedTickets = [newTicket, ...existingTickets].slice(0, 30);
+      const parsedTickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+      const baseTickets = Array.isArray(parsedTickets) && parsedTickets.length > 0 ? parsedTickets : INITIAL_REDRESSAL_TICKETS;
+      const updatedTickets = [newTicket, ...baseTickets.filter((t) => t.id !== newTicket.id)].slice(0, 30);
       localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(updatedTickets));
+      localStorage.setItem('gridshift_latest_reported_ticket', JSON.stringify(newTicket));
     } catch (storageErr) {
       console.warn('Storage quota warning, trimming older photos:', storageErr);
+      try {
+        const parsedTickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+        const baseTickets = (Array.isArray(parsedTickets) && parsedTickets.length > 0 ? parsedTickets : INITIAL_REDRESSAL_TICKETS).map((t) => ({
+          ...t,
+          photo: '/street-detection.jpg'
+        }));
+        const updatedTickets = [newTicket, ...baseTickets].slice(0, 20);
+        localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(updatedTickets));
+        localStorage.setItem('gridshift_latest_reported_ticket', JSON.stringify(newTicket));
+      } catch {
+        // ignore
+      }
     }
 
     // 2. Save to Legacy Citizen Reports for Map compatibility
@@ -371,7 +431,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                   </strong>
                 </div>
                 <div>
-                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>Assigned Fleet Unit</span>
+                  <span style={{ color: '#64748b', fontSize: '11px', display: 'block' }}>Assigned Municipal Crew</span>
                   <strong style={{ color: '#16a34a' }}>{submittedTicket.assignedUnit}</strong>
                 </div>
                 <div>
@@ -380,7 +440,33 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <a
+                  href="/dashboard"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    resetAndClose();
+                    window.history.pushState({}, '', '/dashboard');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="btn btn-primary"
+                  style={{
+                    flex: 1,
+                    minWidth: '170px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '0.84rem',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <MapPin size={15} />
+                  <span>View Pin on Live Map</span>
+                </a>
                 <a
                   href="/redressal"
                   onClick={(e) => {
@@ -389,13 +475,15 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                     window.history.pushState({}, '', '/redressal');
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
-                  className="btn btn-primary"
                   style={{
                     flex: 1,
-                    padding: '12px 16px',
+                    minWidth: '170px',
+                    padding: '12px 14px',
                     borderRadius: '12px',
+                    backgroundColor: '#092C5E',
+                    color: 'white',
                     fontWeight: 800,
-                    fontSize: '0.88rem',
+                    fontSize: '0.84rem',
                     textDecoration: 'none',
                     display: 'flex',
                     alignItems: 'center',
@@ -403,20 +491,20 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                     gap: '6px'
                   }}
                 >
-                  <span>Track Ticket SLA & Redressal</span>
-                  <ArrowRight size={16} />
+                  <span>Track SLA in Redressal</span>
+                  <ArrowRight size={15} />
                 </a>
                 <button
                   type="button"
                   onClick={resetAndClose}
                   style={{
-                    padding: '12px 18px',
+                    padding: '12px 16px',
                     borderRadius: '12px',
                     backgroundColor: '#f1f5f9',
                     color: '#092C5E',
                     border: '1px solid #cbd5e1',
                     fontWeight: 700,
-                    fontSize: '0.88rem',
+                    fontSize: '0.84rem',
                     cursor: 'pointer'
                   }}
                 >
@@ -647,7 +735,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                   </label>
                   <select
                     value={ward}
-                    onChange={(e) => setWard(e.target.value)}
+                    onChange={(e) => handleWardChange(e.target.value)}
                     style={{
                       width: '100%',
                       padding: '10px 12px',

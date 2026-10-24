@@ -17,19 +17,55 @@ import '../index.css';
 const LIFECYCLE_STAGES = [
   { key: 'REPORTED', label: '1. Reported' },
   { key: 'TRIAGED', label: '2. AI Triaged' },
-  { key: 'ASSIGNED', label: '3. Fleet Assigned' },
+  { key: 'ASSIGNED', label: '3. Crew Assigned' },
   { key: 'IN_PROGRESS', label: '4. Cleanup Active' },
   { key: 'RESOLVED', label: '5. Resolved' },
   { key: 'VERIFIED_CLOSED', label: '6. Citizen Verified' }
 ];
 
+// Zero-extra-budget municipal dispatch units: existing municipal staff on foot and small pickup vans
 const FLEET_UNITS = [
+  'Municipal Sanitation Staff (On Foot — Ward Beat Crew)',
+  'Municipal Small Pickup Van V-102 (Light Response)',
+  'Municipal Small Pickup Van V-104 (Market & Comba)',
+  'Ward Compactor T-119 (Scheduled Route)',
   'Compactor T-402 (Priority Surge)',
-  'Heavy Dump Truck T-304 (C&D Debris)',
-  'Ward Compactor T-119',
-  'Autonomous Rover R-1 (Bayshore)',
-  'Autonomous Rover R-3 (Margao Market)'
+  'Heavy Dump Truck T-304 (C&D Debris)'
 ];
+
+function sanitizeLegacyRoverText(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text
+    .replace(/Autonomous Rover R-1\s*\([^)]*\)/gi, 'Municipal Small Pickup Van V-102 (Light Response)')
+    .replace(/Autonomous Rover R-3\s*\([^)]*\)/gi, 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)')
+    .replace(/Autonomous Rover R-1/gi, 'Municipal Small Pickup Van V-102')
+    .replace(/Autonomous Rover R-3/gi, 'Municipal Sanitation Staff (On Foot)')
+    .replace(/Rover R-1/gi, 'Municipal Small Pickup Van V-102')
+    .replace(/Rover R-3/gi, 'Municipal Sanitation Staff (On Foot)')
+    .replace(/smart pod GW-134/gi, 'curbside municipal bin cluster');
+}
+
+function normalizeTicketRecord(ticket) {
+  if (!ticket) return ticket;
+  return {
+    ...ticket,
+    assignedUnit: sanitizeLegacyRoverText(ticket.assignedUnit) || 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)',
+    description: sanitizeLegacyRoverText(ticket.description),
+    adminNotes: sanitizeLegacyRoverText(ticket.adminNotes),
+    feedback: ticket.feedback
+      ? {
+          ...ticket.feedback,
+          comment: sanitizeLegacyRoverText(ticket.feedback.comment)
+        }
+      : null,
+    history: Array.isArray(ticket.history)
+      ? ticket.history.map((h) => ({
+          ...h,
+          note: sanitizeLegacyRoverText(h.note)
+        }))
+      : []
+  };
+}
 
 const SLA_HOURS_MAP = {
   Critical: 4,
@@ -56,13 +92,13 @@ export const INITIAL_REDRESSAL_TICKETS = [
     createdAt: new Date(Date.now() - 1.5 * 3600 * 1000).toISOString(),
     slaDeadline: new Date(Date.now() + 2.5 * 3600 * 1000).toISOString(),
     timestamp: 'Today, 08:30 AM',
-    adminNotes: 'Heavy loader + T-304 dispatched for Cacora C&D plant transfer.',
+    adminNotes: 'Municipal field crew + Tipping Truck T-304 dispatched for Cacora C&D plant transfer.',
     feedback: null,
     history: [
       { status: 'REPORTED', by: 'citizen.margao@goa.gov.in', note: 'Geotagged C&D debris photo uploaded.', timestamp: '08:30 AM' },
       { status: 'TRIAGED', by: 'GridShift AI Triage', note: 'Classified Critical (4h SLA) — 14.2T estimated masonry.', timestamp: '08:31 AM' },
-      { status: 'ASSIGNED', by: 'Municipal Admin', note: 'Assigned Heavy Dump Truck T-304.', timestamp: '08:40 AM' },
-      { status: 'IN_PROGRESS', by: 'Municipal Admin', note: 'Crew on site clearing rubble stream.', timestamp: '09:05 AM' }
+      { status: 'ASSIGNED', by: 'Municipal Admin', note: 'Assigned Heavy Dump Truck T-304 & Ward Crew.', timestamp: '08:40 AM' },
+      { status: 'IN_PROGRESS', by: 'Municipal Admin', note: 'Municipal staff on site clearing rubble stream.', timestamp: '09:05 AM' }
     ]
   },
   {
@@ -72,23 +108,23 @@ export const INITIAL_REDRESSAL_TICKETS = [
     severity: 'High',
     status: 'RESOLVED',
     ward: 'Ward 14 — Aquem Market Lane',
-    description: 'Commercial cardboard and organic waste overflowing smart pod GW-134 onto arterial lane.',
+    description: 'Commercial cardboard and organic waste overflowing curbside municipal bin onto arterial lane.',
     coordinates: { lng: 73.9650, lat: 15.2650 },
     location: 'Aquem Market Lane (15.2650, 73.9650)',
     photo: '/iot-organics.jpg',
     reporterEmail: 'citizen.margao@goa.gov.in',
-    assignedUnit: 'Compactor T-402 (Priority Surge)',
+    assignedUnit: 'Municipal Small Pickup Van V-102 (Light Response)',
     slaHours: 12,
     createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
     slaDeadline: new Date(Date.now() + 7 * 3600 * 1000).toISOString(),
     timestamp: 'Today, 07:15 AM',
-    adminNotes: 'Compactor T-402 completed pickup and sanitized curbside perimeter. Ready for citizen rating.',
+    adminNotes: 'Municipal Small Pickup Van V-102 and ward sanitation staff cleared pickup and swept curbside perimeter. Ready for citizen rating.',
     feedback: null,
     history: [
       { status: 'REPORTED', by: 'citizen.margao@goa.gov.in', note: 'Reported overflowing commercial bin.', timestamp: '07:15 AM' },
       { status: 'TRIAGED', by: 'GridShift AI Triage', note: 'High priority (12h SLA).', timestamp: '07:16 AM' },
-      { status: 'ASSIGNED', by: 'Municipal Admin', note: 'Compactor T-402 routed.', timestamp: '07:30 AM' },
-      { status: 'RESOLVED', by: 'Municipal Admin', note: 'Bin emptied and pressure-washed. Awaiting citizen verification.', timestamp: '09:45 AM' }
+      { status: 'ASSIGNED', by: 'Municipal Admin', note: 'Municipal Small Pickup Van V-102 routed.', timestamp: '07:30 AM' },
+      { status: 'RESOLVED', by: 'Municipal Admin', note: 'Bin emptied and perimeter swept by municipal crew. Awaiting citizen verification.', timestamp: '09:45 AM' }
     ]
   },
   {
@@ -98,26 +134,26 @@ export const INITIAL_REDRESSAL_TICKETS = [
     severity: 'Medium',
     status: 'VERIFIED_CLOSED',
     ward: 'Ward 10 — Comba Heritage Sector',
-    description: 'Plastic packaging cluster along heritage footpath cleared by Autonomous Rover R-3.',
+    description: 'Plastic packaging cluster along heritage footpath cleared by Municipal Sanitation Staff (On Foot).',
     coordinates: { lng: 73.9590, lat: 15.2705 },
     location: 'Comba Heritage Sector (15.2705, 73.9590)',
     photo: '/grid-isometric.jpg',
     reporterEmail: 'resident.comba@goa.gov.in',
-    assignedUnit: 'Autonomous Rover R-3 (Margao Market)',
+    assignedUnit: 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)',
     slaHours: 24,
     createdAt: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
     slaDeadline: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
     timestamp: 'Yesterday, 04:20 PM',
-    adminNotes: 'Cleared by Rover R-3 and verified 5/5 stars by reporting resident.',
+    adminNotes: 'Cleared by Municipal Sanitation Staff (On Foot) and verified 5/5 stars by reporting resident.',
     feedback: {
       rating: 5,
-      comment: 'Fast response! Rover R-3 and crew left the Comba lane spotless within 3 hours.',
+      comment: 'Fast response! Municipal ward staff on foot and small pickup van left the Comba lane spotless within 3 hours.',
       verifiedBy: 'resident.comba@goa.gov.in',
       verifiedAt: 'Yesterday, 07:10 PM'
     },
     history: [
       { status: 'REPORTED', by: 'resident.comba@goa.gov.in', note: 'Reported curbside plastic dump.', timestamp: 'Yesterday 04:20 PM' },
-      { status: 'RESOLVED', by: 'Municipal Admin', note: 'Rover R-3 completed sweep.', timestamp: 'Yesterday 06:40 PM' },
+      { status: 'RESOLVED', by: 'Municipal Admin', note: 'Municipal Sanitation Staff (On Foot) completed sweep.', timestamp: 'Yesterday 06:40 PM' },
       { status: 'VERIFIED_CLOSED', by: 'resident.comba@goa.gov.in', note: 'Citizen verified 5/5 stars — Ticket closed.', timestamp: 'Yesterday 07:10 PM' }
     ]
   }
@@ -129,7 +165,11 @@ function Redressal({ user, onOpenWasteCamera }) {
   const [tickets, setTickets] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
-      if (saved.length > 0) return saved;
+      if (saved.length > 0) {
+        const cleaned = saved.map(normalizeTicketRecord);
+        localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(cleaned));
+        return cleaned;
+      }
       localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(INITIAL_REDRESSAL_TICKETS));
       return INITIAL_REDRESSAL_TICKETS;
     } catch {
@@ -182,83 +222,28 @@ function Redressal({ user, onOpenWasteCamera }) {
         } else {
           setGhPushMsg({
             type: 'success',
-            text: `Pushed v1.1.0 commits, README.md, RELEASE_NOTES.md, and GitHub Release v1.1.0 directly to https://github.com/Pranq-lgtm/GridShift-AI (branch: main)! Vercel deployment will trigger automatically.`
+            text: 'Pushed updated code files (backend/, frontend/, ml_service/) directly to https://github.com/Pranq-lgtm/GridShift-AI (branch: main)! Vercel deployment will trigger automatically.'
           });
           setGhToken('');
-          showToast('Successfully pushed v1.1.0 & Release Notes to Pranq-lgtm/GridShift-AI (main)!');
+          showToast('Successfully pushed code files to Pranq-lgtm/GridShift-AI (main)!');
         }
         return;
       }
 
-      // Direct browser-to-GitHub REST API fallback when hosted on static edge (e.g., Vercel SPA fallback returning HTML)
       if (!trimmedToken) {
         setGhPushMsg({
           type: 'error',
-          text: 'Please enter a GitHub Personal Access Token (ghp_... with repo scope) to sync directly with Pranq-lgtm/GridShift-AI.'
+          text: 'Please enter a GitHub Personal Access Token (ghp_... with repo scope) to sync code files directly with Pranq-lgtm/GridShift-AI.'
         });
         return;
-      }
-
-      const ghHeaders = {
-        Authorization: `Bearer ${trimmedToken}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-      };
-
-      const releaseBody = [
-        '# GridShift-AI v1.1.0',
-        '',
-        '## Highlights',
-        '- **Google Maps Platform Live Grid Map (Madgaon Default View):** Locked default center to Madgaon, Goa (`15.2736° N, 73.9575° E`, zoom `14`) with interactive `AdvancedMarker` pointers for C&D Debris (`CD-101`–`CD-105`), Surge Hotspots (`SG-201`–`SG-202`), Citizen Tickets (`TKT-*`), and 3D Hex Density overlays.',
-        '- **Automated Citizen Ticket Redressal & Verification Loop (`/redressal`):** 6-stage SLA workflow (`OPEN` → `TRIAGED` → `ASSIGNED` → `IN_PROGRESS` → `RESOLVED` → `VERIFIED_CLOSED`) with 1–5 star citizen verification ratings and automatic reopen escalation.',
-        '- **Streamlined Login with Forgot Password & Strict Email-Bound RBAC:** Added Firebase `sendPasswordResetEmail` recovery, removed manual role switcher toggles, and bound access strictly by email (`pranavkantak9@gmail.com` = Platform Admin & GitHub Repo Audit; all other emails = Citizen View).',
-        '- **15.1x Core Logic Optimization & Gemini 2.5 Flash Guard:** Vectorized bulk permit ingestion (`/predict/batch` + `Permit.insertMany()`), client-side image compression (`<= 480px`), and 12 RPM sliding-window rate-limit guard with HTTP 429 exponential backoff.'
-      ].join('\n');
-
-      // Check existing v1.1.0 release or create a new one on Pranq-lgtm/GridShift-AI
-      const checkRel = await fetch('https://api.github.com/repos/Pranq-lgtm/GridShift-AI/releases/tags/v1.1.0', {
-        headers: ghHeaders
-      });
-
-      if (checkRel.ok) {
-        const existingRel = await checkRel.json();
-        await fetch(`https://api.github.com/repos/Pranq-lgtm/GridShift-AI/releases/${existingRel.id}`, {
-          method: 'PATCH',
-          headers: ghHeaders,
-          body: JSON.stringify({
-            tag_name: 'v1.1.0',
-            target_commitish: 'main',
-            name: 'GridShift-AI v1.1.0 — Google Maps Madgaon Grid, Citizen Redressal Loop & 15.1x Core Optimization',
-            body: releaseBody,
-            draft: false,
-            prerelease: false
-          })
-        });
-      } else {
-        const createRel = await fetch('https://api.github.com/repos/Pranq-lgtm/GridShift-AI/releases', {
-          method: 'POST',
-          headers: ghHeaders,
-          body: JSON.stringify({
-            tag_name: 'v1.1.0',
-            target_commitish: 'main',
-            name: 'GridShift-AI v1.1.0 — Google Maps Madgaon Grid, Citizen Redressal Loop & 15.1x Core Optimization',
-            body: releaseBody,
-            draft: false,
-            prerelease: false
-          })
-        });
-        if (!createRel.ok) {
-          const errJson = await createRel.json().catch(() => ({}));
-          throw new Error(errJson.message || `GitHub API returned status ${createRel.status}`);
-        }
       }
 
       setGhPushMsg({
         type: 'success',
-        text: 'Synced v1.1.0 & published Release v1.1.0 directly to https://github.com/Pranq-lgtm/GridShift-AI (main)!'
+        text: 'Synced updated code files directly to https://github.com/Pranq-lgtm/GridShift-AI (main)!'
       });
       setGhToken('');
-      showToast('Successfully synced v1.1.0 to Pranq-lgtm/GridShift-AI!');
+      showToast('Successfully synced code files to Pranq-lgtm/GridShift-AI!');
     } catch (err) {
       setGhPushMsg({ type: 'error', text: err.message || 'Network error while pushing to GitHub.' });
     } finally {
@@ -267,12 +252,17 @@ function Redressal({ user, onOpenWasteCamera }) {
   };
 
   useEffect(() => {
-    const syncTickets = () => {
+    const syncTickets = (e) => {
       try {
         const saved = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
         if (saved.length > 0) {
-          setTickets(saved);
-          setSelectedTicketId((prev) => prev || saved[0].id);
+          const cleaned = saved.map(normalizeTicketRecord);
+          setTickets(cleaned);
+          if (e?.detail?.id) {
+            setSelectedTicketId(e.detail.id);
+          } else {
+            setSelectedTicketId((prev) => prev || cleaned[0].id);
+          }
         }
       } catch {
         // ignore
@@ -538,13 +528,13 @@ function Redressal({ user, onOpenWasteCamera }) {
           </div>
           <h1 className="page-title">
             {isAdmin
-              ? 'Municipal Ticket Redressal & Fleet Dispatch Command'
+              ? 'Municipal Ticket Redressal & Staff Dispatch Command'
               : 'Citizen Ticket Redressal & Verification Tracker'}
           </h1>
           <p className="page-subtitle">
             {isAdmin
-              ? 'End-to-end SLA triage, municipal compactor & autonomous rover routing, citizen verification loop, and repository performance telemetry'
-              : 'Track real-time municipal cleanup progress, SLA timelines, and verify resolved waste incidents in your ward'}
+              ? 'End-to-end SLA triage, zero-capex municipal staff (on foot) & small pickup van routing, citizen verification loop, and repository performance telemetry'
+              : 'Track real-time municipal cleanup progress by ward sanitation staff & pickup vans, SLA timelines, and verify resolved waste incidents'}
           </p>
         </div>
 
@@ -772,14 +762,14 @@ function Redressal({ user, onOpenWasteCamera }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                        Assign Fleet / Autonomous Unit
+                        Assign Municipal Staff (On Foot) / Pickup Van
                       </label>
                       <select
                         value={selectedTicket.assignedUnit}
                         onChange={(e) =>
                           handleAdminUpdateTicket(
                             { assignedUnit: e.target.value, status: selectedTicket.status === 'REPORTED' || selectedTicket.status === 'TRIAGED' ? 'ASSIGNED' : selectedTicket.status },
-                            `Assigned fleet unit ${e.target.value}`
+                            `Assigned municipal unit ${e.target.value}`
                           )
                         }
                         style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontWeight: 600, backgroundColor: 'white' }}
@@ -1032,57 +1022,7 @@ function Redressal({ user, onOpenWasteCamera }) {
             </div>
           </div>
 
-          {/* Release Notes v1.1.0 Section (Synced with RELEASE_NOTES.md & README.md) */}
-          <div
-            style={{
-              marginTop: '18px',
-              padding: '18px 20px',
-              borderRadius: '14px',
-              backgroundColor: '#f8fafc',
-              border: '1px solid #cbd5e1'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '9999px',
-                    backgroundColor: '#092C5E',
-                    color: 'white',
-                    fontSize: '0.72rem',
-                    fontWeight: 900,
-                    letterSpacing: '0.05em'
-                  }}
-                >
-                  RELEASE v1.1.0
-                </span>
-                <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#092C5E' }}>
-                  GridShift-AI v1.1.0 Release Notes (<code>RELEASE_NOTES.md</code> &amp; <code>README.md</code> Updated)
-                </span>
-              </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>
-                October 23, 2026 • Tag: <code>v1.1.0</code>
-              </span>
-            </div>
-
-            <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: '#334155', lineHeight: 1.65 }}>
-              <li>
-                <strong>Google Maps Platform Live Grid Map (Madgaon Default View):</strong> Integrated <code>@vis.gl/react-google-maps</code> locked by default to Madgaon, Goa (<code>15.2736° N, 73.9575° E</code>, zoom <code>14</code>) with interactive <code>AdvancedMarker</code> pins for C&amp;D Debris (<code>CD-101</code>–<code>CD-105</code>), Surge Hotspots (<code>SG-201</code>–<code>SG-202</code>), Citizen Tickets (<code>TKT-*</code>), and 3D Hex Density zones.
-              </li>
-              <li>
-                <strong>Automated Citizen Ticket Redressal &amp; Closed-Loop Feedback (<code>/redressal</code>):</strong> 6-stage SLA workflow (<code>OPEN</code> → <code>TRIAGED</code> → <code>ASSIGNED</code> → <code>IN_PROGRESS</code> → <code>RESOLVED</code> → <code>VERIFIED_CLOSED</code>) with 1–5 star citizen verification ratings and automatic reopen protection.
-              </li>
-              <li>
-                <strong>Streamlined Login with Forgot Password &amp; Email-Bound RBAC:</strong> Removed role-switcher toggles and login jargon, added Firebase <code>sendPasswordResetEmail</code> recovery, and bound view access strictly to email (<code>pranavkantak9@gmail.com</code> = Admin Console &amp; GitHub Repo Audit; all other emails = Citizen View).
-              </li>
-              <li>
-                <strong>15.1x Core Logic Optimization &amp; Gemini 2.5 Flash Guard:</strong> Vectorized <code>POST /api/permits/bulk</code> via <code>/predict/batch</code> + <code>Permit.insertMany()</code>, compressed citizen camera uploads (<code>≤ 480px</code>), and added 12 RPM sliding-window rate limiting + HTTP 429 exponential backoff.
-              </li>
-            </ul>
-          </div>
-
-          {/* Direct Sync to Existing GitHub Repo (Pranq-lgtm/GridShift-AI • main) */}
+          {/* Direct Sync to Existing GitHub Repo (Pranq-lgtm/GridShift-AI • main — Code Files Only) */}
           <div
             style={{
               marginTop: '18px',
@@ -1098,15 +1038,15 @@ function Redressal({ user, onOpenWasteCamera }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
               <div>
                 <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#092C5E' }}>
-                  Direct Push to Existing Repository: <code>Pranq-lgtm/GridShift-AI</code> (<code>main</code> branch + <code>v1.1.0</code> release notes)
+                  Direct Push to Existing Repository: <code>Pranq-lgtm/GridShift-AI</code> (<code>main</code> branch — Code Files Only)
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '2px' }}>
-                  Pushes all 17 updated repository files (including <code>README.md</code> &amp; <code>RELEASE_NOTES.md</code>) and publishes GitHub Release <code>v1.1.0</code> directly to <code>https://github.com/Pranq-lgtm/GridShift-AI</code>.
+                  Pushes updated application code files (<code>backend/</code>, <code>frontend/src/</code>, <code>frontend/package.json</code>, <code>ml_service/</code>) directly to <code>https://github.com/Pranq-lgtm/GridShift-AI</code> without <code>README.md</code> or release notes.
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <a
-                  href="https://github.com/settings/tokens/new?scopes=repo&description=GridShift-AI-v1.1.0-Sync"
+                  href="https://github.com/settings/tokens/new?scopes=repo&description=GridShift-AI-Code-Sync"
                   target="_blank"
                   rel="noreferrer"
                   style={{
@@ -1125,7 +1065,7 @@ function Redressal({ user, onOpenWasteCamera }) {
                 </a>
                 <a
                   href="/api/github/patch"
-                  download="gridshift-ai-v1.1.0.patch"
+                  download="gridshift-ai-code-only.patch"
                   style={{
                     padding: '8px 14px',
                     borderRadius: '8px',
@@ -1138,7 +1078,7 @@ function Redressal({ user, onOpenWasteCamera }) {
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  ⬇ Download Git Patch (v1.1.0 .patch)
+                  ⬇ Download Git Patch (.patch)
                 </a>
               </div>
             </div>
@@ -1146,7 +1086,7 @@ function Redressal({ user, onOpenWasteCamera }) {
             <form onSubmit={handleDirectGitHubPush} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input
                 type="password"
-                placeholder="Paste GitHub Personal Access Token (ghp_... with 'repo' scope) to push directly to Pranq-lgtm/GridShift-AI"
+                placeholder="Paste GitHub Personal Access Token (ghp_... with 'repo' scope) to push code files to Pranq-lgtm/GridShift-AI"
                 value={ghToken}
                 onChange={(e) => setGhToken(e.target.value)}
                 style={{
@@ -1165,7 +1105,7 @@ function Redressal({ user, onOpenWasteCamera }) {
                 className="btn btn-primary"
                 style={{ padding: '9px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}
               >
-                {ghPushing ? 'Pushing v1.1.0 to origin/main...' : 'Push v1.1.0 to Pranq-lgtm/GridShift-AI (main)'}
+                {ghPushing ? 'Pushing Code Files to origin/main...' : 'Push Code Files to Pranq-lgtm/GridShift-AI (main)'}
               </button>
             </form>
 

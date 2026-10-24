@@ -25,9 +25,9 @@ import '../index.css';
 function Home({ onOpenWasteCamera }) {
 
   const marqueeItems = [
-    '🟢 Ward 4: Bin #104 emptied by Autonomous Rover R-3',
-    '⚡ Bayshore Ave: Debris-042 identified as Recyclable (98% conf.)',
-    '📊 Downtown Kitchen Hub: Organics container reached 90% threshold',
+    '🟢 Ward 4: Bin #104 cleared by Municipal Sanitation Staff (On Foot)',
+    '⚡ Bayshore Ave: Debris-042 routed to Small Pickup Van V-102 (Zero-Capex)',
+    '📊 Margao Market Hub: Organics surge forecasted via permit & event data',
     '🚛 Route Optima: 14 dynamic routes generated — 22% fuel saved today',
     '🌱 Metro Central: 94.8% clean corridor rating verified',
     '🔔 ML Model: Micro-surge anticipated near Waterfront Promenade'
@@ -68,7 +68,7 @@ function Home({ onOpenWasteCamera }) {
           </h1>
 
           <p className="hero-desc">
-            Predict hyper-local waste surges 48 hours in advance and dynamically route municipal fleets to prevent overflow. Powered by real-time IoT telemetry and edge AI.
+            Predict hyper-local waste surges 48 hours in advance and dynamically route existing municipal sanitation staff (on foot) and small pickup vans to prevent overflow—without burdening the municipal budget with costly hardware.
           </p>
 
           <div className="hero-btn-group">
@@ -232,9 +232,9 @@ function Home({ onOpenWasteCamera }) {
               marginBottom: '16px',
               letterSpacing: '-0.03em'
             }}>
-              Autonomous Detection.<br />
+              Zero-Capex Detection.<br />
               <span style={{ background: 'linear-gradient(135deg, #06B6D4, #0EA5E9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                Instant Rover Dispatch.
+                Instant Foot Crew & Pickup Van Dispatch.
               </span>
             </h2>
 
@@ -245,14 +245,14 @@ function Home({ onOpenWasteCamera }) {
               marginBottom: '24px',
               fontWeight: 500
             }}>
-              State-of-the-art computer vision detects curbside debris, overflowing public bins, and litter hotspots in real time. Rovers receive dynamically prioritized dispatch vectors before community complaints arise.
+              Instead of burdening municipal budgets with expensive rovers or IoT hardware, GridShift AI combines citizen camera reports and permit data to dispatch existing municipal sanitation staff on foot or in small pickup vans right where they are needed.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '28px' }}>
               {[
-                'Real-time Object Classification: Recyclables, Organics, Hazardous',
-                'Autonomous rover and compactor vehicle synchronization',
-                'Geotagged heatmaps mapped directly onto municipal GIS'
+                'Real-time Waste Classification: Recyclables, Organics, C&D Rubble',
+                'Zero-extra-cost routing for Ward Sanitation Staff (On Foot) & Pickup Vans',
+                'Geotagged heatmaps mapped directly onto Madgaon Municipal GIS'
               ].map((text, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', color: '#1E293B', fontWeight: 600 }}>
                   <CheckCircle2 size={16} color="#06B6D4" />
@@ -331,7 +331,7 @@ function Home({ onOpenWasteCamera }) {
               }}>
                 <div style={{ color: '#06B6D4', fontWeight: 800, marginBottom: '2px' }}>OBJECT ID: DEBRIS-042</div>
                 <div style={{ color: 'rgba(255,255,255,0.8)' }}>TYPE: RECYCLABLE (98.4%)</div>
-                <div style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>DISPATCH: ROVER-1 ASSIGNED</div>
+                <div style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>DISPATCH: PICKUP VAN V-102 & FOOT CREW</div>
               </div>
             </div>
           </div>
@@ -371,7 +371,7 @@ function Home({ onOpenWasteCamera }) {
             }}>
               <Cpu size={14} color="#059669" />
               <span style={{ fontWeight: 800, textTransform: 'uppercase', fontSize: '10px', letterSpacing: '0.1em' }}>
-                HEAVY-DUTY IoT TELEMETRY
+                SOFTWARE-FIRST MUNICIPAL INTELLIGENCE
               </span>
             </div>
 
@@ -383,8 +383,8 @@ function Home({ onOpenWasteCamera }) {
               marginBottom: '16px',
               letterSpacing: '-0.03em'
             }}>
-              Precision Sensors.<br />
-              <span style={{ color: '#059669' }}>From Kitchen to Curbside.</span>
+              Zero Hardware Burden.<br />
+              <span style={{ color: '#059669' }}>From Market to Curbside.</span>
             </h2>
 
             <p style={{
@@ -394,7 +394,7 @@ function Home({ onOpenWasteCamera }) {
               marginBottom: '24px',
               fontWeight: 500
             }}>
-              Commercial hospitality hubs generate massive volumes of perishable organics. GridShift AI hardware lids monitor fill height, weight, and internal temperatures—dispatching collections exactly when needed.
+              Commercial hospitality and market hubs generate massive volumes of perishable organics. GridShift AI correlates municipal permits, market schedules, and citizen reports—dispatching existing municipal pickup vans and foot crews with ₹0 extra hardware cost.
             </p>
 
             {/* Stats mini-grid */}

@@ -21,7 +21,7 @@ function Chatbot() {
   const quickPrompts = [
     '🎫 Redressal Ticket & SLA status?',
     '🏗️ Status of construction debris?',
-    '🤖 Where is Rover R-1 patrolling?',
+    '🚶 Where are Foot Crews & Pickup Vans active?',
     '📸 How to report illegal dumping?'
   ];
 
