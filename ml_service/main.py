@@ -39,7 +39,7 @@ _load_env()
 app = FastAPI(title="GridShift-AI ML Microservice (Vectorized + Gemini 3.8 Flash)")
 
 # Latest available free-tier Gemini models in priority order
-GEMINI_FREE_MODELS = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"]
+GEMINI_FREE_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"]
 gemini_api_key = os.environ.get("GEMINI_API_KEY")
 gemini_model = None
 active_gemini_model_name = GEMINI_FREE_MODELS[0]

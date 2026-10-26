@@ -222,7 +222,7 @@ function Redressal({ user, onOpenWasteCamera }) {
         } else {
           setGhPushMsg({
             type: 'success',
-            text: 'Pushed updated code files (backend/, frontend/, ml_service/) directly to https://github.com/Pranq-lgtm/GridShift-AI (branch: main)! Vercel deployment will trigger automatically.'
+            text: 'Pushed updated files directly to https://github.com/Pranq-lgtm/GridShift-AI (branch: main)! Firebase Hosting (https://gridshift-ai.web.app/) deployment will trigger automatically.'
           });
           setGhToken('');
           showToast('Successfully pushed code files to Pranq-lgtm/GridShift-AI (main)!');
@@ -1013,11 +1013,11 @@ function Redressal({ user, onOpenWasteCamera }) {
             <div style={{ padding: '16px', borderRadius: '14px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#092C5E', fontWeight: 800, fontSize: '0.9rem' }}>
                 <Cpu size={18} color="#9333ea" />
-                <span>3. Gemini 2.5 Flash & 429 Backoff</span>
+                <span>3. Gemini 3.8 Flash & 429 Backoff</span>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
                 <strong>Bottleneck (`ragEngine.js` & `ml_service/main.py`):</strong> Hardcoded Gemini calls with zero retry or rate-limit handling.<br />
-                <strong>Fix:</strong> Upgraded to `gemini-2.5-flash` (with `gemini-2.5-flash-lite` fallback), sliding-window 12 RPM guard, HTTP 429 exponential backoff + jitter, `Retry-After` parsing, and 5-minute TTL cache.
+                <strong>Fix:</strong> Upgraded to `gemini-3.8-flash` (with `gemini-3.5-flash-lite` fallback), sliding-window 12 RPM guard, HTTP 429 exponential backoff + jitter, `Retry-After` parsing, and 5-minute TTL cache.
               </p>
             </div>
           </div>

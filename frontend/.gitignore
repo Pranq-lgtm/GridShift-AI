@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+RELEASE_NOTES.md
+release_notes.md

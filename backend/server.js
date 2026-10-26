@@ -6,7 +6,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const ADMIN_EMAIL = 'pranavkantak9@gmail.com';
-const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
 
 // Initialize Mailchimp
 mailchimp.setConfig({

@@ -8,25 +8,24 @@ export function isAdminUser(user) {
   return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }
 
-// Your web app's Firebase configuration
-// Uses VITE_FIREBASE_* environment variables configured in Vercel / .env,
-// with safe fallback values so local preview environments without .env keys do not crash on boot.
+// GridShift-AI Firebase configuration (https://gridshift-ai.web.app/)
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForLocalPreviewFallback00000",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDFq4cNOY5KpxrBzcRRXSa73Kqu76zrjH0",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "gridshift-ai.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "gridshift-ai",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "gridshift-ai.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "000000000000",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:000000000000:web:00000000000000",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-0000000000"
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "gridshift-ai.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "751801511538",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:751801511538:web:366ba6bb441e155d2e1ceb",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-7HVGQEDNKF"
 };
 
 export const isFirebaseConfigured = Boolean(
-  import.meta.env.VITE_FIREBASE_API_KEY &&
-  import.meta.env.VITE_FIREBASE_API_KEY !== "AIzaSyDummyKeyForLocalPreviewFallback00000"
+  firebaseConfig.apiKey &&
+  !firebaseConfig.apiKey.includes("DummyKey")
 );
 
-// Initialize Firebase safely
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });

@@ -247,7 +247,7 @@ function Analytics() {
         <div>
           <h3 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 800, color: '#0F172A' }}>AI-Generated Insights</h3>
           <p style={{ margin: 0, fontSize: '0.92rem', lineHeight: 1.65, color: '#475569' }}>
-            Based on Gemini 2.5 Flash analysis, weekend public gatherings account for a <strong style={{ color: '#0F172A' }}>45% variance</strong> in waste accumulation in Downtown Hub. 
+            Based on Gemini 3.8 Flash analysis, weekend public gatherings account for a <strong style={{ color: '#0F172A' }}>45% variance</strong> in waste accumulation in Downtown Hub. 
             Recommended action: <span style={{ color: '#06B6D4', fontWeight: 600 }}>Permanently re-route 2 compactors from Uptown Sector to Downtown Hub on weekends.</span>
           </p>
         </div>

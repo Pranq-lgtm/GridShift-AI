@@ -30,10 +30,15 @@ function App() {
       }
       const saved = localStorage.getItem('gridshift_demo_user');
       if (saved) return JSON.parse(saved);
-      localStorage.setItem('gridshift_demo_user', JSON.stringify(DEFAULT_ADMIN_SESSION));
-      return DEFAULT_ADMIN_SESSION;
+      const isPreviewIframe =
+        typeof window !== 'undefined' && window.location.hostname.endsWith('.run.app');
+      if (isPreviewIframe) {
+        localStorage.setItem('gridshift_demo_user', JSON.stringify(DEFAULT_ADMIN_SESSION));
+        return DEFAULT_ADMIN_SESSION;
+      }
+      return null;
     } catch {
-      return DEFAULT_ADMIN_SESSION;
+      return null;
     }
   });
   const [authChecked, setAuthChecked] = useState(false);

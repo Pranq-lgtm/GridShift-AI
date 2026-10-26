@@ -27,7 +27,7 @@ const KNOWLEDGE_BASE = [
   {
     topic: "Citizen Waste Reporting, Ticket Redressal & Feedback Loop",
     keywords: ["report", "camera", "photo", "citizen", "litter", "illegal", "dumping", "gps", "ticket", "redressal", "sla", "feedback", "admin", "pranavkantak9"],
-    content: "Citizens report waste incidents via the Geotagged Camera Modal, which generates a tracked Redressal Ticket (e.g., TKT-2026-401) with automated SLA targets (Critical: 4h, High: 12h, Medium: 24h, Low: 48h). Platform Administrator (pranavkantak9@gmail.com) has RBAC command authority to triage tickets, assign compactors/rovers, and mark tickets RESOLVED. Citizens then complete the closed-loop verification by rating the cleanup (1–5 stars): ratings >= 3 close the ticket as VERIFIED_CLOSED, while ratings <= 2 automatically reopen and escalate the ticket to Critical."
+    content: "Citizens report waste incidents via the Geotagged Camera Modal, which generates a tracked Redressal Ticket (e.g., TKT-2026-401) with automated SLA targets (Critical: 4h, High: 12h, Medium: 24h, Low: 48h). Platform Administrator (pranavkantak9@gmail.com) has RBAC command authority to triage tickets, assign municipal sanitation staff (on foot) or small pickup vans, and mark tickets RESOLVED. Citizens then complete the closed-loop verification by rating the cleanup (1–5 stars): ratings >= 3 close the ticket as VERIFIED_CLOSED, while ratings <= 2 automatically reopen and escalate the ticket to Critical."
   },
   {
     topic: "Micro-Surge Machine Learning Models & Performance Optimization",
@@ -36,11 +36,11 @@ const KNOWLEDGE_BASE = [
   }
 ];
 
-// Latest free-tier Gemini models (primary + fallback)
+// Latest free-tier Gemini models (primary gemini-3.8-flash + fallback gemini-3.5-flash-lite)
 export const GEMINI_FREE_MODELS = [
   "gemini-3.8-flash",
-  "gemini-flash-latest",
-  "gemini-2.5-flash"
+  "gemini-3.5-flash-lite",
+  "gemini-flash-latest"
 ];
 
 // Client-side sliding-window rate limiter & TTL response cache
