@@ -620,8 +620,10 @@ function Dashboard({ user }) {
   // Unified Map Mode ('roadmap' | 'terrain' | 'satellite') shared by Google Maps SDK & Tile Engine
   const [mapType, setMapType] = useState('roadmap');
 
-  // Automatically fall back to Watermark-Free Google Maps Tile Engine when key is absent or restricted on Vercel
-  const [gmSdkFailed, setGmSdkFailed] = useState(!HAS_CUSTOM_GMAPS_KEY);
+  // Use resilient Watermark-Free Google Maps Tile Engine by default to prevent script.onerror / referrer errors
+  const [gmSdkFailed, setGmSdkFailed] = useState(
+    () => !(typeof window !== 'undefined' && window.__ENABLE_GMAPS_SDK__ === true && HAS_CUSTOM_GMAPS_KEY)
+  );
 
   // Layer Toggles
   const [showDebris, setShowDebris] = useState(true);
