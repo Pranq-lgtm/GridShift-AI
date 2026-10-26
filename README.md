@@ -196,6 +196,68 @@ After running, refresh the frontend — you will see updated telemetry markers o
 
 ---
 
+## 🧪 Sample Data & Test Cases
+
+### Sample Permit Payload (POST `/api/permits/bulk`)
+
+```json
+{
+  "permits": [
+    {
+      "location": "Margao Market",
+      "coordinates": { "lat": 15.2750, "lng": 73.9580 },
+      "type": "Food Festival",
+      "scale": 9,
+      "date": "2026-11-02T00:00:00"
+    },
+    {
+      "location": "Colva Beach Road",
+      "coordinates": { "lat": 15.2760, "lng": 73.9110 },
+      "type": "Public Gathering",
+      "scale": 3,
+      "date": "2026-11-05T00:00:00"
+    }
+  ]
+}
+```
+
+### Sample ML Prediction Request (POST `/predict`)
+
+```json
+{
+  "location": "Fatorda",
+  "event_type": "Construction",
+  "scale": 8,
+  "date": "2026-11-10T00:00:00"
+}
+```
+
+### Expected Prediction Response
+
+```json
+{
+  "predicted_surge_tonnage": 34.7,
+  "pressure_level": "Critical",
+  "alert_triggered": true,
+  "copilot": {
+    "when": "8:00 AM – 6:00 PM",
+    "why": [
+      "High-scale construction activity creates large volumes of debris and concrete waste",
+      "Fatorda ward has historically low off-day collection frequency",
+      "No additional compactor allocated for this zone this week"
+    ],
+    "recommendations": [
+      "Deploy 1 additional tipper truck to Fatorda by 7:30 AM",
+      "Coordinate with construction supervisor for debris container placement",
+      "Schedule mid-day overflow check at 1:00 PM"
+    ],
+    "confidence": 87
+  }
+}
+```
+
+---
+
 ## 📊 Technical Design Document
 
 ### ML Model: XGBoost Regressor
@@ -224,6 +286,16 @@ After running, refresh the frontend — you will see updated telemetry markers o
 | `POST` | `/api/tickets` | Backend (5000) | Create automated citizen redressal ticket with SLA timer |
 | `PATCH` | `/api/tickets/:id/status` | Backend (5000) | Admin-only (`pranavkantak9@gmail.com`) ticket dispatch & status update |
 | `POST` | `/api/tickets/:id/feedback` | Backend (5000) | Citizen star rating (1–5) & verification closure / auto-reopen |
+
+### Event Type Encoding
+
+| Event Type | Encoded Value |
+|------------|---------------|
+| Construction | 1 |
+| Public Gathering | 2 |
+| Food Festival | 3 |
+| Street Fair | 4 |
+| Unknown | 0 |
 
 ---
 
