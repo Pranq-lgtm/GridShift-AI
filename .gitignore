@@ -1,8 +1,19 @@
 node_modules/
 .env
+.venv/
+venv/
 ml_service/venv/
 __pycache__/
 *.pyc
 .DS_Store
 dist/
 build/
+
+# Firebase
+firebase-debug.log*
+.firebase/
+
+# Agent skills & local IDE caches
+.agents/
+.claude/
+skills-lock.json
