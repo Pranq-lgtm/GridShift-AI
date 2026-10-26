@@ -8,18 +8,11 @@ import { INITIAL_REDRESSAL_TICKETS } from './Redressal';
 import '../index.css';
 
 const RAW_GMAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
-const IS_AISTUDIO_DEMO_KEY = RAW_GMAPS_KEY === 'AIzaSyD907exSmrkdsn1tEc7PPH4kx8RpcPZwvw';
-const IS_AISTUDIO_HOST =
-  typeof window !== 'undefined' &&
-  (window.location.hostname.endsWith('.run.app') ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1');
 
 const HAS_CUSTOM_GMAPS_KEY =
   RAW_GMAPS_KEY.length >= 30 &&
   !RAW_GMAPS_KEY.includes('YOUR_') &&
-  !RAW_GMAPS_KEY.includes('PLACEHOLDER') &&
-  (!IS_AISTUDIO_DEMO_KEY || IS_AISTUDIO_HOST);
+  !RAW_GMAPS_KEY.includes('PLACEHOLDER');
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 

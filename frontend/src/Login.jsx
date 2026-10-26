@@ -200,7 +200,7 @@ function Login() {
       }
 
       setResetSuccessMsg(
-        `Password reset email sent to ${trimmedEmail} (from noreply@gridshift-ai.firebaseapp.com). Please check your Inbox and Spam/Promotions folder. Note: If ${trimmedEmail} was registered only via Google Sign-In or has not signed up with a password yet, use "Continue with Google" or "Need an account? Sign Up".`
+        `Password reset email sent to ${trimmedEmail} via Firebase Authentication. Please check your Inbox and Spam/Promotions folder. Note: If ${trimmedEmail} was registered only via Google Sign-In or has not signed up with a password yet, use "Continue with Google" or "Need an account? Sign Up".`
       );
     } catch (err) {
       const code = (err?.code || "").toLowerCase();

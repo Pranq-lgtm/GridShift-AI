@@ -8,24 +8,55 @@ export function isAdminUser(user) {
   return user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }
 
-// GridShift-AI Firebase configuration (https://gridshift-ai.web.app/)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDFq4cNOY5KpxrBzcRRXSa73Kqu76zrjH0",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "gridshift-ai.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "gridshift-ai",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "gridshift-ai.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "751801511538",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:751801511538:web:366ba6bb441e155d2e1ceb",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-7HVGQEDNKF"
-};
+function loadFirebaseConfig() {
+  const envConfig = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  };
 
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey &&
-  !firebaseConfig.apiKey.includes("DummyKey")
+  if (envConfig.apiKey) {
+    return envConfig;
+  }
+
+  // On Firebase Hosting, load runtime config from /__/firebase/init.json without hardcoding keys in source
+  if (typeof window !== "undefined") {
+    try {
+      const request = new XMLHttpRequest();
+      request.open("GET", "/__/firebase/init.json", false);
+      request.send(null);
+      if (request.status === 200 && request.responseText) {
+        const runtimeConfig = JSON.parse(request.responseText);
+        if (runtimeConfig && runtimeConfig.apiKey) {
+          return runtimeConfig;
+        }
+      }
+    } catch {
+      // Ignore if not running on Firebase Hosting
+    }
+  }
+
+  return envConfig;
+}
+
+const firebaseConfig = loadFirebaseConfig();
+
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey);
+
+// Initialize Firebase using environment or Firebase Hosting runtime config
+const app = initializeApp(
+  isFirebaseConfigured
+    ? firebaseConfig
+    : {
+        apiKey: "unconfigured-local-preview",
+        authDomain: "localhost",
+        projectId: "local-preview"
+      }
 );
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });

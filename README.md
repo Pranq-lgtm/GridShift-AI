@@ -3,7 +3,7 @@
 **GridShift-AI** is a data-driven micro-surge waste forecasting and automated civic redressal platform designed for municipal sanitation departments. By combining real-time city permit data, **Google Maps Platform** geospatial telemetry (centered on **Madgaon, Goa**), predictive Machine Learning (**XGBoost**), and Generative AI (**Google Gemini 3.8 Flash** with **Gemini 3.5 Flash-Lite** fallback), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering municipal teams to proactively deploy existing sanitation staff and vehicles *before* trash overflows happen while closing the loop with citizens through automated SLA ticket tracking.
 
 🌐 **Live Production App (Firebase Hosting):** [https://gridshift-ai.web.app/](https://gridshift-ai.web.app/)  
-🏷️ **UN SDG 11.6 & 12** • **Latest Release:** [v1.1.0 (GitHub Releases)](https://github.com/Pranq-lgtm/GridShift-AI/releases)
+🏷️ **UN SDG 11.6 & 12** • **Latest Release:** [v1.2.0 (GitHub Releases)](https://github.com/Pranq-lgtm/GridShift-AI/releases/tag/v1.2.0)
 
 ---
 
@@ -18,7 +18,7 @@
 
 ---
 
-## 🆕 What's New in v1.1.0
+## 🆕 What's New in v1.2.0
 
 > 📄 Full release notes are published in the **[GitHub Releases Section](https://github.com/Pranq-lgtm/GridShift-AI/releases)**.
 
@@ -101,13 +101,14 @@ ML_SERVICE_URL=your_render_url
 # Google Maps Platform API Key (required for Madgaon Live Grid Map)
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 
-# Firebase config (configured for gridshift-ai.web.app — Google OAuth, Email/Password, Forgot Password & Mobile OTP)
+# Firebase config (required for Google OAuth, Email/Password, Forgot Password & Mobile OTP)
 VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=gridshift-ai.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=gridshift-ai
-VITE_FIREBASE_STORAGE_BUCKET=gridshift-ai.firebasestorage.app
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
 # Gemini API Key for client-side RAG Copilot fallback (optional)
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
