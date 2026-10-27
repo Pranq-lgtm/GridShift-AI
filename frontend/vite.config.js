@@ -36,7 +36,7 @@ export default defineConfig(async ({ mode }) => {
     env.VITE_ML_SERVICE_URL ||
     process.env.ML_SERVICE_URL ||
     env.ML_SERVICE_URL ||
-    'https://gridshift-ml.onrender.com'
+    'https://gridshift-backend.onrender.com'
   ).replace(/\/+$/, '')
 
   process.env.VITE_BACKEND_URL = resolvedBackendUrl

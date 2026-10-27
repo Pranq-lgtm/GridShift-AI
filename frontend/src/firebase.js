@@ -31,7 +31,7 @@ export function getBackendUrl() {
       window.location.hostname.endsWith(".firebaseapp.com") ||
       window.location.hostname.endsWith(".vercel.app"))
   ) {
-    return "https://gridshift-ml.onrender.com";
+    return "https://gridshift-backend.onrender.com";
   }
   return "";
 }
