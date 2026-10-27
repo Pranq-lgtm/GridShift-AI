@@ -83,8 +83,16 @@ function App() {
 
     const handleAuthChange = () => {
       try {
+        if (sessionStorage.getItem('gridshift_signed_out') === 'true') {
+          setUser(null);
+          setDemoUser(null);
+          return;
+        }
         const saved = localStorage.getItem('gridshift_demo_user');
         setDemoUser(saved ? JSON.parse(saved) : null);
+        if (auth?.currentUser) {
+          setUser(auth.currentUser);
+        }
       } catch {
         setDemoUser(null);
       }
@@ -107,7 +115,24 @@ function App() {
     );
   }
 
-  const activeUser = user || demoUser;
+  const rawUser = user || demoUser;
+  const activeUser = rawUser
+    ? {
+        uid: rawUser.uid || demoUser?.uid || 'gridshift-user',
+        email:
+          rawUser.email ||
+          demoUser?.email ||
+          (rawUser.phoneNumber
+            ? `${String(rawUser.phoneNumber).replace(/\D/g, '')}@mobile.gridshift.ai`
+            : 'citizen@gridshift.ai'),
+        phoneNumber: rawUser.phoneNumber || demoUser?.phoneNumber || null,
+        displayName:
+          rawUser.displayName ||
+          demoUser?.displayName ||
+          (rawUser.email ? rawUser.email.split('@')[0] : rawUser.phoneNumber || 'Municipal User'),
+        photoURL: rawUser.photoURL || demoUser?.photoURL || null
+      }
+    : null;
 
   if (!activeUser) {
     return <Login />;

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, RefreshCw, X, Check, MapPin, Upload, ShieldCheck, Clock, ArrowRight } from 'lucide-react';
 import { INITIAL_REDRESSAL_TICKETS } from '../pages/Redressal';
+import { BACKEND_API_URL } from '../firebase';
 import '../index.css';
 
 const SLA_HOURS_BY_SEVERITY = {
@@ -266,7 +267,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
 
     // 3. Sync with backend /api/tickets if reachable
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const backendUrl = BACKEND_API_URL;
       fetch(`${backendUrl}/api/tickets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -2,6 +2,7 @@
 // Integrates domain knowledge on municipal waste, local Goa wards, C&D regulations,
 // Automated Citizen Ticket Redressal, and latest free Gemini model (gemini-3.8-flash)
 // with sliding-window rate limiting, HTTP 429 exponential backoff + jitter, and TTL cache.
+import { BACKEND_API_URL } from '../firebase';
 
 const KNOWLEDGE_BASE = [
   {
@@ -224,7 +225,7 @@ ${liveContextText}
 
   // 3. TRY SERVER-SIDE PROXY FIRST (/api/gemini/copilot), THEN CLIENT-SIDE WITH EXPONENTIAL BACKOFF
   try {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
+    const backendUrl = BACKEND_API_URL;
     const proxyEndpoint = backendUrl ? `${backendUrl}/api/gemini/copilot` : "/api/gemini/copilot";
     const proxyRes = await fetch(proxyEndpoint, {
       method: "POST",

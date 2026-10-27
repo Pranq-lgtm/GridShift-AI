@@ -11,7 +11,7 @@ import {
   Layers,
   MapPin
 } from 'lucide-react';
-import { ADMIN_EMAIL, isAdminUser } from '../firebase';
+import { ADMIN_EMAIL, isAdminUser, BACKEND_API_URL } from '../firebase';
 import '../index.css';
 
 const LIFECYCLE_STAGES = [
@@ -346,7 +346,7 @@ function Redressal({ user, onOpenWasteCamera }) {
     showToast(`Admin Action Applied (${selectedTicket.id}): ${logMessage}`);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const backendUrl = BACKEND_API_URL;
       fetch(`${backendUrl}/api/tickets/${selectedTicket.id}/status`, {
         method: 'PATCH',
         headers: {
@@ -430,7 +430,7 @@ function Redressal({ user, onOpenWasteCamera }) {
         date: new Date(Date.now() + (i + 1) * 86400000).toISOString()
       }));
 
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const backendUrl = BACKEND_API_URL;
       const res = await fetch(`${backendUrl}/api/permits/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

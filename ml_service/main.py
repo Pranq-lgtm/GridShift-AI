@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
@@ -37,6 +38,14 @@ def _load_env():
 _load_env()
 
 app = FastAPI(title="GridShift-AI ML Microservice (Vectorized + Gemini 3.8 Flash)")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Latest available free-tier Gemini models in priority order
 GEMINI_FREE_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"]
@@ -131,7 +140,7 @@ def _build_default_copilot(req: PredictionRequest, prediction: float, pressure_l
         ],
         recommendations=[
             f"Pre-stage Compactor T-402 at {req.location} 2 hours prior to peak",
-            "Dispatch Autonomous Rover R-1 for real-time curbside litter telemetry"
+            "Dispatch Municipal Small Pickup Van V-102 or Ward Sanitation Staff on foot for curbside clearance"
         ],
         confidence=89
     )
@@ -236,8 +245,169 @@ def predict_surge_batch(batch: BatchPredictionRequest):
 
     return {"predictions": results}
 
+
+# In-memory persistence for permits & tickets when ML_SERVICE_URL is used as the unified backend URL
+_IN_MEMORY_PERMITS: list[dict] = [
+    {
+        "_id": "PMT-2026-101",
+        "location": "Margao Municipal Fish & Vegetable Market (Ward 7)",
+        "coordinates": {"lat": 15.2736, "lng": 73.9575},
+        "type": "Food Festival",
+        "scale": 9,
+        "date": datetime.utcnow().isoformat() + "Z",
+        "predictedWasteSurge": 18.5,
+        "wastePressureLevel": "Critical",
+        "alertTriggered": True,
+        "copilotExplanation": {
+            "when": "5:30 PM – 9:30 PM Evening Peak",
+            "why": [
+                "Market organic waste output (18.5T) exceeds baseline Ward 7 capacity",
+                "High weekend footfall around Old Market Circle"
+            ],
+            "recommendations": [
+                "Pre-stage Compactor T-402 at Margao Market North Gate by 4:30 PM",
+                "Deploy Municipal Sanitation Staff (On Foot — Ward Beat Crew) for continuous lane sweeping"
+            ],
+            "confidence": 94
+        }
+    },
+    {
+        "_id": "PMT-2026-102",
+        "location": "Fatorda Stadium Commercial Sector (Ward 2)",
+        "coordinates": {"lat": 15.2891, "lng": 73.9620},
+        "type": "Public Gathering",
+        "scale": 8,
+        "date": datetime.utcnow().isoformat() + "Z",
+        "predictedWasteSurge": 14.2,
+        "wastePressureLevel": "High",
+        "alertTriggered": True,
+        "copilotExplanation": {
+            "when": "6:00 PM – 10:30 PM Match Window",
+            "why": [
+                "Public gathering permit scale 8/10 at Fatorda Stadium Complex",
+                "Projected 14.2T packaging and organic surge"
+            ],
+            "recommendations": [
+                "Reroute Compactor T-119 to Fatorda Stadium East Corridor",
+                "Assign Municipal Small Pickup Van V-102 for rapid curbside clearance"
+            ],
+            "confidence": 91
+        }
+    }
+]
+
+_IN_MEMORY_TICKETS: list[dict] = []
+
+
+@app.get("/api/permits")
+def get_permits():
+    return _IN_MEMORY_PERMITS
+
+
+@app.post("/api/permits")
+async def create_permit(req: Request):
+    body = await req.json()
+    loc = body.get("location", "Madgaon Municipal Ward")
+    ev_type = body.get("type") or body.get("event_type") or "Construction"
+    scale = int(body.get("scale", 5))
+    dt = body.get("date") or (datetime.utcnow().isoformat() + "Z")
+    pred_res = predict_surge(PredictionRequest(location=loc, event_type=ev_type, scale=scale, date=dt))
+    doc = {
+        "_id": f"PMT-{int(time.time() * 1000)}",
+        "location": loc,
+        "coordinates": body.get("coordinates") or {"lat": 15.2736, "lng": 73.9575},
+        "type": ev_type,
+        "scale": scale,
+        "date": dt,
+        "predictedWasteSurge": pred_res.predicted_surge_tonnage,
+        "wastePressureLevel": pred_res.pressure_level,
+        "alertTriggered": pred_res.alert_triggered,
+        "copilotExplanation": pred_res.copilot.dict() if pred_res.copilot else None
+    }
+    _IN_MEMORY_PERMITS.insert(0, doc)
+    return doc
+
+
+@app.post("/api/permits/bulk")
+async def create_permits_bulk(req: Request):
+    body = await req.json()
+    raw_permits = body.get("permits", [])
+    if not raw_permits:
+        return {"insertedCount": 0, "permits": []}
+    batch_items = [
+        PredictionRequest(
+            location=p.get("location", "Madgaon Sector"),
+            event_type=p.get("type") or p.get("event_type") or "Construction",
+            scale=int(p.get("scale", 5)),
+            date=p.get("date") or (datetime.utcnow().isoformat() + "Z")
+        )
+        for p in raw_permits
+    ]
+    batch_res = predict_surge_batch(BatchPredictionRequest(items=batch_items))
+    docs = []
+    for p, pred in zip(raw_permits, batch_res["predictions"]):
+        doc = {
+            "_id": f"PMT-{int(time.time() * 1000)}-{len(docs)}",
+            "location": p.get("location", "Madgaon Sector"),
+            "coordinates": p.get("coordinates") or {"lat": 15.2736, "lng": 73.9575},
+            "type": p.get("type") or "Construction",
+            "scale": int(p.get("scale", 5)),
+            "date": p.get("date") or (datetime.utcnow().isoformat() + "Z"),
+            "predictedWasteSurge": pred.predicted_surge_tonnage,
+            "wastePressureLevel": pred.pressure_level,
+            "alertTriggered": pred.alert_triggered,
+            "copilotExplanation": pred.copilot.dict() if pred.copilot else None
+        }
+        docs.append(doc)
+    _IN_MEMORY_PERMITS[:0] = docs
+    return {"insertedCount": len(docs), "vectorized": True, "permits": docs}
+
+
+@app.get("/api/tickets")
+def get_tickets():
+    return _IN_MEMORY_TICKETS
+
+
+@app.post("/api/tickets")
+async def create_ticket(req: Request):
+    ticket = await req.json()
+    _IN_MEMORY_TICKETS.insert(0, ticket)
+    return ticket
+
+
+@app.patch("/api/tickets/{ticket_id}/status")
+async def update_ticket_status(ticket_id: str, req: Request):
+    updates = await req.json()
+    for t in _IN_MEMORY_TICKETS:
+        if t.get("id") == ticket_id:
+            t.update(updates)
+            return t
+    return {"id": ticket_id, **updates}
+
+
+@app.post("/api/gemini/copilot")
+async def gemini_copilot_endpoint(req: Request):
+    body = await req.json()
+    query = body.get("query", "")
+    system_prompt = body.get("systemPrompt", "")
+    if gemini_model is not None and _check_rate_limit():
+        try:
+            resp = gemini_model.generate_content(f"{system_prompt}\n\nUSER QUESTION: {query}")
+            return {"text": resp.text, "model": active_gemini_model_name}
+        except Exception:
+            pass
+    return {"text": None, "fallback": True}
+
+
+@app.post("/api/subscribe")
+async def subscribe_newsletter(req: Request):
+    body = await req.json()
+    return {"status": "subscribed", "email": body.get("email", "")}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     print(f"Starting ML Microservice on http://localhost:{port}...")
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+

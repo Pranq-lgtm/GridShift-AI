@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import axios from 'axios';
 import { Layers, X, Maximize2, AlertTriangle, Truck, ShieldCheck, ArrowRight, MapPin, Plus, Minus, Compass } from 'lucide-react';
-import { ADMIN_EMAIL, isAdminUser } from '../firebase';
+import { ADMIN_EMAIL, isAdminUser, BACKEND_API_URL } from '../firebase';
 import { INITIAL_REDRESSAL_TICKETS } from './Redressal';
 import '../index.css';
 
@@ -14,7 +14,7 @@ const HAS_CUSTOM_GMAPS_KEY =
   !RAW_GMAPS_KEY.includes('YOUR_') &&
   !RAW_GMAPS_KEY.includes('PLACEHOLDER');
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+const BACKEND_URL = BACKEND_API_URL;
 
 // Default Madgaon (Margao), Goa Local Area Coordinates
 const MADGAON_DEFAULT_CENTER = {
