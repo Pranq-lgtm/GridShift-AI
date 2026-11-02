@@ -278,7 +278,7 @@ function Login() {
     }
   };
 
-  // Send Phone OTP (with 3.5s anti-hang timeout when browser blocks invisible reCAPTCHA v2 storage access)
+  // Send Phone OTP via Firebase signInWithPhoneNumber (invisible reCAPTCHA)
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError(null);
@@ -292,35 +292,35 @@ function Login() {
 
     setLoading(true);
     try {
-      const sendSmsPromise = (async () => {
-        const appVerifier = await initRecaptchaVerifier();
-        return await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      })();
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject({ code: "auth/recaptcha-timeout" }), 3500)
-      );
-
-      const confirmation = await Promise.race([sendSmsPromise, timeoutPromise]);
+      const appVerifier = await initRecaptchaVerifier();
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
       setOtpSent(true);
       setIsDemoMode(false);
       setResetSuccessMsg(
-        `SMS verification OTP dispatched to ${formattedPhone}. Please enter the 6-digit code below.`
+        `SMS verification OTP dispatched to ${formattedPhone}. Please enter the 6-digit code you received.`
       );
     } catch (err) {
       clearRecaptcha();
       const code = err?.code || "";
+      const msg = err?.message || "";
 
       if (code === "auth/invalid-phone-number") {
         setError("Invalid phone number format. Please use E.164 format, e.g. +919096496502.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Too many OTP requests. Please wait a few minutes before trying again.");
+      } else if (code === "auth/quota-exceeded") {
+        setError(
+          "SMS quota exceeded on the free Spark plan (10 SMS/day). Please upgrade to the Firebase Blaze plan for unlimited SMS, or try again tomorrow."
+        );
+      } else if (code === "auth/captcha-check-failed" || code === "auth/recaptcha-not-enabled") {
+        setError(
+          "reCAPTCHA verification failed. Please refresh the page and try again. Ensure Phone Authentication is enabled in Firebase Console."
+        );
       } else {
-        // Transition immediately to 6-digit OTP verification step and pre-fill 123456 so user is never stuck
-        setOtpSent(true);
-        setIsDemoMode(true);
-        setOtp("123456");
-        setResetSuccessMsg(
-          `OTP verification ready for ${formattedPhone}. If carrier SMS is delayed by free-tier quota (10 SMS/day), verification code 123456 has been auto-filled — click "Verify OTP & Sign In" below.`
+        setError(
+          msg.replace("Firebase: ", "") ||
+            "Failed to send OTP. Please check your phone number and try again."
         );
       }
     } finally {
@@ -328,7 +328,7 @@ function Login() {
     }
   };
 
-  // Verify Phone OTP
+  // Verify Phone OTP — only accepts real Firebase verification codes
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError(null);
@@ -338,26 +338,31 @@ function Login() {
     const formattedPhone = formatE164Phone(phone);
     const trimmedOtp = otp.trim();
 
-    try {
-      if (confirmationResult && !isDemoMode) {
-        const cred = await confirmationResult.confirm(trimmedOtp);
-        if (cred?.user) {
-          syncAuthenticatedUser(cred.user, formattedPhone);
-          return;
-        }
-      }
+    if (!trimmedOtp || trimmedOtp.length !== 6) {
+      setError("Please enter the 6-digit verification code sent to your phone.");
+      setLoading(false);
+      return;
+    }
 
-      if (trimmedOtp === "123456" || (isDemoMode && trimmedOtp.length === 6)) {
-        establishSessionForPhoneOrEmail(email, formattedPhone);
+    try {
+      if (!confirmationResult) {
+        setError("No OTP session found. Please click 'Change Phone / Resend OTP' to request a new verification code.");
+        setLoading(false);
         return;
       }
 
-      setError("Invalid verification code. Please enter the 6-digit SMS code (or 123456) and try again.");
-    } catch {
-      if (trimmedOtp === "123456") {
-        establishSessionForPhoneOrEmail(email, formattedPhone);
+      const cred = await confirmationResult.confirm(trimmedOtp);
+      if (cred?.user) {
+        syncAuthenticatedUser(cred.user, formattedPhone);
+      }
+    } catch (err) {
+      const code = err?.code || "";
+      if (code === "auth/invalid-verification-code") {
+        setError("Invalid verification code. Please check the SMS and enter the correct 6-digit code.");
+      } else if (code === "auth/code-expired") {
+        setError("Verification code has expired. Please click 'Change Phone / Resend OTP' to get a new code.");
       } else {
-        setError("Invalid or expired verification code. Please enter 123456 or click Resend OTP.");
+        setError("Verification failed. Please try again or click 'Change Phone / Resend OTP'.");
       }
     } finally {
       setLoading(false);
