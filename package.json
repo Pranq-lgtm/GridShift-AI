@@ -1,8 +1,10 @@
 {
   "name": "gridshift-ai",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "GridShift-AI root project runner",
   "scripts": {
+    "build": "npm --prefix backend install",
+    "postinstall": "npm --prefix backend install",
     "start": "node server.js",
     "backend": "npm --prefix backend start",
     "frontend": "npm --prefix frontend dev",

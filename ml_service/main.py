@@ -145,6 +145,16 @@ def _build_default_copilot(req: PredictionRequest, prediction: float, pressure_l
         confidence=89
     )
 
+@app.get("/")
+def root():
+    return {
+        "status": "online",
+        "service": "GridShift-AI ML Microservice",
+        "version": "1.2.0",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health")
 def health_check():
     return {
