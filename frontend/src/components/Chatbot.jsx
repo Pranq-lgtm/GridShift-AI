@@ -3,13 +3,24 @@ import { X, Send, Bot, RefreshCw, User, ShieldCheck } from 'lucide-react';
 import { askGeminiWithRAG, getGeminiRateLimitTelemetry } from '../utils/ragEngine';
 import '../index.css';
 
+function formatCleanCopilotText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return '';
+  return rawText
+    .replace(/\*\*/g, '')
+    .replace(/__/g, '')
+    .replace(/`/g, '')
+    .replace(/^\s*\*\s+/gm, '• ')
+    .replace(/^\s*-\s+/gm, '• ')
+    .trim();
+}
+
 function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       id: 1,
       sender: 'bot',
-      text: '👋 Hello! I am the **GridShift AI Copilot** powered by **Gemini 3.8 Flash** (`gemini-3.8-flash`) with rate-limit backoff and real-time municipal telemetry. Ask me about waste surges, construction debris, fleet dispatches, or citizen redressal tickets!',
+      text: '👋 Hello! I am the GridShift AI Copilot powered by Gemini 3.8 Flash (gemini-3.8-flash) with rate-limit backoff and real-time municipal telemetry. Ask me about waste surges, construction debris, fleet dispatches, or citizen redressal tickets!',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -56,7 +67,7 @@ function Chatbot() {
       const botMessage = {
         id: Date.now() + 1,
         sender: 'bot',
-        text: response,
+        text: formatCleanCopilotText(response),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, botMessage]);
@@ -266,7 +277,7 @@ function Chatbot() {
                       whiteSpace: 'pre-wrap'
                     }}
                   >
-                    {m.text}
+                    {isUser ? m.text : formatCleanCopilotText(m.text)}
                     <div
                       style={{
                         fontSize: '9px',

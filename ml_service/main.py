@@ -145,16 +145,6 @@ def _build_default_copilot(req: PredictionRequest, prediction: float, pressure_l
         confidence=89
     )
 
-@app.get("/")
-def root():
-    return {
-        "status": "online",
-        "service": "GridShift-AI ML Microservice",
-        "version": "1.2.0",
-        "docs": "/docs",
-        "health": "/health"
-    }
-
 @app.get("/health")
 def health_check():
     return {
@@ -256,7 +246,33 @@ def predict_surge_batch(batch: BatchPredictionRequest):
     return {"predictions": results}
 
 
-# In-memory persistence for permits & tickets when ML_SERVICE_URL is used as the unified backend URL
+# MongoDB persistence for 'permits' & 'tickets' collections (with resilient in-memory fallback)
+_mongo_db = None
+_permits_col = None
+_tickets_col = None
+
+def _init_mongo_collections():
+    global _mongo_db, _permits_col, _tickets_col
+    raw_uri = (os.environ.get("MONGO_URI") or os.environ.get("MONGODB_URI") or "").strip().strip('"').strip("'")
+    if not raw_uri or "YOUR_" in raw_uri or "localhost" in raw_uri:
+        return
+    try:
+        from pymongo import MongoClient
+        client = MongoClient(raw_uri, serverSelectionTimeoutMS=4000)
+        _mongo_db = client.get_database("gridshift_db")
+        existing_cols = _mongo_db.list_collection_names()
+        if "permits" not in existing_cols:
+            _mongo_db.create_collection("permits")
+        if "tickets" not in existing_cols:
+            _mongo_db.create_collection("tickets")
+        _permits_col = _mongo_db["permits"]
+        _tickets_col = _mongo_db["tickets"]
+        print("Connected to MongoDB (gridshift_db): verified 'permits' and 'tickets' collections.")
+    except Exception as err:
+        print(f"MongoDB optional connection fallback in ml_service: {err}")
+
+_init_mongo_collections()
+
 _IN_MEMORY_PERMITS: list[dict] = [
     {
         "_id": "PMT-2026-101",
@@ -311,6 +327,13 @@ _IN_MEMORY_TICKETS: list[dict] = []
 
 @app.get("/api/permits")
 def get_permits():
+    if _permits_col is not None:
+        try:
+            docs = list(_permits_col.find({}, {"_id": 0}).sort("date", -1).limit(100))
+            if docs:
+                return docs
+        except Exception:
+            pass
     return _IN_MEMORY_PERMITS
 
 
@@ -322,8 +345,9 @@ async def create_permit(req: Request):
     scale = int(body.get("scale", 5))
     dt = body.get("date") or (datetime.utcnow().isoformat() + "Z")
     pred_res = predict_surge(PredictionRequest(location=loc, event_type=ev_type, scale=scale, date=dt))
+    copilot_dict = pred_res.copilot.dict() if pred_res.copilot else None
     doc = {
-        "_id": f"PMT-{int(time.time() * 1000)}",
+        "permitId": f"PMT-{int(time.time() * 1000)}",
         "location": loc,
         "coordinates": body.get("coordinates") or {"lat": 15.2736, "lng": 73.9575},
         "type": ev_type,
@@ -332,8 +356,19 @@ async def create_permit(req: Request):
         "predictedWasteSurge": pred_res.predicted_surge_tonnage,
         "wastePressureLevel": pred_res.pressure_level,
         "alertTriggered": pred_res.alert_triggered,
-        "copilotExplanation": pred_res.copilot.dict() if pred_res.copilot else None
+        "copilotExplanation": copilot_dict,
+        "forecast": {
+            "predicted_surge_tonnage": pred_res.predicted_surge_tonnage,
+            "pressure_level": pred_res.pressure_level,
+            "alert_triggered": pred_res.alert_triggered,
+            "copilot": copilot_dict
+        }
     }
+    if _permits_col is not None:
+        try:
+            _permits_col.insert_one(dict(doc))
+        except Exception:
+            pass
     _IN_MEMORY_PERMITS.insert(0, doc)
     return doc
 
@@ -356,8 +391,9 @@ async def create_permits_bulk(req: Request):
     batch_res = predict_surge_batch(BatchPredictionRequest(items=batch_items))
     docs = []
     for p, pred in zip(raw_permits, batch_res["predictions"]):
+        copilot_dict = pred.copilot.dict() if pred.copilot else None
         doc = {
-            "_id": f"PMT-{int(time.time() * 1000)}-{len(docs)}",
+            "permitId": f"PMT-{int(time.time() * 1000)}-{len(docs)}",
             "location": p.get("location", "Madgaon Sector"),
             "coordinates": p.get("coordinates") or {"lat": 15.2736, "lng": 73.9575},
             "type": p.get("type") or "Construction",
@@ -366,28 +402,58 @@ async def create_permits_bulk(req: Request):
             "predictedWasteSurge": pred.predicted_surge_tonnage,
             "wastePressureLevel": pred.pressure_level,
             "alertTriggered": pred.alert_triggered,
-            "copilotExplanation": pred.copilot.dict() if pred.copilot else None
+            "copilotExplanation": copilot_dict,
+            "forecast": {
+                "predicted_surge_tonnage": pred.predicted_surge_tonnage,
+                "pressure_level": pred.pressure_level,
+                "alert_triggered": pred.alert_triggered,
+                "copilot": copilot_dict
+            }
         }
         docs.append(doc)
+    if _permits_col is not None and docs:
+        try:
+            _permits_col.insert_many([dict(d) for d in docs], ordered=False)
+        except Exception:
+            pass
     _IN_MEMORY_PERMITS[:0] = docs
     return {"insertedCount": len(docs), "vectorized": True, "permits": docs}
 
 
 @app.get("/api/tickets")
 def get_tickets():
+    if _tickets_col is not None:
+        try:
+            docs = list(_tickets_col.find({}, {"_id": 0}).sort("createdAt", -1).limit(50))
+            if docs:
+                return docs
+        except Exception:
+            pass
     return _IN_MEMORY_TICKETS
 
 
 @app.post("/api/tickets")
 async def create_ticket(req: Request):
     ticket = await req.json()
-    _IN_MEMORY_TICKETS.insert(0, ticket)
+    ticket_id = ticket.get("id") or f"TKT-2026-{int(time.time() * 1000) % 9000 + 1000}"
+    ticket["id"] = ticket_id
+    if _tickets_col is not None:
+        try:
+            _tickets_col.update_one({"id": ticket_id}, {"$set": dict(ticket)}, upsert=True)
+        except Exception:
+            pass
+    _IN_MEMORY_TICKETS[:] = [ticket] + [t for t in _IN_MEMORY_TICKETS if t.get("id") != ticket_id]
     return ticket
 
 
 @app.patch("/api/tickets/{ticket_id}/status")
 async def update_ticket_status(ticket_id: str, req: Request):
     updates = await req.json()
+    if _tickets_col is not None:
+        try:
+            _tickets_col.update_one({"id": ticket_id}, {"$set": dict(updates)}, upsert=True)
+        except Exception:
+            pass
     for t in _IN_MEMORY_TICKETS:
         if t.get("id") == ticket_id:
             t.update(updates)
@@ -403,7 +469,8 @@ async def gemini_copilot_endpoint(req: Request):
     if gemini_model is not None and _check_rate_limit():
         try:
             resp = gemini_model.generate_content(f"{system_prompt}\n\nUSER QUESTION: {query}")
-            return {"text": resp.text, "model": active_gemini_model_name}
+            clean_text = (resp.text or "").replace("**", "").replace("`", "").strip()
+            return {"text": clean_text, "model": active_gemini_model_name}
         except Exception:
             pass
     return {"text": None, "fallback": True}
@@ -413,6 +480,7 @@ async def gemini_copilot_endpoint(req: Request):
 async def subscribe_newsletter(req: Request):
     body = await req.json()
     return {"status": "subscribed", "email": body.get("email", "")}
+
 
 
 if __name__ == "__main__":

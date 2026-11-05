@@ -33,9 +33,20 @@ const KNOWLEDGE_BASE = [
   {
     topic: "Micro-Surge Machine Learning Models & Performance Optimization",
     keywords: ["model", "ml", "forecast", "xgboost", "accuracy", "algorithm", "prediction", "surge", "tonnage", "optimization", "performance"],
-    content: "GridShift-AI utilizes an ensemble of XGBoost Regressors trained on municipal building permits, public holiday schedules, and historical waste tonnage data (94.2% accuracy). Performance optimizations include vectorized batch XGBoost prediction (/predict/batch), MongoDB bulk insertMany() instead of serial N+1 loops, memoized Deck.gl WebGL layers, and compressed citizen photo thumbnails."
+    content: "GridShift-AI utilizes an ensemble of XGBoost Regressors trained on municipal building permits, public holiday schedules, and historical waste tonnage data (94.2% accuracy). Performance optimizations include vectorized batch XGBoost prediction (/predict/batch), MongoDB bulk insertMany() into the permits collection instead of serial N+1 loops, memoized Google Maps spatial layers, and compressed citizen photo thumbnails."
   }
 ];
+
+function stripMarkdownAsterisks(text) {
+  if (!text || typeof text !== "string") return "";
+  return text
+    .replace(/\*\*/g, "")
+    .replace(/__/g, "")
+    .replace(/`/g, "")
+    .replace(/^\s*\*\s+/gm, "• ")
+    .replace(/^\s*-\s+/gm, "• ")
+    .trim();
+}
 
 // Latest free-tier Gemini models (primary gemini-3.8-flash + fallback gemini-3.5-flash-lite)
 export const GEMINI_FREE_MODELS = [
@@ -179,11 +190,13 @@ export async function askGeminiWithRAG(userQuery, activeContext = {}) {
       ? relevantChunks.map((c) => `[TOPIC: ${c.topic}]\n${c.content}`).join("\n\n")
       : `${KNOWLEDGE_BASE[0].content}\n\n${KNOWLEDGE_BASE[4].content}`;
 
-  // Pull live ticket redressal counts from localStorage
+  // Pull live ticket redressal counts & ticket list from localStorage
   let ticketStats = { total: 4, open: 2, resolved: 1, verified: 1 };
+  let allTickets = [];
   try {
     const savedTickets = JSON.parse(localStorage.getItem("gridshift_redressal_tickets") || "[]");
     if (savedTickets.length > 0) {
+      allTickets = savedTickets;
       ticketStats = {
         total: savedTickets.length,
         open: savedTickets.filter((t) => !["RESOLVED", "VERIFIED_CLOSED"].includes(t.status)).length,
@@ -195,6 +208,17 @@ export async function askGeminiWithRAG(userQuery, activeContext = {}) {
     // ignore storage parse issues
   }
 
+  const ticketRosterText =
+    allTickets.length > 0
+      ? allTickets
+          .slice(0, 10)
+          .map(
+            (t) =>
+              `• ${t.id}: Status=${t.status}, Category=${t.category}, Ward=${t.ward}, Priority=${t.severity} (${t.slaHours}h SLA), Assigned=${t.assignedUnit}`
+          )
+          .join("\n")
+      : "• TKT-2026-401: Status=IN_PROGRESS, Category=Construction Debris, Ward=Ward 7, Priority=Critical (4h SLA), Assigned=Heavy Dump Truck T-304";
+
   const liveContextText = `
 CURRENT SYSTEM TELEMETRY (Madgaon Municipal Area, Goa):
 - Monitored Sectors: 25 Municipal Wards (Zero-Capex Software Grid)
@@ -202,13 +226,15 @@ CURRENT SYSTEM TELEMETRY (Madgaon Municipal Area, Goa):
 - Active Municipal Trucks: 3 en route (T-402, T-119, T-304), 1 in maintenance (T-882)
 - Zero-Extra-Cost Units: Small Pickup Vans V-102 & V-104 + Municipal Sanitation Staff (On Foot — Ward Beat Crews)
 - Redressal Tickets: ${ticketStats.total} total (${ticketStats.open} active in SLA queue, ${ticketStats.resolved} awaiting citizen verification, ${ticketStats.verified} verified closed)
+- Active Ticket Roster:
+${ticketRosterText}
 - Platform Admin (RBAC): pranavkantak9@gmail.com
 - Active Surges: Margao Fish Market (18T Critical), Comba Ward (9.5T High)
 `;
 
   const systemPrompt = `You are GridShift Copilot, an intelligent AI municipal waste and urban sanitation assistant for GridShift-AI in Madgaon, Goa.
-Answer the user's inquiry clearly, professionally, and actionably. Use the provided retrieved knowledge and live telemetry.
-Keep your response concise (2-4 paragraphs or formatted bullet points).
+Answer the user's inquiry clearly, professionally, and actionably using plain text and clean bullet points (•).
+IMPORTANT FORMATTING RULE: Never use Markdown asterisks (**), underscores (__), or backticks in your output. Write clean plain text only.
 
 --- RETRIEVED KNOWLEDGE ---
 ${retrievedText}
@@ -220,7 +246,9 @@ ${liveContextText}
   // 2. CHECK SLIDING-WINDOW RATE LIMITER
   const rateStatus = checkClientRateLimit();
   if (!rateStatus.allowed) {
-    return `⏱️ **Gemini Free-Tier Rate Limit Guard Active:**\n\nYou have reached the safety threshold of **${MAX_REQUESTS_PER_MINUTE} requests/minute**. Automatic cooldown is active — please retry in **${rateStatus.retryAfterSec}s**.\n\n---\n${buildLocalFallbackResponse(queryLower, ticketStats)}`;
+    return stripMarkdownAsterisks(
+      `⏱️ Gemini Free-Tier Rate Limit Guard Active:\n\nYou have reached the safety threshold of ${MAX_REQUESTS_PER_MINUTE} requests/minute. Automatic cooldown is active — please retry in ${rateStatus.retryAfterSec}s.\n\n${buildLocalFallbackResponse(queryLower, ticketStats, allTickets)}`
+    );
   }
 
   // 3. TRY SERVER-SIDE PROXY FIRST (/api/gemini/copilot), THEN CLIENT-SIDE WITH EXPONENTIAL BACKOFF
@@ -239,12 +267,13 @@ ${liveContextText}
     if (proxyRes.ok) {
       const proxyData = await proxyRes.json();
       if (proxyData?.text) {
-        responseCache.set(queryLower, { text: proxyData.text, timestamp: Date.now() });
-        return proxyData.text;
+        const cleanText = stripMarkdownAsterisks(proxyData.text);
+        responseCache.set(queryLower, { text: cleanText, timestamp: Date.now() });
+        return cleanText;
       }
     }
   } catch {
-    // Server proxy unreachable or static Vercel deployment — proceed to client-side Gemini call with backoff
+    // Server proxy unreachable — proceed to client-side Gemini call with backoff
   }
 
   const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
@@ -256,8 +285,9 @@ ${liveContextText}
         3
       );
       if (text) {
-        responseCache.set(queryLower, { text, timestamp: Date.now() });
-        return text;
+        const cleanText = stripMarkdownAsterisks(text);
+        responseCache.set(queryLower, { text: cleanText, timestamp: Date.now() });
+        return cleanText;
       }
     } catch (err) {
       console.warn("Gemini API exhausted retries, using synthesized local RAG response:", err);
@@ -265,27 +295,48 @@ ${liveContextText}
   }
 
   // 4. ROBUST LOCAL RAG FALLBACK
-  const fallbackText = buildLocalFallbackResponse(queryLower, ticketStats);
+  const fallbackText = stripMarkdownAsterisks(buildLocalFallbackResponse(queryLower, ticketStats, allTickets));
   responseCache.set(queryLower, { text: fallbackText, timestamp: Date.now() });
   return fallbackText;
 }
 
-function buildLocalFallbackResponse(queryLower, ticketStats) {
+function buildLocalFallbackResponse(queryLower, ticketStats, allTickets = []) {
+  // Check if user asked for specific TKT- IDs
+  const mentionedIds = (queryLower.match(/tkt-\d{4}-\d+/gi) || []).map((id) => id.toUpperCase());
+  if (mentionedIds.length > 0) {
+    const details = mentionedIds.map((id) => {
+      const found = allTickets.find((t) => String(t.id).toUpperCase() === id);
+      if (found) {
+        return `• ${found.id}: Status is ${found.status} (${found.severity} Priority • ${found.slaHours}h SLA) at ${found.ward}. Assigned Unit: ${found.assignedUnit}.`;
+      }
+      return `• ${id}: Not found in active local queue (verify ticket ID in Ticket Redressal portal).`;
+    });
+    return `🎫 Live Ticket Status Lookup:\n\n${details.join("\n")}\n\n• Queue Summary: ${ticketStats.total} total tickets tracked (${ticketStats.open} active in SLA, ${ticketStats.resolved} awaiting citizen verification, ${ticketStats.verified} verified closed).`;
+  }
+
   if (queryLower.includes("ticket") || queryLower.includes("redressal") || queryLower.includes("sla") || queryLower.includes("feedback") || queryLower.includes("admin")) {
-    return `🎫 **Automated Citizen Ticket Redressal & RBAC Status:**\n\n* **Live Queue:** **${ticketStats.total} total tickets** tracked (**${ticketStats.open} active in SLA**, **${ticketStats.resolved} awaiting citizen verification**, **${ticketStats.verified} verified closed**).\n* **Admin Authority:** Account **pranavkantak9@gmail.com** has full RBAC privileges to override triage severity, assign existing municipal sanitation staff (on foot) or small pickup vans (V-102, V-104) & compactors (T-402, T-304), and mark incidents **RESOLVED**.\n* **Citizen Verification Loop:** Once marked resolved, the reporting citizen rates the cleanup (1–5 stars). Ratings **≥ 3 stars** transition the ticket to **VERIFIED_CLOSED**; ratings **≤ 2 stars** automatically **REOPEN** and escalate the ticket to **Critical (4h SLA)**.`;
+    const topTicketSummary =
+      allTickets.length > 0
+        ? `\n• Recent Tickets:\n` +
+          allTickets
+            .slice(0, 4)
+            .map((t) => `  - ${t.id} (${t.category} • ${t.ward}): ${t.status} — ${t.assignedUnit}`)
+            .join("\n")
+        : "";
+    return `🎫 Automated Citizen Ticket Redressal & RBAC Status:\n\n• Live Queue: ${ticketStats.total} total tickets tracked (${ticketStats.open} active in SLA, ${ticketStats.resolved} awaiting citizen verification, ${ticketStats.verified} verified closed).${topTicketSummary}\n• Admin Authority: Account pranavkantak9@gmail.com has full RBAC privileges to override triage severity, assign existing municipal sanitation staff (on foot) or small pickup vans (V-102, V-104) & compactors (T-402, T-304), and mark incidents RESOLVED.\n• Citizen Verification Loop: Once marked resolved, the reporting citizen rates the cleanup (1–5 stars). Ratings ≥ 3 stars transition the ticket to VERIFIED_CLOSED; ratings ≤ 2 stars automatically REOPEN and escalate the ticket to Critical (4h SLA).`;
   }
 
   if (queryLower.includes("construction") || queryLower.includes("debris") || queryLower.includes("demolition")) {
-    return `🏗️ **Construction & Demolition Debris Overview (Madgaon, Goa):**\n\nThere are currently **5 active C&D debris zones** marked on the Live Map, including the **Margao Bypass Flyover expansion (22.0 Tons)** and **Fatorda High-Rise demolition (14.5 Tons)**.\n\n* **Regulations:** Under Goa Municipal Solid Waste & C&D Rules 2016, all masonry and concrete must be segregated from municipal household waste and hauled to designated facilities (e.g. Cacora treatment plant).\n* **Dispatch Status:** Heavy dump truck T-304 is assigned for commercial bulk transfer, while Small Pickup Van V-102 and Municipal Ward Staff handle smaller roadside rubble clearances.`;
+    return `🏗️ Construction & Demolition Debris Overview (Madgaon, Goa):\n\nThere are currently 5 active C&D debris zones marked on the Google Maps Live Grid, including the Margao Bypass Flyover expansion (22.0 Tons) and Fatorda High-Rise demolition (14.5 Tons).\n\n• Regulations: Under Goa Municipal Solid Waste & C&D Rules 2016, all masonry and concrete must be segregated from municipal household waste and hauled to designated facilities (e.g. Cacora treatment plant).\n• Dispatch Status: Heavy dump truck T-304 is assigned for commercial bulk transfer, while Small Pickup Van V-102 and Municipal Ward Staff handle smaller roadside rubble clearances.`;
   }
 
   if (queryLower.includes("rover") || queryLower.includes("truck") || queryLower.includes("fleet") || queryLower.includes("foot") || queryLower.includes("van") || queryLower.includes("pickup") || queryLower.includes("crew")) {
-    return `🚛 **Zero-Extra-Cost Municipal Staff & Fleet Status:**\n\n* **Municipal Sanitation Staff (On Foot):** Ward Beat Crews are actively sweeping pedestrian corridors around Margao Municipal Fish Market (Ward 7) and Comba Heritage lanes (Ward 10).\n* **Small Pickup Vans:** **V-102** is servicing Aquem & Borda commercial lanes; **V-104** is assigned to Comba & Pajifond narrow lanes.\n* **Heavy Compactors:** 3 municipal compactor/tipping trucks active (T-402, T-119, T-304) for high-tonnage waste and C&D transfer.`;
+    return `🚛 Zero-Extra-Cost Municipal Staff & Fleet Status:\n\n• Municipal Sanitation Staff (On Foot): Ward Beat Crews are actively sweeping pedestrian corridors around Margao Municipal Fish Market (Ward 7) and Comba Heritage lanes (Ward 10).\n• Small Pickup Vans: V-102 is servicing Aquem & Borda commercial lanes; V-104 is assigned to Comba & Pajifond narrow lanes.\n• Heavy Compactors: 3 municipal compactor/tipping trucks active (T-402, T-119, T-304) for high-tonnage waste and C&D transfer.`;
   }
 
   if (queryLower.includes("report") || queryLower.includes("photo") || queryLower.includes("camera")) {
-    return `📸 **Citizen Waste Reporting & Ticket Redressal Guide:**\n\n1. Click **Report Waste** in the top navigation bar from any page to open the live geotagging camera.\n2. Snap or upload a photo and choose category (**Construction Debris**, **Illegal Dump**, or **Overflowing Bin**).\n3. Your report automatically generates a tracked **Redressal Ticket (TKT-2026-XXXX)**, pins immediately to the **Live Grid Map** (auto-opening in the Fleet Dispatch popup), and dispatches Municipal Sanitation Staff (on foot) or a Small Pickup Van!`;
+    return `📸 Citizen Waste Reporting & Ticket Redressal Guide:\n\n1. Click Report Waste in the top navigation bar from any page to open the live geotagging camera.\n2. Snap or upload a photo and choose category (Construction Debris, Illegal Dump, or Overflowing Bin).\n3. Your report automatically generates a tracked Redressal Ticket (TKT-2026-XXXX), saves it to the tickets collection, pins immediately to the Google Maps Live Grid, and dispatches Municipal Sanitation Staff (on foot) or a Small Pickup Van!`;
   }
 
-  return `🤖 **GridShift AI Telemetry Report (Madgaon, Goa):**\n\nAll **25 Madgaon municipal wards** are monitored with zero extra hardware burden on municipal resources. Current highest priority sector is the **Margao Municipal Market** with an 18-ton organic surge projected for peak evening hours.\n\n* **Ticket Redressal Queue:** ${ticketStats.open} open tickets being serviced by Municipal Foot Crews & Small Pickup Vans, ${ticketStats.resolved} awaiting citizen star-rating verification.\n* **AI Engine:** Powered by **gemini-3.8-flash** with sliding-window rate-limit protection and exponential backoff.`;
+  return `🤖 GridShift AI Telemetry Report (Madgaon, Goa):\n\nAll 25 Madgaon municipal wards are monitored with zero extra hardware burden on municipal resources. Current highest priority sector is the Margao Municipal Market with an 18-ton organic surge projected for peak evening hours.\n\n• Ticket Redressal Queue: ${ticketStats.open} open tickets being serviced by Municipal Foot Crews & Small Pickup Vans, ${ticketStats.resolved} awaiting citizen star-rating verification.\n• AI Engine: Powered by gemini-3.8-flash with sliding-window rate-limit protection and exponential backoff.`;
 }

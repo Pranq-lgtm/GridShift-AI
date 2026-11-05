@@ -415,6 +415,19 @@ function Redressal({ user, onOpenWasteCamera }) {
     } else {
       showToast(`Ticket ${selectedTicket.id} rated ${ratingNum}/5 stars — Automatically REOPENED & escalated to Critical for municipal dispatch!`, 'error');
     }
+
+    try {
+      const updatedDoc = updatedList.find((t) => t.id === selectedTicket.id);
+      if (updatedDoc) {
+        fetch(`${BACKEND_API_URL}/api/tickets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedDoc)
+        }).catch(() => {});
+      }
+    } catch {
+      // ignore offline fallback
+    }
   };
 
   // Run Live Bulk Permit Vectorization Benchmark (Admin Only)
@@ -552,39 +565,39 @@ function Redressal({ user, onOpenWasteCamera }) {
       </div>
 
       {/* 2. KPI SUMMARY STRIP */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="ios-card-white" style={{ padding: '18px 20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Total Tracked Tickets</span>
-          <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#092C5E', marginTop: '4px' }}>{kpiStats.total}</div>
-          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>100% Geotagged with SLA</span>
+      <div className="redressal-kpi-grid">
+        <div className="gs-card" style={{ padding: '18px 20px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Tracked Tickets</span>
+          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A', marginTop: '4px' }}>{kpiStats.total}</div>
+          <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>100% Geotagged with SLA</span>
         </div>
 
-        <div className="ios-card-white" style={{ padding: '18px 20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Active SLA Queue</span>
-          <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#ea580c', marginTop: '4px' }}>{kpiStats.open}</div>
+        <div className="gs-card" style={{ padding: '18px 20px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active SLA Queue</span>
+          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#D97706', marginTop: '4px' }}>{kpiStats.open}</div>
           <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Critical: 4h • High: 12h target</span>
         </div>
 
-        <div className="ios-card-white" style={{ padding: '18px 20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Awaiting Citizen Rating</span>
-          <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#0284c7', marginTop: '4px' }}>{kpiStats.awaitingVerification}</div>
-          <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>Closed-loop verification stage</span>
+        <div className="gs-card" style={{ padding: '18px 20px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Awaiting Citizen Rating</span>
+          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0891B2', marginTop: '4px' }}>{kpiStats.awaitingVerification}</div>
+          <span style={{ fontSize: '11px', color: '#0891B2', fontWeight: 700 }}>Closed-loop verification stage</span>
         </div>
 
-        <div className="ios-card-white" style={{ padding: '18px 20px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Citizen Satisfaction</span>
-          <div style={{ fontSize: '1.9rem', fontWeight: 900, color: '#16a34a', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="gs-card" style={{ padding: '18px 20px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Citizen Satisfaction</span>
+          <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#059669', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>{kpiStats.avgRating}</span>
-            <Star size={20} fill="#eab308" color="#eab308" />
+            <Star size={19} fill="#eab308" color="#eab308" />
           </div>
           <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{kpiStats.verifiedClosed} tickets verified closed</span>
         </div>
       </div>
 
       {/* 3. MASTER-DETAIL TICKET TRACKING & REDRESSAL WORKBENCH */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', marginBottom: '28px' }}>
+      <div className="redressal-workbench-grid">
         {/* Left Column: Ticket Queue List */}
-        <div className="ios-card-white" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="gs-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#092C5E' }}>
               {isAdmin ? `Municipal Redressal Queue (${filteredTickets.length})` : `Citizen Redressal Queue (${filteredTickets.length})`}
@@ -676,22 +689,22 @@ function Redressal({ user, onOpenWasteCamera }) {
 
         {/* Right Column: Selected Ticket Lifecycle, Role-Specific Console & Verification */}
         {selectedTicket && (
-          <div className="ios-card-white" style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <div className="gs-card" style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {/* Top Ticket Summary */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#092C5E' }}>{selectedTicket.id}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 800, padding: '3px 10px', borderRadius: '9999px', backgroundColor: selectedTicket.severity === 'Critical' ? '#fee2e2' : '#fef3c7', color: selectedTicket.severity === 'Critical' ? '#b91c1c' : '#b45309' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap', borderBottom: '1px solid rgba(15, 23, 42, 0.06)', paddingBottom: '16px' }}>
+              <div style={{ flex: 1, minWidth: '220px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0F172A' }}>{selectedTicket.id}</span>
+                  <span style={{ fontSize: '10px', fontWeight: 800, padding: '4px 10px', borderRadius: '8px', backgroundColor: selectedTicket.severity === 'Critical' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(217, 119, 6, 0.08)', color: selectedTicket.severity === 'Critical' ? '#DC2626' : '#D97706', border: selectedTicket.severity === 'Critical' ? '1px solid rgba(220, 38, 38, 0.16)' : '1px solid rgba(217, 119, 6, 0.16)' }}>
                     {selectedTicket.severity} Priority • {selectedTicket.slaHours}h SLA
                   </span>
                 </div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#334155' }}>
+                <div style={{ fontSize: '0.94rem', fontWeight: 700, color: '#1E293B', lineHeight: 1.35 }}>
                   {selectedTicket.category} • {selectedTicket.ward}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <MapPin size={13} color="#ef4444" />
-                  <span>GPS: {selectedTicket.coordinates?.lat}, {selectedTicket.coordinates?.lng} • Reported by {selectedTicket.reporterEmail}</span>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <MapPin size={13} color="#06B6D4" style={{ flexShrink: 0 }} />
+                  <span>GPS: {selectedTicket.coordinates?.lat}, {selectedTicket.coordinates?.lng} • {selectedTicket.reporterEmail}</span>
                 </div>
               </div>
 
@@ -699,32 +712,39 @@ function Redressal({ user, onOpenWasteCamera }) {
                 <img
                   src={selectedTicket.photo}
                   alt="Incident Evidence"
-                  style={{ width: '96px', height: '68px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '92px', height: '66px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(15, 23, 42, 0.10)', flexShrink: 0 }}
                 />
               )}
             </div>
 
             {/* 6-Stage Automated Lifecycle Stepper */}
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
                 Automated Redressal Pipeline Progression
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
+              <div className="redressal-stepper-grid">
                 {LIFECYCLE_STAGES.map((stage, idx) => {
                   const activeIdx = getStageIndex(selectedTicket.status);
                   const reached = idx <= activeIdx;
+                  const isCurrent = idx === activeIdx;
                   return (
                     <div
                       key={stage.key}
                       style={{
-                        padding: '8px 6px',
+                        padding: '10px 6px',
                         borderRadius: '10px',
                         textAlign: 'center',
-                        backgroundColor: reached ? '#092C5E' : '#f1f5f9',
+                        background: isCurrent
+                          ? 'linear-gradient(135deg, #06B6D4, #0EA5E9)'
+                          : reached
+                          ? '#0F172A'
+                          : '#F1F5F9',
                         color: reached ? 'white' : '#64748b',
-                        fontSize: '10px',
+                        fontSize: '10.5px',
                         fontWeight: 800,
-                        border: idx === activeIdx ? '2px solid #22c55e' : '1px solid transparent'
+                        lineHeight: 1.25,
+                        boxShadow: isCurrent ? '0 4px 12px rgba(6, 182, 212, 0.28)' : 'none',
+                        border: isCurrent ? '1px solid rgba(6, 182, 212, 0.4)' : '1px solid rgba(15, 23, 42, 0.04)'
                       }}
                     >
                       {stage.label}
@@ -741,25 +761,25 @@ function Redressal({ user, onOpenWasteCamera }) {
               <div
                 style={{
                   padding: '16px',
-                  borderRadius: '16px',
-                  backgroundColor: '#f0fdf4',
-                  border: '1px solid #bbf7d0'
+                  borderRadius: '14px',
+                  backgroundColor: 'rgba(5, 150, 105, 0.05)',
+                  border: '1px solid rgba(5, 150, 105, 0.18)'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <ShieldCheck size={17} color="#16a34a" />
-                    <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#092C5E' }}>
+                    <ShieldCheck size={17} color="#059669" />
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0F172A' }}>
                       Municipal Admin Triage & Fleet Dispatch Console
                     </span>
                   </div>
-                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', backgroundColor: '#dcfce7', padding: '3px 8px', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.12)', padding: '3px 8px', borderRadius: '6px' }}>
                     ADMIN: {ADMIN_EMAIL}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="redressal-admin-grid">
                     <div>
                       <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
                         Assign Municipal Staff (On Foot) / Pickup Van
@@ -868,66 +888,104 @@ function Redressal({ user, onOpenWasteCamera }) {
             {/* CITIZEN FEEDBACK & RESOLUTION VERIFICATION LOOP */}
             <div
               style={{
-                padding: '16px',
-                borderRadius: '16px',
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0'
+                padding: '18px',
+                borderRadius: '14px',
+                background: 'linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%)',
+                border: '1px solid rgba(15, 23, 42, 0.08)'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 900, color: '#092C5E', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Star size={16} color="#eab308" fill="#eab308" />
-                  Citizen Resolution Verification & Feedback Loop
-                </span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                  Rating ≥ 3 closes ticket • Rating ≤ 2 auto-reopens & escalates
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '6px' }}>
+                <div>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <Star size={16} color="#06B6D4" fill="#06B6D4" />
+                    Citizen Resolution Verification & Feedback Loop
+                  </span>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', marginTop: '3px' }}>
+                    Rating ≥ 3 closes ticket • Rating ≤ 2 auto-reopens & escalates
+                  </div>
+                </div>
               </div>
 
               {selectedTicket.feedback ? (
-                <div style={{ backgroundColor: 'white', padding: '12px 14px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <strong>Citizen Rating: {'⭐'.repeat(selectedTicket.feedback.rating)} ({selectedTicket.feedback.rating}/5)</strong>
-                    <span style={{ color: '#64748b', fontSize: '11px' }}>{selectedTicket.feedback.verifiedAt}</span>
+                <div style={{ backgroundColor: 'white', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(15, 23, 42, 0.08)', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                    <strong style={{ color: '#0F172A' }}>Citizen Rating: {'⭐'.repeat(selectedTicket.feedback.rating)} ({selectedTicket.feedback.rating}/5)</strong>
+                    <span style={{ color: '#64748b', fontSize: '11px', fontWeight: 600 }}>{selectedTicket.feedback.verifiedAt}</span>
                   </div>
-                  <div style={{ color: '#334155' }}>"{selectedTicket.feedback.comment}"</div>
+                  <div style={{ color: '#334155', lineHeight: 1.5 }}>"{selectedTicket.feedback.comment}"</div>
                 </div>
               ) : (
-                <form onSubmit={handleCitizenSubmitFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>Select Cleanup Rating:</span>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setCitizenRating(star)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          border: citizenRating === star ? '2px solid #092C5E' : '1px solid #cbd5e1',
-                          backgroundColor: citizenRating === star ? '#fef9c3' : 'white',
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {star} ★
-                      </button>
-                    ))}
+                <form onSubmit={handleCitizenSubmitFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
+                      Select Cleanup Rating
+                    </div>
+                    <div className="redressal-rating-grid">
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const isSelectedStar = citizenRating === star;
+                        return (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setCitizenRating(star)}
+                            style={{
+                              padding: '10px 6px',
+                              borderRadius: '10px',
+                              border: isSelectedStar ? '1.5px solid #06B6D4' : '1px solid #CBD5E1',
+                              background: isSelectedStar
+                                ? 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)'
+                                : 'white',
+                              color: isSelectedStar ? 'white' : '#1E293B',
+                              fontWeight: 800,
+                              fontSize: '0.84rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              boxShadow: isSelectedStar ? '0 4px 12px rgba(15, 23, 42, 0.18)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <span>{star}</span>
+                            <span style={{ color: isSelectedStar ? '#38BDF8' : '#F59E0B', fontSize: '0.88rem' }}>★</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="redressal-feedback-actions">
                     <input
                       type="text"
-                      placeholder="Citizen verification comment (e.g., Sidewalk cleared, or rubble still remaining)..."
+                      placeholder="Add verification note (e.g., Sidewalk cleared by ward crew)..."
                       value={citizenComment}
                       onChange={(e) => setCitizenComment(e.target.value)}
-                      style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', backgroundColor: 'white' }}
+                      style={{
+                        flex: 1,
+                        padding: '11px 14px',
+                        borderRadius: '10px',
+                        border: '1px solid #CBD5E1',
+                        fontSize: '0.84rem',
+                        backgroundColor: 'white',
+                        color: '#0F172A',
+                        outline: 'none'
+                      }}
                     />
                     <button
                       type="submit"
-                      className="btn btn-primary"
-                      style={{ padding: '9px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 800, whiteSpace: 'nowrap' }}
+                      className="btn btn-cta-gradient"
+                      style={{
+                        padding: '11px 20px',
+                        borderRadius: '10px',
+                        fontSize: '0.84rem',
+                        fontWeight: 800,
+                        whiteSpace: 'nowrap',
+                        background:
+                          citizenRating >= 3
+                            ? 'linear-gradient(135deg, #06B6D4 0%, #0EA5E9 100%)'
+                            : 'linear-gradient(135deg, #DC2626 0%, #EA580C 100%)'
+                      }}
                     >
                       {citizenRating >= 3 ? 'Verify & Close Ticket' : 'Reject & Auto-Escalate'}
                     </button>
@@ -938,16 +996,17 @@ function Redressal({ user, onOpenWasteCamera }) {
 
             {/* Immutable Audit Trail */}
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
                 Immutable Redressal Audit Log
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
                 {(selectedTicket.history || []).map((entry, i) => (
-                  <div key={i} style={{ fontSize: '0.78rem', padding: '6px 10px', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-                    <div>
-                      <strong style={{ color: '#092C5E' }}>[{entry.status}]</strong> {entry.note} <span style={{ color: '#64748b' }}>— {entry.by}</span>
+                  <div key={i} className="redressal-audit-row">
+                    <div style={{ lineHeight: 1.45, color: '#334155' }}>
+                      <strong style={{ color: '#0F172A' }}>[{entry.status}]</strong> {entry.note}{' '}
+                      <span style={{ color: '#64748b', fontWeight: 600 }}>— {entry.by}</span>
                     </div>
-                    <span style={{ color: '#94a3b8', whiteSpace: 'nowrap', fontSize: '11px' }}>{entry.timestamp}</span>
+                    <span style={{ color: '#64748b', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600 }}>{entry.timestamp}</span>
                   </div>
                 ))}
               </div>
@@ -1002,11 +1061,11 @@ function Redressal({ user, onOpenWasteCamera }) {
             <div style={{ padding: '16px', borderRadius: '14px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#092C5E', fontWeight: 800, fontSize: '0.9rem' }}>
                 <Layers size={18} color="#16a34a" />
-                <span>2. Google Maps & Deck.gl Layer Memoization</span>
+                <span>2. Google Maps Platform Spatial Layer Memoization</span>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.5, margin: 0 }}>
-                <strong>Bottleneck (`Dashboard.jsx`):</strong> Map overlay layers were recreated on every React state change, triggering WebGL buffer re-allocation.<br />
-                <strong>Fix:</strong> Integrated `@vis.gl/react-google-maps` + memoized `GoogleMapsOverlay` (`useMemo`) and compressed citizen base64 thumbnails (`≤ 480px`) to prevent `localStorage` 5MB overflow.
+                <strong>Bottleneck (`Dashboard.jsx`):</strong> Map overlay markers were recreated on every React state change, triggering redundant re-renders.<br />
+                <strong>Fix:</strong> Integrated `@vis.gl/react-google-maps` with memoized spatial layers (`useMemo`) and compressed citizen base64 thumbnails (`≤ 480px`) to prevent `localStorage` 5MB overflow.
               </p>
             </div>
 

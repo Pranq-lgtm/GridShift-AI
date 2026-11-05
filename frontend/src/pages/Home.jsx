@@ -445,7 +445,7 @@ function Home({ onOpenWasteCamera }) {
             }}>
               <img
                 src="/iot-organics.jpg"
-                alt="Commercial Kitchen Organics Smart IoT Bin"
+                alt="Commercial Market & Hospitality Organics Forecasting"
                 style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '340px', objectFit: 'cover' }}
               />
 
@@ -463,7 +463,7 @@ function Home({ onOpenWasteCamera }) {
                 letterSpacing: '0.04em',
                 border: '1px solid rgba(255,255,255,0.08)'
               }}>
-                COMMERCIAL ORGANICS NODE
+                COMMERCIAL ORGANICS SECTOR
               </div>
 
               <div style={{
@@ -479,9 +479,9 @@ function Home({ onOpenWasteCamera }) {
                 lineHeight: 1.5,
                 border: '1px solid rgba(217, 119, 6, 0.25)'
               }}>
-                <div style={{ color: '#F59E0B', fontWeight: 800, marginBottom: '2px' }}>⚠ SURGE ALERT: 90% FULL</div>
-                <div style={{ color: 'rgba(255,255,255,0.8)' }}>NODE ID: GW134 (KITCHEN BAY 2)</div>
-                <div style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>AI OPTIMIZED ROUTE QUEUED</div>
+                <div style={{ color: '#F59E0B', fontWeight: 800, marginBottom: '2px' }}>⚠ SURGE FORECAST: +18.5 TONS</div>
+                <div style={{ color: 'rgba(255,255,255,0.8)' }}>SECTOR: MARGAO MARKET HUB (WARD 7)</div>
+                <div style={{ color: '#22c55e', fontSize: '10px', fontWeight: 600 }}>PICKUP VAN V-102 & FOOT CREW QUEUED</div>
               </div>
             </div>
           </div>
@@ -526,7 +526,7 @@ function Home({ onOpenWasteCamera }) {
               iconBg: 'rgba(217, 119, 6, 0.08)',
               iconColor: '#D97706',
               title: '3D Spatial Hexagon Grids',
-              desc: 'DeckGL-powered H3 geospatial pillars provide intuitive visualization of waste accumulation rates for optimized bin placement decisions.',
+              desc: 'Google Maps Platform geospatial layers and 3D hex density pillars provide intuitive visualization of waste accumulation rates for optimized bin and crew placement decisions.',
               link: '/dashboard',
               linkText: 'Open Spatial Map'
             }
@@ -627,7 +627,7 @@ function Home({ onOpenWasteCamera }) {
               Built For Zero-Latency Operations.
             </h2>
             <p style={{ color: 'rgba(203, 213, 225, 0.7)', fontSize: '0.92rem', marginTop: '10px', fontWeight: 500 }}>
-              End-to-end reliability from IoT bin telematics to cloud machine learning and autonomous dispatch.
+              Software-first reliability from municipal permit ingestion and citizen geotagged reports to cloud machine learning and rapid sanitation crew dispatch.
             </p>
           </div>
 
@@ -639,8 +639,8 @@ function Home({ onOpenWasteCamera }) {
                 iconBg: 'rgba(6, 182, 212, 0.15)',
                 iconBorder: 'rgba(6, 182, 212, 0.3)',
                 iconColor: '#67E8F9',
-                title: '15-Second Telemetry',
-                desc: 'Edge-processed sensor events stream over cellular LoRaWAN to maintain sub-second updates without network bottleneck.'
+                title: 'Instant SLA Ticket Triage',
+                desc: 'Geotagged citizen camera reports and municipal building permits are automatically classified into 4h–48h SLA priority queues for ward foot crews and pickup vans.'
               },
               {
                 icon: <Activity size={24} />,
@@ -648,7 +648,7 @@ function Home({ onOpenWasteCamera }) {
                 iconBorder: 'rgba(14, 165, 233, 0.3)',
                 iconColor: '#7DD3FC',
                 title: 'Predictive Reroutes',
-                desc: 'Continuous algorithmic simulation generates dynamic waypoint updates as soon as trash capacity reaches 80%.'
+                desc: 'Dynamic waypoint updates route existing municipal compactors, small pickup vans, and ward foot crews before commercial or market corridors overflow.'
               },
               {
                 icon: <ShieldCheck size={24} />,
@@ -656,7 +656,7 @@ function Home({ onOpenWasteCamera }) {
                 iconBorder: 'rgba(168, 85, 247, 0.25)',
                 iconColor: '#C4B5FD',
                 title: 'End-to-End Encrypted',
-                desc: 'AES-256 encrypted payload channels for municipal compliance and secure data governance.'
+                desc: 'AES-256 encrypted payload channels for municipal RBAC compliance, immutable SLA audit logs, and secure civic data governance.'
               }
             ].map((pillar, i) => (
               <div key={i} style={{
@@ -703,19 +703,25 @@ function Home({ onOpenWasteCamera }) {
             LIVE STREAM PULSE
           </span>
         </div>
-        <div style={{
-          position: 'relative',
-          width: '100%',
-          overflow: 'hidden',
-          padding: '12px 0',
-          background: 'rgba(255, 255, 255, 0.60)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '12px',
-          border: '1px solid rgba(15, 23, 42, 0.04)'
-        }}>
+        <div
+          className="live-pulse-marquee"
+          style={{
+            position: 'relative',
+            width: '100%',
+            overflow: 'hidden',
+            padding: '12px 0',
+            background: 'rgba(255, 255, 255, 0.60)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            border: '1px solid rgba(15, 23, 42, 0.04)',
+            touchAction: 'pan-y',
+            userSelect: 'none',
+            WebkitUserSelect: 'none'
+          }}
+        >
           {/* Gradient Edges */}
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to right, var(--gs-bg), transparent)', zIndex: 10 }} />
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to left, var(--gs-bg), transparent)', zIndex: 10 }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to right, var(--gs-bg), transparent)', zIndex: 10, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40px', background: 'linear-gradient(to left, var(--gs-bg), transparent)', zIndex: 10, pointerEvents: 'none' }} />
 
           <div className="animate-scroll" style={{ display: 'flex', gap: '14px', padding: '0 16px' }}>
             {marqueeItems.concat(marqueeItems).map((text, idx) => (
@@ -730,7 +736,8 @@ function Home({ onOpenWasteCamera }) {
                   boxShadow: '0 1px 4px rgba(15, 23, 42, 0.04)',
                   fontSize: '0.82rem',
                   fontWeight: 600,
-                  color: '#334155'
+                  color: '#334155',
+                  pointerEvents: 'none'
                 }}
               >
                 {text}
@@ -770,7 +777,7 @@ function Home({ onOpenWasteCamera }) {
           </h2>
 
           <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 28px auto', fontWeight: 500 }}>
-            Inspect real-time 3D hexagonal density layers, manage municipal vehicle telemetry, and track commercial diversion rates.
+            Inspect real-time Google Maps 3D spatial density layers, manage municipal foot crew & pickup van dispatches, and track citizen SLA redressal.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>

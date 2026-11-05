@@ -39,84 +39,110 @@ function getSanitizedMongoUri(uri) {
   }
 }
 
-const mongoUri = getSanitizedMongoUri(process.env.MONGO_URI);
+const mongoUri = getSanitizedMongoUri(process.env.MONGO_URI || process.env.MONGODB_URI);
 let isMongoConnected = false;
+
+const PermitSchema = new mongoose.Schema(
+  {
+    location: { type: String, required: true },
+    coordinates: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true }
+    },
+    type: { type: String, required: true },
+    scale: { type: Number, required: true },
+    date: { type: Date, required: true },
+    predictedWasteSurge: { type: Number },
+    wastePressureLevel: { type: String },
+    alertTriggered: { type: Boolean },
+    copilotExplanation: {
+      when: { type: String },
+      why: [{ type: String }],
+      recommendations: [{ type: String }],
+      confidence: { type: Number }
+    },
+    forecast: {
+      predicted_surge_tonnage: { type: Number },
+      pressure_level: { type: String },
+      alert_triggered: { type: Boolean },
+      copilot: {
+        when: { type: String },
+        why: [{ type: String }],
+        recommendations: [{ type: String }],
+        confidence: { type: Number }
+      }
+    }
+  },
+  { collection: 'permits', timestamps: true }
+);
+
+PermitSchema.index({ date: -1 });
+const Permit = mongoose.model('Permit', PermitSchema, 'permits');
+
+const TicketSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    reportId: { type: String },
+    category: { type: String, required: true },
+    severity: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ['REPORTED', 'TRIAGED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED_CLOSED', 'REOPENED'],
+      default: 'TRIAGED'
+    },
+    ward: { type: String },
+    location: { type: String },
+    description: { type: String },
+    coordinates: {
+      lat: { type: Number },
+      lng: { type: Number }
+    },
+    photo: { type: String },
+    reporterEmail: { type: String },
+    assignedUnit: { type: String },
+    slaHours: { type: Number, default: 12 },
+    createdAt: { type: Date, default: Date.now },
+    slaDeadline: { type: Date },
+    timestamp: { type: String },
+    adminNotes: { type: String },
+    feedback: {
+      rating: { type: Number },
+      comment: { type: String },
+      verifiedBy: { type: String },
+      verifiedAt: { type: String }
+    },
+    history: [
+      {
+        status: String,
+        by: String,
+        note: String,
+        timestamp: String
+      }
+    ]
+  },
+  { collection: 'tickets', timestamps: true }
+);
+
+const Ticket = mongoose.model('Ticket', TicketSchema, 'tickets');
 
 if (mongoUri) {
   mongoose
     .connect(mongoUri, { dbName: 'gridshift_db' })
-    .then(() => {
+    .then(async () => {
       isMongoConnected = true;
-      console.log('Connected to MongoDB');
+      console.log('Connected to MongoDB (gridshift_db)');
+      try {
+        await Permit.createCollection();
+        await Ticket.createCollection();
+        console.log('Verified MongoDB collections: permits, tickets');
+      } catch {
+        // Collections already exist
+      }
     })
     .catch((err) => {
       console.error('MongoDB connection error (using resilient memory store fallback):', err.message || err);
     });
 }
-
-const PermitSchema = new mongoose.Schema({
-  location: { type: String, required: true },
-  coordinates: {
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true }
-  },
-  type: { type: String, required: true },
-  scale: { type: Number, required: true },
-  date: { type: Date, required: true },
-  forecast: {
-    predicted_surge_tonnage: { type: Number },
-    pressure_level: { type: String },
-    alert_triggered: { type: Boolean },
-    copilot: {
-      when: { type: String },
-      why: [{ type: String }],
-      recommendations: [{ type: String }],
-      confidence: { type: Number }
-    }
-  }
-});
-
-PermitSchema.index({ date: -1 });
-const Permit = mongoose.model('Permit', PermitSchema);
-
-const TicketSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  category: { type: String, required: true },
-  severity: { type: String, required: true },
-  status: {
-    type: String,
-    enum: ['REPORTED', 'TRIAGED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED_CLOSED', 'REOPENED'],
-    default: 'TRIAGED'
-  },
-  ward: { type: String },
-  description: { type: String },
-  coordinates: {
-    lat: { type: Number },
-    lng: { type: Number }
-  },
-  reporterEmail: { type: String },
-  assignedUnit: { type: String },
-  slaHours: { type: Number, default: 12 },
-  createdAt: { type: Date, default: Date.now },
-  slaDeadline: { type: Date },
-  adminNotes: { type: String },
-  feedback: {
-    rating: { type: Number },
-    comment: { type: String },
-    verifiedBy: { type: String },
-    verifiedAt: { type: String }
-  },
-  history: [
-    {
-      status: String,
-      by: String,
-      note: String,
-      timestamp: String
-    }
-  ]
-});
-
-const Ticket = mongoose.model('Ticket', TicketSchema);
 
 // Resilient in-memory stores when MongoDB is not connected
 let memoryPermits = [
@@ -202,7 +228,7 @@ app.post('/api/subscribe', async (req, res) => {
   }
 });
 
-// --- PERMITS ENDPOINTS (OPTIMIZED WITH VECTORIZED BATCH PREDICTION & INSERTMANY) ---
+// --- PERMITS ENDPOINTS (PERSISTS TO MONGODB 'permits' COLLECTION) ---
 app.get('/api/permits', async (req, res) => {
   try {
     if (isMongoConnected) {
@@ -212,6 +238,56 @@ app.get('/api/permits', async (req, res) => {
     res.json(memoryPermits);
   } catch (err) {
     res.json(memoryPermits);
+  }
+});
+
+app.post('/api/permits', async (req, res) => {
+  try {
+    const p = req.body || {};
+    const scale = Number(p.scale) || 5;
+    const type = p.type || p.event_type || 'Construction';
+    const location = p.location || 'Madgaon Municipal Sector';
+    const coordinates = p.coordinates || { lat: 15.2736, lng: 73.9575 };
+    const dateObj = p.date ? new Date(p.date) : new Date();
+    const tonnage = Number((scale * 2.35 + (type === 'Construction' ? 4.5 : 1.8)).toFixed(1));
+    const pressure_level = tonnage > 25 ? 'Critical' : tonnage > 18 ? 'High' : 'Normal';
+    const alert_triggered = pressure_level === 'Critical';
+    const copilot =
+      pressure_level !== 'Normal'
+        ? {
+            when: 'Peak Operating Window',
+            why: [`Scale ${scale}/10 ${type} permit active at ${location}`],
+            recommendations: ['Pre-stage Compactor T-402 and assign Municipal Small Pickup Van V-102 or Ward Foot Crew'],
+            confidence: 91
+          }
+        : null;
+
+    const permitDoc = {
+      location,
+      coordinates,
+      type,
+      scale,
+      date: dateObj,
+      predictedWasteSurge: tonnage,
+      wastePressureLevel: pressure_level,
+      alertTriggered: alert_triggered,
+      copilotExplanation: copilot,
+      forecast: {
+        predicted_surge_tonnage: tonnage,
+        pressure_level,
+        alert_triggered,
+        copilot
+      }
+    };
+
+    if (isMongoConnected) {
+      const created = await Permit.create(permitDoc);
+      return res.status(201).json(created);
+    }
+    memoryPermits = [permitDoc, ...memoryPermits].slice(0, 100);
+    res.status(201).json(permitDoc);
+  } catch (err) {
+    res.status(400).json({ error: 'Failed to ingest permit', detail: err.message });
   }
 });
 
@@ -267,18 +343,26 @@ app.post('/api/permits/bulk', async (req, res) => {
       });
     }
 
-    const enrichedPermits = permits.map((p, idx) => ({
-      ...p,
-      date: new Date(p.date),
-      forecast: (forecasts && forecasts[idx]) || {
+    const enrichedPermits = permits.map((p, idx) => {
+      const fc = (forecasts && forecasts[idx]) || {
         predicted_surge_tonnage: Number((p.scale * 2.1).toFixed(1)),
         pressure_level: p.scale >= 8 ? 'High' : 'Normal',
         alert_triggered: p.scale >= 9,
         copilot: null
-      }
-    }));
+      };
+      return {
+        ...p,
+        coordinates: p.coordinates || { lat: 15.2736, lng: 73.9575 },
+        date: new Date(p.date || Date.now()),
+        predictedWasteSurge: fc.predicted_surge_tonnage,
+        wastePressureLevel: fc.pressure_level,
+        alertTriggered: fc.alert_triggered,
+        copilotExplanation: fc.copilot,
+        forecast: fc
+      };
+    });
 
-    // PERFORMANCE OPTIMIZATION 2: Single MongoDB bulk insertMany() instead of serial await newPermit.save()
+    // PERFORMANCE OPTIMIZATION 2: Single MongoDB bulk insertMany() into 'permits' collection
     let savedPermits = enrichedPermits;
     if (isMongoConnected) {
       savedPermits = await Permit.insertMany(enrichedPermits, { ordered: false });
@@ -313,15 +397,28 @@ app.get('/api/tickets', async (req, res) => {
 
 app.post('/api/tickets', async (req, res) => {
   try {
-    const ticketData = req.body;
+    const ticketData = req.body || {};
+    const ticketId = ticketData.id || `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const normalizedTicket = {
+      ...ticketData,
+      id: ticketId,
+      category: ticketData.category || 'Overflowing Bin',
+      severity: ticketData.severity || 'High',
+      status: ticketData.status || 'TRIAGED'
+    };
+
     if (isMongoConnected) {
-      const created = await Ticket.create(ticketData);
-      return res.status(201).json(created);
+      const saved = await Ticket.findOneAndUpdate(
+        { id: ticketId },
+        { $set: normalizedTicket },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      return res.status(201).json(saved);
     }
-    memoryTickets = [ticketData, ...memoryTickets].slice(0, 50);
-    res.status(201).json(ticketData);
+    memoryTickets = [normalizedTicket, ...memoryTickets.filter((t) => t.id !== ticketId)].slice(0, 50);
+    res.status(201).json(normalizedTicket);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to create ticket', detail: err.message });
+    res.status(400).json({ error: 'Failed to create ticket in tickets collection', detail: err.message });
   }
 });
 
@@ -384,8 +481,11 @@ app.post('/api/gemini/copilot', async (req, res) => {
         );
         if (resp.ok) {
           const data = await resp.json();
-          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return res.json({ text, model: modelName });
+          const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            const text = rawText.replace(/\*\*/g, '').replace(/`/g, '').trim();
+            return res.json({ text, model: modelName });
+          }
         }
         if (resp.status === 429 || resp.status === 503) {
           await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, attempt) + Math.floor(Math.random() * 400)));
