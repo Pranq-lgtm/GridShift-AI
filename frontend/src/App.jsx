@@ -9,6 +9,13 @@ import Dashboard from './pages/Dashboard';
 import Fleet from './pages/Fleet';
 import Analytics from './pages/Analytics';
 import Redressal from './pages/Redressal';
+import NitrosendDashboard from './pages/NitrosendDashboard';
+import {
+  AboutUsPage,
+  ContactUsPage,
+  PrivacyPolicyPage,
+  TermsAndConditionsPage
+} from './pages/LegalAndInfoPages';
 import Chatbot from './components/Chatbot';
 import WasteCameraModal from './components/WasteCameraModal';
 import './index.css';
@@ -205,6 +212,11 @@ function App() {
             />
             <Route path="/fleet" element={<Fleet />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/email-agent" element={<NitrosendDashboard user={activeUser} />} />
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/contact" element={<ContactUsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsAndConditionsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

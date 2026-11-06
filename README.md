@@ -3,7 +3,7 @@
 **GridShift-AI** is a data-driven micro-surge waste forecasting and automated civic redressal platform designed for municipal sanitation departments. By combining real-time city permit data, **Google Maps Platform** geospatial telemetry (centered on **Madgaon, Goa**), predictive Machine Learning (**XGBoost**), and Generative AI (**Google Gemini 3.8 Flash** with **Gemini 3.5 Flash-Lite** fallback), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering municipal teams to proactively deploy existing sanitation staff and vehicles *before* trash overflows happen while closing the loop with citizens through automated SLA ticket tracking.
 
 🌐 **Live Production App (Firebase Hosting):** [https://gridshift-ai.web.app/](https://gridshift-ai.web.app/)  
-🏷️ **UN SDG 11.6 & 12** • **Latest Release:** [v1.2.0 (GitHub Releases)](https://github.com/Pranq-lgtm/GridShift-AI/releases/tag/v1.2.0)
+🏷️ **UN SDG 11.6 & 12** • **Latest Release:** [v1.3.0 (GitHub Releases)](https://github.com/Pranq-lgtm/GridShift-AI/releases/tag/v1.3.0)
 
 ---
 
@@ -11,16 +11,28 @@
 
 1. **Google Maps Platform Live Grid Map (Madgaon Local Area Default View)**: Interactive geospatial command center (`@vis.gl/react-google-maps`) centered by default on **Madgaon (Margao), Goa (`15.2736° N, 73.9575° E`)** with unobstructed **Map / Satellite / Terrain** mode controls, live layer toggles for Construction & Demolition (C&D) Debris sites, Micro-Surge Hotspots, Geotagged Citizen Redressal Tickets (pinned live across all pages), and 3D Hex Density overlays.
 2. **Zero-Capex Municipal Staff & Small Pickup Van Dispatch**: Built to zero-burden municipal budgets without expensive autonomous rovers or proprietary IoT bin hardware — incidents are triaged and assigned to existing **Municipal Sanitation Staff (On Foot — Ward Beat Crews)**, **Small Pickup Vans (`V-102`, `V-104`)**, and heavy **Compactor/Tipper Trucks (`T-402`, `T-119`, `T-304`)**.
-3. **Automated Citizen Ticket Redressal & Feedback Loop (`/redressal`)**: End-to-end 6-stage civic incident lifecycle (`OPEN` → `TRIAGED` → `ASSIGNED` → `IN_PROGRESS` → `RESOLVED` → `VERIFIED_CLOSED`) with severity-driven SLA timers (`4h`–`48h`), ward geotagging, and mandatory citizen 1–5 star verification ratings (with automatic ticket reopen and escalation if unresolved).
-4. **Google OAuth, Email/Password, Forgot Password & Mobile OTP Authentication (`/login`)**: Full Firebase Authentication supporting **Continue with Google (`GoogleAuthProvider`)**, **Email/Password Sign-In & Sign-Up**, **Forgot Password (`sendPasswordResetEmail`)**, and **Mobile SMS OTP (`+91`)** with E.164 normalization and invisible reCAPTCHA. Authenticating as **`pranavkantak9@gmail.com`** automatically unlocks the **Platform Admin Dispatch & GitHub Audit Console**, while any other email displays the **Citizen Reporter View**.
-5. **Vectorized Bulk Permit Scraper & 15.1x Faster Ingestion**: Ingests municipal open-data permits (Construction Permits, Public Gatherings, Street Fairs, Food Festivals) using parallelized batch XGBoost inference (`/predict/batch`) and single-roundtrip `Permit.insertMany()`.
-6. **Resilient Waste Surge Copilot (`gemini-3.8-flash` + `gemini-3.5-flash-lite` fallback)**: Integrates **Google Gemini 3.8 Flash** (`gemini-3.8-flash`) as the primary reasoning model with automatic fallback to **Google Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite`), sliding-window rate limiting (`12 RPM` guard), HTTP `429` exponential backoff + jitter, and a 5-minute TTL response cache.
+3. **Nitrosend AI Email Agent & Dual-Role Email Dashboard (`/email-agent`)**: Replaces Mailchimp with the **Nitrosend Email Agent** (`Nitrosend_Public_Key` & `Nitrosend_Secret_Key`), providing a **Client-Facing Dashboard** (Transactional Logs & Receipts timeline, Subscription & Category Preferences Center, and Personal Outbox Engagement Telemetry) and an **Internal Team / Admin Dashboard** (Aggregated Analytics & Metrics, System Health & SPF/DKIM/DMARC Deliverability, AI Approval Gate / Drafts Queue, Global Audience Segments, and Bring-Your-Own ESP Infrastructure + Global Brand Kit editor).
+4. **Live Camera Citizen Reporting & Automated Ticket Redressal (`/redressal`)**: Enforces authentic live webcam capture on desktop (blocking arbitrary computer file uploads) and native phone camera capture on mobile, persisting geotagged tickets into the MongoDB `tickets` collection across a 6-stage SLA workflow (`OPEN` → `TRIAGED` → `ASSIGNED` → `IN_PROGRESS` → `RESOLVED` → `VERIFIED_CLOSED`) with 1–5 star citizen verification ratings.
+5. **Google OAuth, Email/Password, Forgot Password & Mobile OTP Authentication (`/login`)**: Full Firebase Authentication supporting **Continue with Google (`GoogleAuthProvider`)**, **Email/Password Sign-In & Sign-Up**, **Forgot Password (`sendPasswordResetEmail`)**, and **Mobile SMS OTP (`+91`)**. Authenticating as **`pranavkantak9@gmail.com`** or **`+91 7219341650`** automatically unlocks the **Platform Admin Dispatch & Nitrosend Internal Console**.
+6. **Vectorized Bulk Permit Scraper & MongoDB `permits` / `tickets` Persistence**: Ingests municipal open-data permits using parallelized batch XGBoost inference (`/predict/batch`) and single-roundtrip `Permit.insertMany()` into the MongoDB `permits` collection.
+7. **Resilient Waste Surge Copilot (`gemini-3.8-flash` + `gemini-3.5-flash-lite` fallback)**: Integrates **Google Gemini 3.8 Flash** (`gemini-3.8-flash`) as the primary reasoning model with automatic fallback to **Google Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite`), clean plain-text formatting, live ticket ID lookup (`TKT-2026-*`), sliding-window rate limiting (`12 RPM` guard), and HTTP `429` exponential backoff.
 
 ---
 
-## 🆕 What's New in v1.2.0
+## 🆕 What's New in v1.3.0
 
 > 📄 Full release notes are published in the **[GitHub Releases Section](https://github.com/Pranq-lgtm/GridShift-AI/releases)**.
+
+- **⚡ Nitrosend AI Email Agent & Custom Dual-Role Dashboard (`/email-agent`)**: Replaced Mailchimp with **Nitrosend** (`Nitrosend_Public_Key` & `Nitrosend_Secret_Key`) and built a comprehensive email operations hub featuring:
+  - **👤 Client-Facing Dashboard**: Personal **Transactional Logs & Receipts** timeline, explicit **Preferences & Subscription Center** (opt-in/opt-out & category toggles), and **Basic Individual Engagement** outbox telemetry (`Delivered`, `Opened`, `Bounced`).
+  - **👥 Internal Team / Admin Dashboard**: **Aggregated Analytics & Metrics** (volume, open rate, CTR, 7-day trend chart), **System Health & Deliverability** (`SPF`, `DKIM`, `DMARC`, bounce/spam/suppression telemetry), **The Approval Gate / AI Drafts Queue** (review, edit, schedule, or approve AI-generated campaigns), **Global Audience Segments** (custom tags & lifecycle triggers), and **Infrastructure Configuration** (BYO AWS SES / Mailgun / SendGrid + Global Brand Kit editor).
+- **🎥 Desktop Live Camera Capture Enforcement (`WasteCameraModal.jsx`)**: Removed arbitrary computer file explorer uploads on desktop so citizen reporting captures authentic, live geotagged webcam frames with timestamp/GPS watermarks while preserving native camera app redirection on mobile devices.
+- **📱 Mobile Redressal UI, Non-Stopping Live Stream Pulse & Clean Copilot**: Redesigned the mobile Ticket Redressal layout (5-column equal-width star rating bar, 2×2 KPI grid, 3×2 stepper), fixed the mobile touch-hover pause on the Live Stream Pulse marquee, stripped `**` markdown symbols from AI Copilot responses, and bound MongoDB `permits` and `tickets` collections on ingestion.
+- **🏛️ Overview Footer & Legal/Contact Pages (`/about`, `/contact`, `/privacy`, `/terms`)**: Added dedicated **About Us**, **Contact Us** (Admin: **Pranav Kantak** • `pranavkantak9@gmail.com` • `+91 7219341650`), **Privacy Policy**, and **Terms & Conditions** pages linked in the Overview footer.
+
+---
+
+## 📦 Previous Release Highlights (v1.2.0)
 
 - **🔥 Hosted on Firebase Hosting ([https://gridshift-ai.web.app/](https://gridshift-ai.web.app/))**: Configured automated GitHub Actions CI/CD deployment (`firebase-hosting-merge.yml`) to build and deploy the production React + Vite frontend directly to Firebase Hosting.
 - **🔐 Google Sign-In + Fixed Forgot Password & Mobile OTP (`/login`)**: Added one-click **Continue with Google** OAuth sign-in alongside Firebase Email/Password (`Sign In` / `Sign Up`), real **Forgot Password** email delivery (`sendPasswordResetEmail`), and **Mobile OTP (`+91`)** with clean reCAPTCHA lifecycle management.
@@ -85,8 +97,12 @@ Get your Gemini API key: https://aistudio.google.com/app/apikey
 ### 2. Backend (`backend/.env`)
 
 ```env
-# MongoDB connection string (required)
-MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/gridshift?retryWrites=true&w=majority
+# MongoDB connection string (required — persists permits & tickets collections in gridshift_db)
+MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/gridshift_db?retryWrites=true&w=majority
+
+# Nitrosend AI Email Agent keys (replaces Mailchimp)
+Nitrosend_Public_Key=your_nitrosend_public_key
+Nitrosend_Secret_Key=your_nitrosend_secret_key
 
 # Port for the Node.js server (optional, defaults to 5000)
 PORT=5000
@@ -181,7 +197,7 @@ npm install
 npm run dev
 ```
 
-✅ Visit http://localhost:5173 (or the live deployment at https://gridshift-ai.web.app/) and sign in via **Google**, **Email/Password**, or **Mobile OTP** (`pranavkantak9@gmail.com` for Admin Console; any other email for Citizen View).
+✅ Visit http://localhost:5173 (or the live deployment at https://gridshift-ai.web.app/) and sign in via **Google**, **Email/Password**, or **Mobile OTP** (`pranavkantak9@gmail.com` or `+91 7219341650` for Admin Console; any other email for Citizen View).
 
 ### Step 5: Trigger the Data Scraper (Run Test Predictions)
 
@@ -193,68 +209,6 @@ python scraper.py
 ```
 
 After running, refresh the frontend — you will see updated telemetry markers on the Madgaon Google Maps Live Grid!
-
----
-
-## 🧪 Sample Data & Test Cases
-
-### Sample Permit Payload (POST `/api/permits/bulk`)
-
-```json
-{
-  "permits": [
-    {
-      "location": "Margao Market",
-      "coordinates": { "lat": 15.2750, "lng": 73.9580 },
-      "type": "Food Festival",
-      "scale": 9,
-      "date": "2026-11-02T00:00:00"
-    },
-    {
-      "location": "Colva Beach Road",
-      "coordinates": { "lat": 15.2760, "lng": 73.9110 },
-      "type": "Public Gathering",
-      "scale": 3,
-      "date": "2026-11-05T00:00:00"
-    }
-  ]
-}
-```
-
-### Sample ML Prediction Request (POST `/predict`)
-
-```json
-{
-  "location": "Fatorda",
-  "event_type": "Construction",
-  "scale": 8,
-  "date": "2026-11-10T00:00:00"
-}
-```
-
-### Expected Prediction Response
-
-```json
-{
-  "predicted_surge_tonnage": 34.7,
-  "pressure_level": "Critical",
-  "alert_triggered": true,
-  "copilot": {
-    "when": "8:00 AM – 6:00 PM",
-    "why": [
-      "High-scale construction activity creates large volumes of debris and concrete waste",
-      "Fatorda ward has historically low off-day collection frequency",
-      "No additional compactor allocated for this zone this week"
-    ],
-    "recommendations": [
-      "Deploy 1 additional tipper truck to Fatorda by 7:30 AM",
-      "Coordinate with construction supervisor for debris container placement",
-      "Schedule mid-day overflow check at 1:00 PM"
-    ],
-    "confidence": 87
-  }
-}
-```
 
 ---
 
@@ -280,22 +234,14 @@ After running, refresh the frontend — you will see updated telemetry markers o
 | `GET` | `/health` | ML (8000) | Health check + Gemini 3.8 Flash / 3.5 Flash-Lite rate-limit telemetry |
 | `POST` | `/predict` | ML (8000) | Predict single event surge tonnage + Gemini 3.8 Flash Copilot (with 3.5 Flash-Lite fallback) |
 | `POST` | `/predict/batch` | ML (8000) | Vectorized batch XGBoost prediction for bulk ingestion |
-| `GET` | `/api/permits` | Backend (5000) | Fetch all stored permits |
+| `GET` | `/api/permits` | Backend (5000) | Fetch all stored permits (`permits` collection) |
 | `POST` | `/api/permits/bulk` | Backend (5000) | Vectorized bulk permit ingestion (`insertMany`, 15.1x faster) |
-| `GET` | `/api/tickets` | Backend (5000) | Fetch citizen redressal tickets & SLA history |
+| `GET` | `/api/tickets` | Backend (5000) | Fetch citizen redressal tickets & SLA history (`tickets` collection) |
 | `POST` | `/api/tickets` | Backend (5000) | Create automated citizen redressal ticket with SLA timer |
 | `PATCH` | `/api/tickets/:id/status` | Backend (5000) | Admin-only (`pranavkantak9@gmail.com`) ticket dispatch & status update |
-| `POST` | `/api/tickets/:id/feedback` | Backend (5000) | Citizen star rating (1–5) & verification closure / auto-reopen |
-
-### Event Type Encoding
-
-| Event Type | Encoded Value |
-|------------|---------------|
-| Construction | 1 |
-| Public Gathering | 2 |
-| Food Festival | 3 |
-| Street Fair | 4 |
-| Unknown | 0 |
+| `GET` | `/api/nitrosend/status` | Backend (5000) | Nitrosend Email Agent configuration & key verification status |
+| `POST` | `/api/nitrosend/send` | Backend (5000) | Dispatch transactional or outbox email via Nitrosend Agent |
+| `POST` | `/api/nitrosend/preferences` | Backend (5000) | Sync citizen subscription & notification category preferences |
 
 ---
 
@@ -304,7 +250,7 @@ After running, refresh the frontend — you will see updated telemetry markers o
 | Service | Platform | Live URL / Notes |
 |---------|----------|------------------|
 | **Frontend** | [Firebase Hosting](https://gridshift-ai.web.app/) | Live at **https://gridshift-ai.web.app/** (auto-deployed via GitHub Actions on push to `main`) |
-| **Backend** | [Render.com](https://render.com) | Set `MONGO_URI`, `PORT`, `ML_SERVICE_URL` in Render env |
+| **Backend** | [Render.com](https://render.com) | Set `MONGO_URI`, `Nitrosend_Public_Key`, `Nitrosend_Secret_Key`, `PORT`, `ML_SERVICE_URL` in Render env |
 | **ML Service** | [Render.com](https://render.com) | Set `GEMINI_API_KEY` (`gemini-3.8-flash` / `gemini-3.5-flash-lite`) in Render env |
 
 ---
@@ -318,25 +264,27 @@ GridShift-AI/
 │   ├── src/
 │   │   ├── App.jsx                  # Main router, Firebase session & RBAC state
 │   │   ├── Login.jsx                # Google OAuth + Email/Password + Forgot Password + Mobile OTP
-│   │   ├── Navbar.jsx               # Navigation, RBAC badges & Copilot triggers
-│   │   ├── firebase.js              # Firebase Auth config (gridshift-ai) & Admin email helper
+│   │   ├── Navbar.jsx               # Navigation, RBAC badges & Nitrosend Email triggers
+│   │   ├── firebase.js              # Firebase Auth config (gridshift-ai) & Admin email/phone helper
 │   │   ├── components/
-│   │   │   ├── Chatbot.jsx          # Gemini 3.8 Flash Copilot drawer with rate-limit bar
-│   │   │   └── WasteCameraModal.jsx # Geotagged camera capture + compressed ticket creator
+│   │   │   ├── Chatbot.jsx          # Gemini 3.8 Flash Copilot drawer (plain-text clean output)
+│   │   │   └── WasteCameraModal.jsx # Live webcam capture on desktop + phone camera capture on mobile
 │   │   ├── pages/
-│   │   │   ├── Home.jsx             # Landing overview & zero-capex municipal workflow
+│   │   │   ├── Home.jsx             # Landing overview, Google Maps 3D grid & legal footer
 │   │   │   ├── Dashboard.jsx        # Google Maps Madgaon Live Grid Map & 3D telemetry
-│   │   │   ├── Redressal.jsx        # Email-bound Admin/Citizen Redressal & Repo Audit
+│   │   │   ├── Redressal.jsx        # Mobile-optimized Citizen/Admin Redressal & 5-star loop
+│   │   │   ├── NitrosendDashboard.jsx # Dual-role Nitrosend Client & Internal Admin Email Hub
+│   │   │   ├── LegalAndInfoPages.jsx  # About Us, Contact Us, Privacy Policy & Terms pages
 │   │   │   ├── Fleet.jsx            # Municipal foot staff, pickup vans & compactor telemetry
 │   │   │   └── Analytics.jsx        # Ward-level waste diversion & Gemini 3.8 Flash insights
 │   │   ├── utils/
-│   │   │   └── ragEngine.js         # Gemini 3.8 Flash + 3.5 Flash-Lite client with 12 RPM guard
-│   │   └── index.css                # Custom glassmorphism & responsive styles
+│   │   │   └── ragEngine.js         # Gemini 3.8 Flash + 3.5 Flash-Lite client with ticket ID lookup
+│   │   └── index.css                # Custom glassmorphism & responsive mobile styles
 │   └── public/                      # Static assets
 ├── backend/                         # Node.js + Express backend
-│   └── server.js                    # Vectorized bulk API, Redressal RBAC & MongoDB
+│   └── server.js                    # Vectorized bulk API, Nitrosend Agent, Redressal RBAC & MongoDB
 ├── ml_service/                      # Python FastAPI ML microservice
-│   ├── main.py                      # XGBoost (/predict, /predict/batch) + Gemini 3.8 Flash
+│   ├── main.py                      # XGBoost (/predict, /predict/batch) + Gemini 3.8 Flash + MongoDB
 │   ├── scraper.py                   # Municipal permit data ingester
 │   └── requirements.txt             # Python dependencies
 ├── firebase.json                    # Firebase Hosting configuration (frontend/dist)
@@ -357,6 +305,6 @@ Copyright (c) 2026 Pranav Kantak — ASSASSIN CODER'S
 ## 👥 Team
 
 **Team Name:** ASSASSIN CODER'S   
-**Team Lead:** Pranav Kantak | pranavkantak9@gmail.com  
+**Team Lead:** Pranav Kantak | pranavkantak9@gmail.com | +91 7219341650  
 **Live App:** https://gridshift-ai.web.app/  
 **GitHub:** https://github.com/Pranq-lgtm/GridShift-AI

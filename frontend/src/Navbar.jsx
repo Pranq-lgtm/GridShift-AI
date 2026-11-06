@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   AlertTriangle,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Mail
 } from 'lucide-react';
 import './index.css';
 
@@ -41,6 +42,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
     { path: '/redressal', label: 'Ticket Redressal', icon: <ShieldCheck size={16} /> },
     { path: '/fleet', label: 'Fleet Dispatch', icon: <Truck size={16} /> },
     { path: '/analytics', label: 'Surge Analytics', icon: <BarChart3 size={16} /> },
+    { path: '/email-agent', label: 'Nitrosend Email', icon: <Mail size={16} /> },
   ];
 
   return (

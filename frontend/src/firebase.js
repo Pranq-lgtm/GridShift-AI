@@ -2,15 +2,19 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 export const ADMIN_EMAIL = "pranavkantak9@gmail.com";
-export const ADMIN_PHONE = "+919096496502";
+export const ADMIN_PHONE = "+917219341650";
+export const ADMIN_PHONES = ["+917219341650", "+919096496502"];
 
 export function isAdminUser(user) {
   if (!user) return false;
   if (user.email && user.email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
     return true;
   }
-  if (user.phoneNumber && user.phoneNumber.replace(/[^\d+]/g, "") === ADMIN_PHONE) {
-    return true;
+  if (user.phoneNumber) {
+    const cleaned = user.phoneNumber.replace(/[^\d+]/g, "");
+    if (ADMIN_PHONES.includes(cleaned)) {
+      return true;
+    }
   }
   return false;
 }
@@ -31,7 +35,7 @@ export function getBackendUrl() {
       window.location.hostname.endsWith(".firebaseapp.com") ||
       window.location.hostname.endsWith(".vercel.app"))
   ) {
-    return "https://gridshift-backend.onrender.com";
+    return "https://gridshift-ml.onrender.com";
   }
   return "";
 }
