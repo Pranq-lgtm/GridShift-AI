@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, ADMIN_EMAIL } from './firebase';
 import Login from './Login';
 import Navbar from './Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Fleet from './pages/Fleet';
@@ -51,6 +52,7 @@ function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   useEffect(() => {
@@ -141,9 +143,14 @@ function App() {
       }
     : null;
 
-  if (!activeUser) {
-    return <Login />;
-  }
+  // Protected action: prompts login for unauthenticated visitors
+  const handleOpenWasteCamera = () => {
+    if (!activeUser) {
+      setLoginModalOpen(true);
+      return;
+    }
+    setCameraModalOpen(true);
+  };
 
   return (
     <BrowserRouter>
@@ -172,7 +179,8 @@ function App() {
           user={activeUser}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
-          onOpenWasteCamera={() => setCameraModalOpen(true)}
+          onOpenWasteCamera={handleOpenWasteCamera}
+          onOpenLoginModal={() => setLoginModalOpen(true)}
           onOpenChatbot={() => {
             const chatBtn = document.querySelector('button[aria-label="Open AI Copilot Chat"]');
             if (chatBtn) chatBtn.click();
@@ -186,6 +194,35 @@ function App() {
           currentUser={activeUser}
         />
 
+        {/* Guest Authentication Modal */}
+        {loginModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 2000,
+              backgroundColor: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+              overflowY: 'auto'
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setLoginModalOpen(false);
+            }}
+          >
+            <div style={{ width: '100%', maxWidth: '470px' }}>
+              <Login
+                onClose={() => setLoginModalOpen(false)}
+                onAuthSuccess={() => setLoginModalOpen(false)}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Main Content Area */}
         <div
           className="main-viewport"
@@ -193,32 +230,39 @@ function App() {
             marginTop: '64px',
             marginLeft: sidebarOpen ? '260px' : '0px',
             transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            height: 'calc(100vh - 64px)',
+            minHeight: 'calc(100vh - 64px)',
             position: 'relative',
-            overflowY: 'auto'
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
-          <Routes>
-            <Route path="/" element={<Home onOpenWasteCamera={() => setCameraModalOpen(true)} />} />
-            <Route path="/dashboard" element={<Dashboard user={activeUser} />} />
-            <Route
-              path="/redressal"
-              element={
-                <Redressal
-                  user={activeUser}
-                  onOpenWasteCamera={() => setCameraModalOpen(true)}
-                />
-              }
-            />
-            <Route path="/fleet" element={<Fleet />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/email-agent" element={<NitrosendDashboard user={activeUser} />} />
-            <Route path="/about" element={<AboutUsPage />} />
-            <Route path="/contact" element={<ContactUsPage />} />
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsAndConditionsPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <div style={{ flex: 1 }}>
+            <Routes>
+              <Route path="/" element={<Home onOpenWasteCamera={handleOpenWasteCamera} />} />
+              <Route path="/dashboard" element={<Dashboard user={activeUser} />} />
+              <Route
+                path="/redressal"
+                element={
+                  <Redressal
+                    user={activeUser}
+                    onOpenWasteCamera={handleOpenWasteCamera}
+                  />
+                }
+              />
+              <Route path="/fleet" element={<Fleet />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/email-agent" element={<NitrosendDashboard user={activeUser} />} />
+              <Route path="/about" element={<AboutUsPage />} />
+              <Route path="/contact" element={<ContactUsPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsAndConditionsPage />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+
+          {/* Unified Platform Footer */}
+          <Footer />
         </div>
 
         {/* Gemini RAG Chatbot Floating Component */}

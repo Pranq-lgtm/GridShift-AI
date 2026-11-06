@@ -52,7 +52,7 @@ function PageFooterLinks() {
 export function AboutUsPage() {
   return (
     <div className="page-container">
-      <div className="ios-card" style={{ padding: '32px' }}>
+      <div className="ios-card" style={{ padding: 'clamp(18px, 4vw, 32px)' }}>
         <div
           style={{
             display: 'inline-flex',
@@ -229,7 +229,7 @@ export function ContactUsPage() {
                   <Mail size={17} color="#4ade80" />
                   <div>
                     <div style={{ fontSize: '10px', color: '#93c5fd', textTransform: 'uppercase' }}>Administrator Email</div>
-                    <div>{ADMIN_EMAIL}</div>
+                    <div style={{ wordBreak: 'break-all' }}>{ADMIN_EMAIL}</div>
                   </div>
                 </a>
 

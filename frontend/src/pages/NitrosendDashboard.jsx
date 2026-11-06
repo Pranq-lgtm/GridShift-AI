@@ -169,12 +169,13 @@ const DEFAULT_SEGMENTS = [
 function NitrosendDashboard({ user }) {
   const isAdmin = isAdminUser(user);
   // Allow switching between Client-Facing View and Admin/Internal Team View
-  const [activePerspective, setActivePerspective] = useState(isAdmin ? 'admin' : 'client');
+  // Enforce role-based dashboard view: Admins only see Admin view; clients only see Client view
+  const activePerspective = isAdmin ? 'admin' : 'client';
   const [nitroStatus, setNitroStatus] = useState({
     configured: true,
     publicKeyMasked: 'ns_pub_live_••••••••••••',
     secretKeyMasked: 'ns_sec_live_••••••••••••',
-    engine: 'Nitrosend AI Email Agent v2.4 (Replaced Mailchimp)',
+    engine: 'Nitrosend AI Email Agent v2.4',
     domain: 'gridshift-ai.web.app'
   });
 
@@ -403,7 +404,7 @@ function NitrosendDashboard({ user }) {
             }}
           >
             <Zap size={13} />
-            NITROSEND AI EMAIL AGENT • MAILCHIMP REPLACED • KEYS ACTIVE ({nitroStatus.publicKeyMasked})
+            NITROSEND AI COMMUNICATIONS HUB • ACTIVE TELEMETRY
           </div>
           <h1 className="page-title" style={{ margin: 0 }}>
             Nitrosend Autonomous Email & Communications Hub
@@ -413,58 +414,52 @@ function NitrosendDashboard({ user }) {
           </p>
         </div>
 
-        {/* Role Perspective Toggle */}
-        <div
-          style={{
-            display: 'flex',
-            backgroundColor: '#f1f5f9',
-            padding: '4px',
-            borderRadius: '12px',
-            border: '1px solid #cbd5e1',
-            gap: '4px'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActivePerspective('client')}
+        {/* Role Badge (Strict Role Isolation - No Toggle) */}
+        {isAdmin ? (
+          <div
             style={{
-              padding: '9px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: activePerspective === 'client' ? '#092C5E' : 'transparent',
-              color: activePerspective === 'client' ? '#ffffff' : '#475569',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '10px',
+              backgroundColor: 'rgba(22, 163, 74, 0.08)',
+              border: '1px solid rgba(22, 163, 74, 0.25)',
+              padding: '8px 16px',
+              borderRadius: '12px'
             }}
           >
-            <Mail size={14} />
-            👤 Client-Facing Dashboard
-          </button>
-          <button
-            type="button"
-            onClick={() => setActivePerspective('admin')}
+            <ShieldCheck size={18} color="#15803d" />
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                INTERNAL TEAM PRIVILEGES
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#092C5E' }}>
+                Municipal Admin Console ({user?.email || ADMIN_EMAIL})
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div
             style={{
-              padding: '9px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: activePerspective === 'admin' ? '#092C5E' : 'transparent',
-              color: activePerspective === 'admin' ? '#ffffff' : '#475569',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '10px',
+              backgroundColor: 'rgba(6, 182, 212, 0.08)',
+              border: '1px solid rgba(6, 182, 212, 0.25)',
+              padding: '8px 16px',
+              borderRadius: '12px'
             }}
           >
-            <ShieldCheck size={14} />
-            👥 Internal Team / Admin Dashboard
-          </button>
-        </div>
+            <Mail size={18} color="#0891B2" />
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: '#0891B2', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                CLIENT PORTAL
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#092C5E' }}>
+                Citizen Email &amp; Communications Hub
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════════
@@ -533,7 +528,7 @@ function NitrosendDashboard({ user }) {
                 {user?.email || 'citizen@gridshift.ai'}
               </div>
               <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>
-                Verified via Nitrosend Public Key
+                Verified Secure Account
               </span>
             </div>
           </div>
@@ -728,7 +723,7 @@ function NitrosendDashboard({ user }) {
                   Dispatch civic incident summaries or notices to ward stakeholders and track real-time Delivered, Opened, or Bounced status.
                 </p>
 
-                <form onSubmit={handleSendOutboxEmail} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+                <form onSubmit={handleSendOutboxEmail} className="gs-responsive-grid-2" style={{ marginBottom: '16px' }}>
                   <input
                     type="email"
                     placeholder="Recipient email (e.g., ward7@goa.gov.in)"

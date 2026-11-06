@@ -7,7 +7,10 @@ import {
   RecaptchaVerifier,
   signInWithPopup,
   signInWithRedirect,
-  getRedirectResult
+  getRedirectResult,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink
 } from "firebase/auth";
 import {
   auth,
@@ -27,7 +30,8 @@ import {
   KeyRound,
   Sparkles,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  X
 } from "lucide-react";
 import "./index.css";
 
@@ -46,8 +50,8 @@ function formatE164Phone(rawPhone) {
   return `+${cleaned}`;
 }
 
-function Login() {
-  const [authMode, setAuthMode] = useState("email"); // "email" | "phone"
+function Login({ onClose, onAuthSuccess, initialMode = "email" }) {
+  const [authMode, setAuthMode] = useState(initialMode); // "email" | "magic" | "phone"
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +61,6 @@ function Login() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const [error, setError] = useState(null);
   const [resetSuccessMsg, setResetSuccessMsg] = useState(null);
@@ -70,7 +73,7 @@ function Login() {
   const syncAuthenticatedUser = (fbUser, fallbackPhone = "") => {
     if (!fbUser) return;
     const resolvedPhone = fbUser.phoneNumber || fallbackPhone || "";
-    const isPhoneAdmin = resolvedPhone.replace(/[^\d+]/g, "") === ADMIN_PHONE;
+    const isPhoneAdmin = resolvedPhone.replace(/[^\d+]/g, "") === ADMIN_PHONE.replace(/[^\d+]/g, "");
     const resolvedEmail = (
       fbUser.email ||
       (isPhoneAdmin
@@ -95,11 +98,42 @@ function Login() {
     sessionStorage.removeItem("gridshift_signed_out");
     localStorage.setItem("gridshift_demo_user", JSON.stringify(sessionUser));
     window.dispatchEvent(new Event("gridshift_auth_change"));
+    if (onAuthSuccess) onAuthSuccess(sessionUser);
+    if (onClose) onClose();
   };
 
-  // Handle Google Redirect result if popup fell back to redirect
+  // Handle Google Redirect result or Email Magic Link on page load
   useEffect(() => {
     let mounted = true;
+
+    // 1. Check if returning from Email Magic Link (Passwordless)
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let storedEmail = window.localStorage.getItem("emailForSignIn");
+      if (!storedEmail) {
+        storedEmail = window.prompt("Please confirm your email address to complete sign in:");
+      }
+      if (storedEmail) {
+        setLoading(true);
+        signInWithEmailLink(auth, storedEmail.trim().toLowerCase(), window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem("emailForSignIn");
+            window.history.replaceState({}, document.title, window.location.pathname);
+            if (mounted && result?.user) {
+              syncAuthenticatedUser(result.user);
+            }
+          })
+          .catch((err) => {
+            if (mounted) {
+              setError((err.message || "Email link sign-in failed").replace("Firebase: ", ""));
+            }
+          })
+          .finally(() => {
+            if (mounted) setLoading(false);
+          });
+      }
+    }
+
+    // 2. Check if returning from Google Redirect
     getRedirectResult(auth)
       .then((result) => {
         if (mounted && result?.user) {
@@ -148,38 +182,6 @@ function Login() {
     return verifier;
   };
 
-  // Session helper for verified phone / email fallback
-  const establishSessionForPhoneOrEmail = (targetEmail, customPhone = "") => {
-    const cleanPhone = (customPhone || "").replace(/[^\d+]/g, "");
-    const isPhoneAdmin = cleanPhone === ADMIN_PHONE;
-    const normalizedEmail = (
-      targetEmail ||
-      (isPhoneAdmin
-        ? ADMIN_EMAIL
-        : cleanPhone
-        ? `${cleanPhone.replace(/\D/g, "")}@mobile.gridshift.ai`
-        : "citizen@gridshift.ai")
-    )
-      .trim()
-      .toLowerCase();
-    const isAdmin = normalizedEmail === ADMIN_EMAIL.toLowerCase() || isPhoneAdmin;
-    const userData = {
-      uid: isAdmin ? "admin-pranavkantak9" : "user-" + Date.now(),
-      phoneNumber: cleanPhone || "+919096496502",
-      email: normalizedEmail,
-      displayName: isAdmin
-        ? "Pranav Kantak"
-        : cleanPhone
-        ? `Mobile (${cleanPhone})`
-        : normalizedEmail.split("@")[0],
-      role: isAdmin ? "admin" : "citizen",
-      isDemo: true
-    };
-    sessionStorage.removeItem("gridshift_signed_out");
-    localStorage.setItem("gridshift_demo_user", JSON.stringify(userData));
-    window.dispatchEvent(new Event("gridshift_auth_change"));
-  };
-
   // Google Sign-In Handler
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -211,10 +213,6 @@ function Login() {
         setError("Google sign-in popup was closed before completing authentication. Please select your Google account in the popup window.");
       } else if (code === "auth/unauthorized-domain") {
         const currentHost = window.location.hostname;
-        if (currentHost.endsWith(".run.app")) {
-          establishSessionForPhoneOrEmail(email.trim() || ADMIN_EMAIL);
-          return;
-        }
         setError(
           `Domain "${currentHost}" is not yet authorized in Firebase Console → Authentication → Settings → Authorized domains.`
         );
@@ -226,7 +224,7 @@ function Login() {
     }
   };
 
-  // Forgot Password Handler (Firebase sendPasswordResetEmail)
+  // Forgot Password Handler
   const handleForgotPassword = async () => {
     setError(null);
     setResetSuccessMsg(null);
@@ -238,38 +236,20 @@ function Login() {
 
     setLoading(true);
     try {
-      try {
-        await sendPasswordResetEmail(auth, trimmedEmail, {
-          url: `${window.location.origin}/`,
-          handleCodeInApp: false
-        });
-      } catch (innerErr) {
-        const innerCode = innerErr?.code || "";
-        if (
-          innerCode === "auth/invalid-continue-uri" ||
-          innerCode === "auth/unauthorized-continue-uri" ||
-          innerCode === "auth/missing-continue-uri"
-        ) {
-          await sendPasswordResetEmail(auth, trimmedEmail);
-        } else {
-          throw innerErr;
-        }
-      }
-
+      await sendPasswordResetEmail(auth, trimmedEmail, {
+        url: `${window.location.origin}/`,
+        handleCodeInApp: false
+      });
       setResetSuccessMsg(
-        `Password reset email sent to ${trimmedEmail} via Firebase Authentication. Please check your Inbox and Spam/Promotions folder. Note: If ${trimmedEmail} was registered only via Google Sign-In or has not signed up with a password yet, use "Continue with Google" or "Need an account? Sign Up".`
+        `Password reset email sent to ${trimmedEmail} via Firebase Authentication. Please check your inbox and Spam/Promotions folder.`
       );
     } catch (err) {
       const code = (err?.code || "").toLowerCase();
       const msg = err?.message || "";
       if (code.includes("user-not-found")) {
-        setError(
-          `No Email/Password account was found for ${trimmedEmail}. Please click "Need an account? Sign Up" below to register a password, or sign in with Google.`
-        );
-      } else if (code.includes("invalid-email")) {
-        setError("Please enter a valid email address.");
+        setError(`No account found for ${trimmedEmail}. Click 'Need an account? Sign Up' below to create one.`);
       } else if (code.includes("too-many-requests")) {
-        setError("Too many password reset attempts. Please wait a few minutes and check your Spam folder.");
+        setError("Too many password reset attempts. Please wait a few minutes.");
       } else {
         setError(msg.replace("Firebase: ", "") || "Failed to send password reset email.");
       }
@@ -278,7 +258,45 @@ function Login() {
     }
   };
 
-  // Send Phone OTP (with 3.5s anti-hang timeout when browser blocks invisible reCAPTCHA v2 storage access)
+  // Send Email Magic Link (Passwordless Sign-In)
+  const handleSendMagicLink = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setResetSuccessMsg(null);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: true
+      };
+      await sendSignInLinkToEmail(auth, normalizedEmail, actionCodeSettings);
+      window.localStorage.setItem("emailForSignIn", normalizedEmail);
+      setResetSuccessMsg(
+        `Passwordless sign-in link dispatched to ${normalizedEmail}! Please check your email inbox (and Spam/Promotions folder) and click the link to sign in directly.`
+      );
+    } catch (err) {
+      const code = err?.code || "";
+      const msg = err?.message || "";
+      if (code.includes("unauthorized-continue-uri") || code.includes("invalid-continue-uri")) {
+        setError(
+          `Domain "${window.location.hostname}" is not authorized in Firebase. Please add it in Firebase Console → Authentication → Settings → Authorized domains.`
+        );
+      } else {
+        setError(msg.replace("Firebase: ", "") || "Failed to send magic link. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send Phone OTP via Firebase signInWithPhoneNumber (invisible reCAPTCHA)
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError(null);
@@ -292,35 +310,38 @@ function Login() {
 
     setLoading(true);
     try {
-      const sendSmsPromise = (async () => {
-        const appVerifier = await initRecaptchaVerifier();
-        return await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      })();
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject({ code: "auth/recaptcha-timeout" }), 3500)
-      );
-
-      const confirmation = await Promise.race([sendSmsPromise, timeoutPromise]);
+      const appVerifier = await initRecaptchaVerifier();
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
       setOtpSent(true);
-      setIsDemoMode(false);
       setResetSuccessMsg(
-        `SMS verification OTP dispatched to ${formattedPhone}. Please enter the 6-digit code below.`
+        `SMS verification OTP dispatched to ${formattedPhone}. Please enter the 6-digit code you received.`
       );
     } catch (err) {
       clearRecaptcha();
       const code = err?.code || "";
+      const msg = err?.message || "";
 
       if (code === "auth/invalid-phone-number") {
         setError("Invalid phone number format. Please use E.164 format, e.g. +919096496502.");
+      } else if (code === "auth/billing-not-enabled") {
+        setError(
+          "Firebase Phone Authentication requires billing (Blaze plan) to dispatch SMS to real carrier numbers. To test for free right now, you can add a Test Phone Number in Firebase Console → Authentication → Sign-in method → Phone, or use Email Magic Link / Google Sign-In (both 100% free)."
+        );
+      } else if (code === "auth/quota-exceeded") {
+        setError(
+          "SMS quota exceeded. Please upgrade to the Firebase Blaze plan for higher limits or try again tomorrow."
+        );
+      } else if (code === "auth/too-many-requests") {
+        setError("Too many OTP requests. Please wait a few minutes before trying again.");
+      } else if (code === "auth/captcha-check-failed" || code === "auth/recaptcha-not-enabled") {
+        setError(
+          "reCAPTCHA verification failed. Please refresh the page and try again. Ensure Phone Authentication is enabled in Firebase Console."
+        );
       } else {
-        // Transition immediately to 6-digit OTP verification step and pre-fill 123456 so user is never stuck
-        setOtpSent(true);
-        setIsDemoMode(true);
-        setOtp("123456");
-        setResetSuccessMsg(
-          `OTP verification ready for ${formattedPhone}. If carrier SMS is delayed by free-tier quota (10 SMS/day), verification code 123456 has been auto-filled — click "Verify OTP & Sign In" below.`
+        setError(
+          msg.replace("Firebase: ", "") ||
+            "Failed to send OTP. Please check your phone number and try again."
         );
       }
     } finally {
@@ -328,7 +349,7 @@ function Login() {
     }
   };
 
-  // Verify Phone OTP
+  // Verify Phone OTP — Only accepts real Firebase verification codes
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError(null);
@@ -338,26 +359,31 @@ function Login() {
     const formattedPhone = formatE164Phone(phone);
     const trimmedOtp = otp.trim();
 
-    try {
-      if (confirmationResult && !isDemoMode) {
-        const cred = await confirmationResult.confirm(trimmedOtp);
-        if (cred?.user) {
-          syncAuthenticatedUser(cred.user, formattedPhone);
-          return;
-        }
-      }
+    if (!trimmedOtp || trimmedOtp.length !== 6) {
+      setError("Please enter the 6-digit verification code sent to your phone.");
+      setLoading(false);
+      return;
+    }
 
-      if (trimmedOtp === "123456" || (isDemoMode && trimmedOtp.length === 6)) {
-        establishSessionForPhoneOrEmail(email, formattedPhone);
+    try {
+      if (!confirmationResult) {
+        setError("No active OTP session found. Please click 'Change Phone / Resend OTP' to request a new code.");
+        setLoading(false);
         return;
       }
 
-      setError("Invalid verification code. Please enter the 6-digit SMS code (or 123456) and try again.");
-    } catch {
-      if (trimmedOtp === "123456") {
-        establishSessionForPhoneOrEmail(email, formattedPhone);
+      const cred = await confirmationResult.confirm(trimmedOtp);
+      if (cred?.user) {
+        syncAuthenticatedUser(cred.user, formattedPhone);
+      }
+    } catch (err) {
+      const code = err?.code || "";
+      if (code === "auth/invalid-verification-code") {
+        setError("Invalid verification code. Please check the SMS and enter the correct 6-digit code.");
+      } else if (code === "auth/code-expired") {
+        setError("Verification code has expired. Please click 'Change Phone / Resend OTP' to get a new code.");
       } else {
-        setError("Invalid or expired verification code. Please enter 123456 or click Resend OTP.");
+        setError("Verification failed. Please check the code and try again.");
       }
     } finally {
       setLoading(false);
@@ -372,11 +398,6 @@ function Login() {
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) return;
-
-    if (!isFirebaseConfigured) {
-      establishSessionForPhoneOrEmail(normalizedEmail);
-      return;
-    }
 
     setLoading(true);
     try {
@@ -404,12 +425,10 @@ function Login() {
         code.includes("wrong-password")
       ) {
         setError(
-          "Invalid email or password. If you haven't created a password account yet, click 'Need an account? Sign Up' below, or use 'Continue with Google'."
+          "Invalid email or password. If you haven't created an account yet, click 'Need an account? Sign Up' below, or use 'Magic Link' / 'Continue with Google'."
         );
       } else if (code.includes("weak-password")) {
         setError("Password must be at least 6 characters long.");
-      } else if (code.includes("network-request-failed") && window.location.hostname.endsWith(".run.app")) {
-        establishSessionForPhoneOrEmail(normalizedEmail);
       } else {
         setError(msg.replace("Firebase: ", "").replace(" (auth/invalid-credential).", ""));
       }
@@ -448,6 +467,7 @@ function Login() {
         preview: `Your email (${newsletterEmail}) is now opted into GridShift-AI updates via the Nitrosend Email Agent.`
       };
       localStorage.setItem("gridshift_nitrosend_logs", JSON.stringify([welcomeReceipt, ...existingLogs].slice(0, 50)));
+      window.dispatchEvent(new CustomEvent('nitrosendLogAdded', { detail: welcomeReceipt }));
 
       setNewsletterMsg("Subscribed via Nitrosend Email Agent! Receipt logged in your Email Dashboard.");
       setNewsletterEmail("");
@@ -460,14 +480,16 @@ function Login() {
   return (
     <div
       style={{
-        minHeight: "100vh",
-        width: "100vw",
+        minHeight: onClose ? "auto" : "100vh",
+        width: onClose ? "100%" : "100vw",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "20px 16px",
-        backgroundColor: "#f4f6f9",
-        backgroundImage: `
+        padding: onClose ? "8px" : "20px 16px",
+        backgroundColor: onClose ? "transparent" : "#f4f6f9",
+        backgroundImage: onClose
+          ? "none"
+          : `
           radial-gradient(circle at 15% 20%, rgba(34, 197, 94, 0.08) 0%, transparent 35%),
           radial-gradient(circle at 85% 80%, rgba(9, 44, 94, 0.08) 0%, transparent 40%)
         `
@@ -479,19 +501,47 @@ function Login() {
         className="ios-card-white"
         style={{
           width: "100%",
-          maxWidth: "450px",
+          maxWidth: "460px",
           padding: "32px 28px",
           boxShadow: "0 20px 60px -15px rgba(9, 44, 94, 0.15)",
           border: "1px solid rgba(255, 255, 255, 0.9)",
-          position: "relative"
+          position: "relative",
+          borderRadius: "20px"
         }}
       >
+        {/* Optional Modal Close Button */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              border: "1px solid #e2e8f0",
+              backgroundColor: "#f8fafc",
+              color: "#64748b",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              transition: "all 0.15s"
+            }}
+            aria-label="Close Login Modal"
+          >
+            <X size={16} />
+          </button>
+        )}
+
         {/* Header Branding */}
-        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+        <div style={{ textAlign: "center", marginBottom: "18px" }}>
           <div
             style={{
-              width: "54px",
-              height: "54px",
+              width: "52px",
+              height: "52px",
               borderRadius: "16px",
               backgroundColor: "white",
               display: "flex",
@@ -531,7 +581,7 @@ function Login() {
 
           <h1
             style={{
-              fontSize: "1.8rem",
+              fontSize: "1.75rem",
               fontWeight: 900,
               color: "#092C5E",
               letterSpacing: "-0.02em",
@@ -540,7 +590,7 @@ function Login() {
           >
             GridShift-AI
           </h1>
-          <p style={{ color: "#64748b", fontSize: "0.85rem", marginTop: "4px", fontWeight: 500 }}>
+          <p style={{ color: "#64748b", fontSize: "0.84rem", marginTop: "4px", fontWeight: 500 }}>
             Micro-Surge Forecasting, Fleet Telemetry & Citizen Redressal
           </p>
         </div>
@@ -606,14 +656,15 @@ function Login() {
           <div style={{ flex: 1, height: "1px", backgroundColor: "#e2e8f0" }} />
         </div>
 
-        {/* Tab Switcher: Email vs Phone OTP */}
+        {/* 3-Tab Switcher: Password vs Magic Link vs Mobile OTP */}
         <div
           style={{
             display: "flex",
             backgroundColor: "#f1f5f9",
             borderRadius: "14px",
             padding: "4px",
-            marginBottom: "18px"
+            marginBottom: "16px",
+            gap: "3px"
           }}
         >
           <button
@@ -625,23 +676,53 @@ function Login() {
             }}
             style={{
               flex: 1,
-              padding: "10px",
+              padding: "9px 4px",
               borderRadius: "10px",
               border: "none",
               backgroundColor: authMode === "email" ? "white" : "transparent",
               color: authMode === "email" ? "#092C5E" : "#64748b",
               fontWeight: 700,
-              fontSize: "0.85rem",
+              fontSize: "0.8rem",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "6px",
+              gap: "5px",
               cursor: "pointer",
-              boxShadow: authMode === "email" ? "0 2px 6px rgba(0,0,0,0.06)" : "none"
+              boxShadow: authMode === "email" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              whiteSpace: "nowrap"
             }}
           >
-            <Mail size={15} />
-            Email Login
+            <Mail size={14} />
+            Password
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode("magic");
+              setError(null);
+              setResetSuccessMsg(null);
+            }}
+            style={{
+              flex: 1,
+              padding: "9px 4px",
+              borderRadius: "10px",
+              border: "none",
+              backgroundColor: authMode === "magic" ? "white" : "transparent",
+              color: authMode === "magic" ? "#092C5E" : "#64748b",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "5px",
+              cursor: "pointer",
+              boxShadow: authMode === "magic" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              whiteSpace: "nowrap"
+            }}
+          >
+            <Sparkles size={14} color={authMode === "magic" ? "#16a34a" : "#64748b"} />
+            Magic Link
           </button>
 
           <button
@@ -653,22 +734,23 @@ function Login() {
             }}
             style={{
               flex: 1,
-              padding: "10px",
+              padding: "9px 4px",
               borderRadius: "10px",
               border: "none",
               backgroundColor: authMode === "phone" ? "white" : "transparent",
               color: authMode === "phone" ? "#092C5E" : "#64748b",
               fontWeight: 700,
-              fontSize: "0.85rem",
+              fontSize: "0.8rem",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "6px",
+              gap: "5px",
               cursor: "pointer",
-              boxShadow: authMode === "phone" ? "0 2px 6px rgba(0,0,0,0.06)" : "none"
+              boxShadow: authMode === "phone" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              whiteSpace: "nowrap"
             }}
           >
-            <Phone size={15} />
+            <Phone size={14} />
             Mobile OTP
           </button>
         </div>
@@ -695,7 +777,7 @@ function Login() {
           </div>
         )}
 
-        {/* Password Reset / OTP Sent Confirmation Box */}
+        {/* Success Confirmation Box */}
         {resetSuccessMsg && (
           <div
             style={{
@@ -717,8 +799,8 @@ function Login() {
           </div>
         )}
 
-        {/* 1. EMAIL AUTH FORM */}
-        {authMode === "email" ? (
+        {/* 1. EMAIL & PASSWORD AUTH FORM */}
+        {authMode === "email" && (
           <form onSubmit={handleEmailAuth} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "#334155", marginBottom: "6px" }}>
@@ -842,8 +924,64 @@ function Login() {
               </button>
             </div>
           </form>
-        ) : (
-          /* 2. MOBILE PHONE OTP FORM */
+        )}
+
+        {/* 2. EMAIL MAGIC LINK AUTH FORM (Passwordless) */}
+        {authMode === "magic" && (
+          <form onSubmit={handleSendMagicLink} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "#334155", marginBottom: "6px" }}>
+                Email Address for Passwordless Sign-In
+              </label>
+              <div style={{ position: "relative" }}>
+                <Mail size={16} color="#94a3b8" style={{ position: "absolute", left: "14px", top: "14px" }} />
+                <input
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px 12px 40px",
+                    borderRadius: "12px",
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "white",
+                    fontSize: "0.9rem",
+                    outline: "none"
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "6px", display: "flex", alignItems: "center", gap: "5px" }}>
+                <Sparkles size={13} color="#16a34a" style={{ flexShrink: 0 }} />
+                <span>Passwordless & 100% free on Spark plan. Click link sent to your inbox to log in.</span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !email.trim()}
+              className="btn btn-primary"
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "12px",
+                fontWeight: 800,
+                fontSize: "0.95rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
+              }}
+            >
+              {loading ? "Sending Magic Link..." : "Send Magic Sign-In Link"}
+              <ArrowRight size={16} />
+            </button>
+          </form>
+        )}
+
+        {/* 3. MOBILE PHONE OTP FORM */}
+        {authMode === "phone" && (
           <div>
             {!otpSent ? (
               <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -872,7 +1010,7 @@ function Login() {
                     />
                   </div>
                   <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "5px" }}>
-                    Format: <code style={{ fontWeight: 700 }}>+91XXXXXXXXXX</code> (10-digit Indian mobile numbers are auto-prefixed with +91)
+                    Requires Firebase Blaze billing or a configured Firebase Test Phone Number.
                   </div>
                 </div>
 
@@ -967,10 +1105,10 @@ function Login() {
           </div>
         )}
 
-        {/* 3. NEWSLETTER SUBSCRIPTION */}
+        {/* 4. NEWSLETTER SUBSCRIPTION (VIA NITROSEND EMAIL AGENT) */}
         <div
           style={{
-            marginTop: "22px",
+            marginTop: "20px",
             borderTop: "1px solid #e2e8f0",
             paddingTop: "16px"
           }}
@@ -978,14 +1116,14 @@ function Login() {
           <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px" }}>
             <Sparkles size={14} color="#16a34a" />
             <h4 style={{ fontSize: "0.84rem", fontWeight: 800, color: "#092C5E", margin: 0 }}>
-              Subscribe to GridShift Updates
+              Subscribe to GridShift Updates (via Nitrosend)
             </h4>
           </div>
 
           <form onSubmit={handleSubscribe} style={{ display: "flex", gap: "8px" }}>
             <input
               type="email"
-              placeholder="Enter email for newsletter"
+              placeholder="Enter email for alerts"
               value={newsletterEmail}
               onChange={(e) => setNewsletterEmail(e.target.value)}
               required
@@ -1006,7 +1144,8 @@ function Login() {
                 padding: "9px 14px",
                 borderRadius: "10px",
                 fontSize: "0.84rem",
-                fontWeight: 700
+                fontWeight: 700,
+                whiteSpace: "nowrap"
               }}
             >
               Subscribe

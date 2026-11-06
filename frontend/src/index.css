@@ -1242,3 +1242,56 @@ p {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   DECLUTTERED TOP NAVIGATION (Desktop & Laptop Viewports)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 1340px) {
+  .gs-brand-sub {
+    display: none !important;
+  }
+  .gs-nav-center {
+    gap: 3px !important;
+  }
+  .gs-nav-link {
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+    gap: 4px !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  .gs-nav-link svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  .gs-nav-link {
+    padding: 5px 7px !important;
+    font-size: 0.75rem !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UNIVERSAL MOBILE-FRIENDLY RESPONSIVE GRIDS
+   ═══════════════════════════════════════════════════════════ */
+.gs-responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 680px) {
+  .gs-responsive-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.gs-responsive-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .gs-responsive-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
