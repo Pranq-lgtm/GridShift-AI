@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth, isAdminUser } from './firebase';
+import { scrollToTop } from './components/ScrollToTop';
 import {
   Home as HomeIcon,
   LayoutDashboard,
@@ -76,7 +77,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             {sidebarOpen ? <ChevronLeft size={15} /> : <Menu size={15} />}
           </button>
 
-          <Link to="/" className="gs-brand" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Link to="/" onClick={scrollToTop} className="gs-brand" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img
               src="/favicon.jpg"
               alt="GridShift Logo"
@@ -102,6 +103,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={scrollToTop}
                 className={`gs-nav-link ${isActive ? 'active' : ''}`}
                 style={{
                   padding: '6px 9px',
@@ -265,6 +267,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={scrollToTop}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -295,6 +298,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <Link
               to="/redressal"
+              onClick={scrollToTop}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -315,6 +319,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
 
             <Link
               to="/dashboard"
+              onClick={scrollToTop}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -335,6 +340,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
 
             <Link
               to="/fleet"
+              onClick={scrollToTop}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -465,7 +471,10 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
                   <Link
                     key={item.path}
                     to={item.path}
-                    onClick={() => setMobileDrawerOpen(false)}
+                    onClick={() => {
+                      setMobileDrawerOpen(false);
+                      scrollToTop();
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

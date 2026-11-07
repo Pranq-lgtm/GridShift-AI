@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { scrollToTop } from '../components/ScrollToTop';
 import {
   ShieldCheck,
   Mail,
@@ -35,15 +36,15 @@ function PageFooterLinks() {
         fontWeight: 700
       }}
     >
-      <Link to="/" style={{ color: '#092C5E', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <Link to="/" onClick={scrollToTop} style={{ color: '#092C5E', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
         <ArrowLeft size={14} /> Back to Overview
       </Link>
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <Link to="/about" style={{ color: '#475569', textDecoration: 'none' }}>About Us</Link>
-        <Link to="/contact" style={{ color: '#475569', textDecoration: 'none' }}>Contact Us</Link>
-        <Link to="/privacy" style={{ color: '#475569', textDecoration: 'none' }}>Privacy Policy</Link>
-        <Link to="/terms" style={{ color: '#475569', textDecoration: 'none' }}>Terms & Conditions</Link>
-        <Link to="/email-agent" style={{ color: '#0891B2', textDecoration: 'none' }}>Nitrosend Email Hub</Link>
+        <Link to="/about" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>About Us</Link>
+        <Link to="/contact" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>Contact Us</Link>
+        <Link to="/privacy" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>Privacy Policy</Link>
+        <Link to="/terms" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>Terms &amp; Conditions</Link>
+        <Link to="/email-agent" onClick={scrollToTop} style={{ color: '#0891B2', textDecoration: 'none' }}>Nitrosend Email Hub</Link>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { auth, ADMIN_EMAIL } from './firebase';
 import Login from './Login';
 import Navbar from './Navbar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Fleet from './pages/Fleet';
@@ -154,6 +155,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppLayout
         activeUser={activeUser}
         sidebarOpen={sidebarOpen}
@@ -296,9 +298,25 @@ function AppLayout({
                 />
               }
             />
-            <Route path="/fleet" element={<Fleet />} />
+            <Route
+              path="/fleet"
+              element={
+                <Fleet
+                  user={activeUser}
+                  onOpenLoginModal={() => setLoginModalOpen(true)}
+                />
+              }
+            />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/email-agent" element={<NitrosendDashboard user={activeUser} />} />
+            <Route
+              path="/email-agent"
+              element={
+                <NitrosendDashboard
+                  user={activeUser}
+                  onOpenLoginModal={() => setLoginModalOpen(true)}
+                />
+              }
+            />
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/contact" element={<ContactUsPage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />

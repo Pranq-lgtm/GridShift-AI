@@ -1133,6 +1133,7 @@ function Dashboard({ user }) {
 
       {/* 2B. UNOBSTRUCTED GOOGLE MAPS MODE SWITCHER (Map | Terrain | Satellite — Dedicated Row Below Filter Bar) */}
       <div
+        className="dashboard-mode-switcher"
         data-map-interactive="true"
         style={{
           position: 'absolute',
@@ -1205,10 +1206,44 @@ function Dashboard({ user }) {
         </button>
       </div>
 
+      {/* 2C. DYNAMIC BOTTOM COORDINATES HUD (Visible on Desktop & Mobile at bottom center) */}
+      <div
+        className="dashboard-coords-hud"
+        style={{
+          position: 'absolute',
+          bottom: '8px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 28,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(203, 213, 225, 0.95)',
+          boxShadow: '0 4px 14px rgba(9, 44, 94, 0.15)',
+          padding: '4px 12px',
+          borderRadius: '9999px',
+          fontSize: '11px',
+          color: '#092C5E',
+          fontWeight: 800,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        <MapPin size={12} color="#0284c7" />
+        <span>
+          Madgaon Coordinates: {selectedMarker?.coordinates
+            ? `${Number(selectedMarker.coordinates[1]).toFixed(4)}° N, ${Number(selectedMarker.coordinates[0]).toFixed(4)}° E`
+            : '15.2736° N, 73.9575° E'}
+        </span>
+      </div>
+
       {/* 3. SELECTED MARKER INSPECTION & MUNICIPAL DISPATCH CARD (Bottom Left — High-Contrast Opaque Card) */}
       {selectedMarker && (
         <div
-          className="ios-glass"
+          className="ios-glass dashboard-marker-card"
           style={{
             position: 'absolute',
             bottom: '24px',

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { scrollToTop } from './ScrollToTop';
 import {
   ShieldCheck,
   Mail,
@@ -177,22 +178,22 @@ export default function Footer() {
               Operational Modules
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.84rem' }}>
-              <Link to="/" style={{ color: '#ffffff', textDecoration: 'none', transition: 'color 0.2s' }}>
+              <Link to="/" onClick={scrollToTop} style={{ color: '#ffffff', textDecoration: 'none', transition: 'color 0.2s' }}>
                 Overview Command Center
               </Link>
-              <Link to="/dashboard" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+              <Link to="/dashboard" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>
                 Live 3D Grid & Micro-Surge Map
               </Link>
-              <Link to="/redressal" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+              <Link to="/redressal" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>
                 Citizen Redressal & Verification SLA
               </Link>
-              <Link to="/fleet" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+              <Link to="/fleet" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>
                 Staff & Waste Pickup Van Dispatch
               </Link>
-              <Link to="/analytics" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+              <Link to="/analytics" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>
                 Predictive Surge Analytics
               </Link>
-              <Link to="/email-agent" style={{ color: '#67e8f9', textDecoration: 'none', fontWeight: 700 }}>
+              <Link to="/email-agent" onClick={scrollToTop} style={{ color: '#67e8f9', textDecoration: 'none', fontWeight: 700 }}>
                 Nitrosend Autonomous Email Hub
               </Link>
             </div>
@@ -213,16 +214,16 @@ export default function Footer() {
               Governance & Policies
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.84rem' }}>
-              <Link to="/about" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+              <Link to="/about" onClick={scrollToTop} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
                 About GridShift-AI
               </Link>
-              <Link to="/contact" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+              <Link to="/contact" onClick={scrollToTop} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
                 Contact Administration Desk
               </Link>
-              <Link to="/privacy" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+              <Link to="/privacy" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>
                 Privacy & Data Governance Policy
               </Link>
-              <Link to="/terms" style={{ color: '#cbd5e1', textDecoration: 'none' }}>
+              <Link to="/terms" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>
                 Terms & Municipal Conditions
               </Link>
               <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#93c5fd' }}>
@@ -303,11 +304,11 @@ export default function Footer() {
           </div>
 
           <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', fontWeight: 600 }}>
-            <Link to="/about" style={{ color: '#cbd5e1', textDecoration: 'none' }}>About</Link>
-            <Link to="/contact" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Contact</Link>
-            <Link to="/privacy" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Privacy Policy</Link>
-            <Link to="/terms" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Terms &amp; Conditions</Link>
-            <Link to="/email-agent" style={{ color: '#67e8f9', textDecoration: 'none', fontWeight: 700 }}>Nitrosend Hub</Link>
+            <Link to="/about" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>About</Link>
+            <Link to="/contact" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>Contact</Link>
+            <Link to="/privacy" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>Privacy Policy</Link>
+            <Link to="/terms" onClick={scrollToTop} style={{ color: '#cbd5e1', textDecoration: 'none' }}>Terms &amp; Conditions</Link>
+            <Link to="/email-agent" onClick={scrollToTop} style={{ color: '#67e8f9', textDecoration: 'none', fontWeight: 700 }}>Nitrosend Hub</Link>
           </div>
         </div>
       </div>

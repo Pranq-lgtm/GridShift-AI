@@ -1014,6 +1014,57 @@ p {
   }
 }
 
+.dashboard-marker-card {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .dashboard-filter-bar {
+    max-width: calc(100% - 16px) !important;
+    left: 8px !important;
+    top: 8px !important;
+    gap: 5px !important;
+    padding-bottom: 6px !important;
+    padding-right: 24px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .dashboard-filter-bar button {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .dashboard-mode-switcher {
+    top: 48px !important;
+    left: 8px !important;
+    transform: scale(0.92);
+    transform-origin: top left;
+  }
+
+  .dashboard-marker-card {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 24px !important;
+    width: auto !important;
+    max-width: calc(100% - 20px) !important;
+    max-height: 48vh !important;
+    overflow-y: auto !important;
+    padding: 14px 14px 16px 14px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 16px 36px rgba(9, 44, 94, 0.32) !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .dashboard-coords-hud {
+    bottom: 4px !important;
+    font-size: 9.5px !important;
+    padding: 2px 8px !important;
+  }
+}
+
+
 /* ═══════════════════════════════════════════════════════════════
    LEGACY HERO CAROUSEL (kept for slide logic)
    ═══════════════════════════════════════════════════════════════ */
