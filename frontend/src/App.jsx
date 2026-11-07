@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, ADMIN_EMAIL } from './firebase';
@@ -154,121 +154,167 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div style={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundColor: '#fbfbfd' }}>
-        {/* Google Maps Platform Demo Key Quota Banner */}
-        {quotaExceeded && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-amber-900 flex items-center justify-between gap-4 text-sm sticky top-0 z-50">
-            <div>
-              <span className="font-semibold">Maps Demo Key quota reached.</span>{' '}
-              To unlock higher limits and full API access, create a Google Cloud billing account and replace{' '}
-              <code className="bg-amber-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code> in AI Studio Secrets with your own key.
-            </div>
-            <a
-              href="https://developers.google.com/maps/documentation/javascript/get-api-key"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 bg-amber-900 text-white px-3 py-1.5 rounded font-medium hover:bg-amber-800 transition-colors"
-            >
-              Get API Key &rarr;
-            </a>
+      <AppLayout
+        activeUser={activeUser}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        handleOpenWasteCamera={handleOpenWasteCamera}
+        setLoginModalOpen={setLoginModalOpen}
+        quotaExceeded={quotaExceeded}
+        loginModalOpen={loginModalOpen}
+        cameraModalOpen={cameraModalOpen}
+        setCameraModalOpen={setCameraModalOpen}
+      />
+    </BrowserRouter>
+  );
+}
+
+function AppLayout({
+  activeUser,
+  sidebarOpen,
+  setSidebarOpen,
+  handleOpenWasteCamera,
+  setLoginModalOpen,
+  quotaExceeded,
+  loginModalOpen,
+  cameraModalOpen,
+  setCameraModalOpen
+}) {
+  const location = useLocation();
+  const isGridMap = location.pathname === '/dashboard';
+
+  return (
+    <div style={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundColor: '#fbfbfd' }}>
+      {/* Google Maps Platform Demo Key Quota Banner */}
+      {quotaExceeded && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-amber-900 flex items-center justify-between gap-4 text-sm sticky top-0 z-50">
+          <div>
+            <span className="font-semibold">Maps Demo Key quota reached.</span>{' '}
+            To unlock higher limits and full API access, create a Google Cloud billing account and replace{' '}
+            <code className="bg-amber-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code> in AI Studio Secrets with your own key.
           </div>
-        )}
-
-        {/* GridShift-AI Responsive Header & Collapsible Sidebar */}
-        <Navbar
-          user={activeUser}
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          onOpenWasteCamera={handleOpenWasteCamera}
-          onOpenLoginModal={() => setLoginModalOpen(true)}
-          onOpenChatbot={() => {
-            const chatBtn = document.querySelector('button[aria-label="Open AI Copilot Chat"]');
-            if (chatBtn) chatBtn.click();
-          }}
-        />
-
-        {/* Waste Reporting Camera & Automated Ticket Modal */}
-        <WasteCameraModal
-          isOpen={cameraModalOpen}
-          onClose={() => setCameraModalOpen(false)}
-          currentUser={activeUser}
-        />
-
-        {/* Guest Authentication Modal */}
-        {loginModalOpen && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 2000,
-              backgroundColor: 'rgba(15, 23, 42, 0.65)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '16px',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setLoginModalOpen(false);
-            }}
+          <a
+            href="https://developers.google.com/maps/documentation/javascript/get-api-key"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 bg-amber-900 text-white px-3 py-1.5 rounded font-medium hover:bg-amber-800 transition-colors"
           >
-            <div style={{ width: '100%', maxWidth: '470px' }}>
-              <Login
-                onClose={() => setLoginModalOpen(false)}
-                onAuthSuccess={() => setLoginModalOpen(false)}
-              />
-            </div>
-          </div>
-        )}
+            Get API Key &rarr;
+          </a>
+        </div>
+      )}
 
-        {/* Main Content Area */}
+      {/* GridShift-AI Responsive Header & Collapsible Sidebar */}
+      <Navbar
+        user={activeUser}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        onOpenWasteCamera={handleOpenWasteCamera}
+        onOpenLoginModal={() => setLoginModalOpen(true)}
+        onOpenChatbot={() => {
+          const chatBtn = document.querySelector('button[aria-label="Open AI Copilot Chat"]');
+          if (chatBtn) chatBtn.click();
+        }}
+      />
+
+      {/* Waste Reporting Camera & Automated Ticket Modal */}
+      <WasteCameraModal
+        isOpen={cameraModalOpen}
+        onClose={() => setCameraModalOpen(false)}
+        currentUser={activeUser}
+      />
+
+      {/* Guest Authentication Modal */}
+      {loginModalOpen && (
         <div
-          className="main-viewport"
           style={{
-            marginTop: '64px',
-            marginLeft: sidebarOpen ? '260px' : '0px',
-            transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            minHeight: 'calc(100vh - 64px)',
-            position: 'relative',
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex',
-            flexDirection: 'column'
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            overflowY: 'auto'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLoginModalOpen(false);
           }}
         >
-          <div style={{ flex: 1 }}>
-            <Routes>
-              <Route path="/" element={<Home onOpenWasteCamera={handleOpenWasteCamera} />} />
-              <Route path="/dashboard" element={<Dashboard user={activeUser} />} />
-              <Route
-                path="/redressal"
-                element={
-                  <Redressal
-                    user={activeUser}
-                    onOpenWasteCamera={handleOpenWasteCamera}
-                  />
-                }
-              />
-              <Route path="/fleet" element={<Fleet />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/email-agent" element={<NitrosendDashboard user={activeUser} />} />
-              <Route path="/about" element={<AboutUsPage />} />
-              <Route path="/contact" element={<ContactUsPage />} />
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsAndConditionsPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+          <div style={{ width: '100%', maxWidth: '470px' }}>
+            <Login
+              onClose={() => setLoginModalOpen(false)}
+              onAuthSuccess={() => setLoginModalOpen(false)}
+            />
           </div>
+        </div>
+      )}
 
-          {/* Unified Platform Footer */}
-          <Footer />
+      {/* Main Content Area */}
+      <div
+        className="main-viewport"
+        style={
+          isGridMap
+            ? {
+                marginTop: '64px',
+                marginLeft: sidebarOpen ? '260px' : '0px',
+                transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                height: 'calc(100vh - 64px)',
+                position: 'relative',
+                overflow: 'hidden'
+              }
+            : {
+                marginTop: '64px',
+                marginLeft: sidebarOpen ? '260px' : '0px',
+                transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                minHeight: 'calc(100vh - 64px)',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column'
+              }
+        }
+      >
+        <div
+          style={
+            isGridMap
+              ? { width: '100%', height: '100%', position: 'relative' }
+              : { flex: 1, display: 'flex', flexDirection: 'column' }
+          }
+        >
+          <Routes>
+            <Route path="/" element={<Home onOpenWasteCamera={handleOpenWasteCamera} />} />
+            <Route path="/dashboard" element={<Dashboard user={activeUser} />} />
+            <Route
+              path="/redressal"
+              element={
+                <Redressal
+                  user={activeUser}
+                  onOpenWasteCamera={handleOpenWasteCamera}
+                />
+              }
+            />
+            <Route path="/fleet" element={<Fleet />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/email-agent" element={<NitrosendDashboard user={activeUser} />} />
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/contact" element={<ContactUsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsAndConditionsPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
 
-        {/* Gemini RAG Chatbot Floating Component */}
-        <Chatbot />
+        {/* Unified Platform Footer (strictly omitted on live gridmap section) */}
+        {!isGridMap && <Footer />}
       </div>
-    </BrowserRouter>
+
+      {/* Gemini RAG Chatbot Floating Component */}
+      <Chatbot />
+    </div>
   );
 }
 

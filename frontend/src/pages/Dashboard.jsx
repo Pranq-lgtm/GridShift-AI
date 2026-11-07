@@ -185,7 +185,10 @@ function MadgaonInteractiveTileMap({
   setSelectedMarker
 }) {
   const containerRef = useRef(null);
-  const [viewport, setViewport] = useState({ width: 1280, height: 800 });
+  const [viewport, setViewport] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    height: typeof window !== 'undefined' ? Math.max(400, window.innerHeight - 64) : 800
+  }));
   const [center, setCenter] = useState(MADGAON_DEFAULT_CENTER);
   const [zoom, setZoom] = useState(MADGAON_DEFAULT_ZOOM);
   const [isDragging, setIsDragging] = useState(false);
@@ -195,9 +198,11 @@ function MadgaonInteractiveTileMap({
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
+        const w = containerRef.current.clientWidth;
+        const h = containerRef.current.clientHeight;
         setViewport({
-          width: containerRef.current.clientWidth || 1280,
-          height: containerRef.current.clientHeight || 800
+          width: w > 0 ? w : (typeof window !== "undefined" ? window.innerWidth : 1280),
+          height: h > 0 ? h : (typeof window !== "undefined" ? Math.max(400, window.innerHeight - 64) : 800)
         });
       }
     };
@@ -309,6 +314,7 @@ function MadgaonInteractiveTileMap({
         position: 'relative',
         width: '100%',
         height: '100%',
+        minHeight: 'calc(100vh - 64px)',
         overflow: 'hidden',
         backgroundColor: '#e5e3df',
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -819,7 +825,7 @@ function Dashboard({ user }) {
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', minHeight: 'calc(100vh - 64px)', position: 'relative', overflow: 'hidden' }}>
       {/* Toast Notification */}
       {toastMsg && (
         <div
