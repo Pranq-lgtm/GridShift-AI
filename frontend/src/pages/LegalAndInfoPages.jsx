@@ -173,7 +173,7 @@ export function ContactUsPage() {
 
   return (
     <div className="page-container">
-      <div className="ios-card" style={{ padding: '32px' }}>
+      <div className="ios-card" style={{ padding: 'clamp(16px, 3.5vw, 32px)', boxSizing: 'border-box', overflow: 'hidden' }}>
         <div
           style={{
             display: 'inline-flex',
@@ -201,7 +201,7 @@ export function ContactUsPage() {
         <div className="redressal-admin-grid">
           {/* Left: Official Admin Contact Details */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ padding: '20px', borderRadius: '16px', backgroundColor: '#092C5E', color: 'white' }}>
+            <div style={{ padding: 'clamp(14px, 3vw, 20px)', borderRadius: '16px', backgroundColor: '#092C5E', color: 'white', boxSizing: 'border-box', width: '100%', wordBreak: 'break-word' }}>
               <span style={{ fontSize: '10px', fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 DESIGNATED PLATFORM ADMINISTRATOR
               </span>
@@ -277,19 +277,19 @@ export function ContactUsPage() {
           </div>
 
           {/* Right: Direct Inquiry Form via Nitrosend Agent */}
-          <form onSubmit={handleContactSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', borderRadius: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <form onSubmit={handleContactSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: 'clamp(14px, 3vw, 20px)', borderRadius: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', width: '100%', boxSizing: 'border-box' }}>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#092C5E' }}>
               Send Direct Message via Nitrosend Agent
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="contact-form-row">
               <input
                 type="text"
                 placeholder="Your Full Name"
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
                 required
-                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
               <input
                 type="email"
@@ -297,22 +297,22 @@ export function ContactUsPage() {
                 value={senderEmail}
                 onChange={(e) => setSenderEmail(e.target.value)}
                 required
-                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="contact-form-row">
               <input
                 type="tel"
                 placeholder="Phone (e.g., +91 98XXXXXXXX)"
                 value={senderPhone}
                 onChange={(e) => setSenderPhone(e.target.value)}
-                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
               <select
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 600 }}
+                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 600, backgroundColor: '#ffffff' }}
               >
                 <option value="Municipal Ward SLA Escalation">Municipal Ward SLA Escalation</option>
                 <option value="Citizen Redressal & Verification Support">Citizen Redressal Support</option>
@@ -327,10 +327,10 @@ export function ContactUsPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               required
-              style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', resize: 'vertical' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', resize: 'vertical' }}
             />
 
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px', borderRadius: '10px', fontWeight: 800, fontSize: '0.9rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '10px', fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <Send size={15} /> Dispatch Inquiry to Admin ({ADMIN_EMAIL})
             </button>
 

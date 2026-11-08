@@ -1260,75 +1260,86 @@ function Dashboard({ user }) {
             boxShadow: '0 20px 44px rgba(9, 44, 94, 0.24)'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <span
               style={{
-                fontSize: '10px',
+                fontSize: '9px',
                 fontWeight: 800,
                 textTransform: 'uppercase',
-                padding: '4px 10px',
+                padding: '2px 8px',
                 borderRadius: '9999px',
                 backgroundColor: selectedMarker.severity === 'Critical' ? '#fee2e2' : '#fef3c7',
                 color: selectedMarker.severity === 'Critical' ? '#b91c1c' : '#b45309',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '3px'
               }}
             >
-              <AlertTriangle size={12} />
+              <AlertTriangle size={11} />
               {selectedMarker.severity} SEVERITY
             </span>
 
             <button
               onClick={() => setSelectedMarker(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
 
-          <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 800, color: '#092C5E' }}>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '0.90rem', fontWeight: 800, color: '#092C5E', lineHeight: 1.2 }}>
             {selectedMarker.name}
           </h4>
 
-          <div style={{ fontSize: '0.82rem', color: '#334155', lineHeight: 1.5, marginBottom: '12px' }}>
-            <div><strong>Tonnage / Volume:</strong> {selectedMarker.tonnage} {typeof selectedMarker.tonnage === 'number' ? 'Tons' : ''}</div>
-            <div><strong>Material Type:</strong> {selectedMarker.type}</div>
-            {selectedMarker.permit && <div><strong>Reference:</strong> {selectedMarker.permit}</div>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-              <MapPin size={12} color="#0284c7" />
-              <span>Madgaon Coordinates: {Number(selectedMarker.coordinates?.[1] || MADGAON_DEFAULT_CENTER.lat).toFixed(4)}, {Number(selectedMarker.coordinates?.[0] || MADGAON_DEFAULT_CENTER.lng).toFixed(4)}</span>
+          <div style={{ fontSize: '0.74rem', color: '#334155', lineHeight: 1.35, marginBottom: '6px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '2px' }}>
+              <span><strong>Tonnage:</strong> {selectedMarker.tonnage} {typeof selectedMarker.tonnage === 'number' ? 'Tons' : ''}</span>
+              <span>•</span>
+              <span><strong>Type:</strong> {selectedMarker.type}</span>
             </div>
-            <div><strong>Assigned Municipal Crew:</strong> <span style={{ color: '#092C5E', fontWeight: 700 }}>{selectedMarker.assigned || 'Municipal Staff (On Foot) / Small Pickup Van'}</span></div>
-            <div><strong>Dispatch Status:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedMarker.status}</span></div>
+            {selectedMarker.permit && (
+              <div style={{ marginBottom: '2px' }}>
+                <strong>Ref:</strong> {selectedMarker.permit}
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              <MapPin size={11} color="#0284c7" />
+              <span>Coords: {Number(selectedMarker.coordinates?.[1] || MADGAON_DEFAULT_CENTER.lat).toFixed(4)}, {Number(selectedMarker.coordinates?.[0] || MADGAON_DEFAULT_CENTER.lng).toFixed(4)}</span>
+            </div>
+            <div style={{ marginBottom: '2px' }}>
+              <strong>Crew:</strong> <span style={{ color: '#092C5E', fontWeight: 700 }}>{selectedMarker.assigned || 'Municipal Staff / Pickup Van'}</span>
+            </div>
+            <div>
+              <strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedMarker.status}</span>
+            </div>
           </div>
 
           {selectedMarker.photo && (
-            <div style={{ width: '100%', height: '105px', borderRadius: '10px', overflow: 'hidden', marginBottom: '10px' }}>
+            <div style={{ width: '100%', height: '64px', borderRadius: '8px', overflow: 'hidden', marginBottom: '6px' }}>
               <img src={selectedMarker.photo} alt="Reported Waste" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '6px' }}>
             {isAdmin && (
               <button
                 onClick={handleDispatchFromMap}
                 className="btn btn-primary"
                 style={{
                   flex: 1,
-                  padding: '8px 12px',
-                  fontSize: '0.78rem',
+                  padding: '7px 10px',
+                  fontSize: '0.74rem',
                   borderRadius: '8px',
                   backgroundColor: '#0284c7',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '5px'
+                  gap: '4px'
                 }}
               >
-                <Truck size={14} />
-                Dispatch Staff / Pickup Van
+                <Truck size={13} />
+                Dispatch Crew
               </button>
             )}
 
@@ -1336,8 +1347,8 @@ function Dashboard({ user }) {
               to="/redressal"
               style={{
                 flex: isAdmin ? 'initial' : 1,
-                padding: '8px 12px',
-                fontSize: '0.78rem',
+                padding: '7px 12px',
+                fontSize: '0.74rem',
                 borderRadius: '8px',
                 backgroundColor: isAdmin ? '#f1f5f9' : '#092C5E',
                 color: isAdmin ? '#092C5E' : 'white',
