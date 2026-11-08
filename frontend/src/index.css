@@ -1020,6 +1020,13 @@ p {
   box-sizing: border-box;
 }
 
+/* Remove duplicate coordinates HUD in desktop view (overlaps pre-existing map coordinates) */
+@media (min-width: 769px) {
+  .dashboard-coords-hud {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-filter-bar {
     max-width: calc(100% - 16px) !important;
