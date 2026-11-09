@@ -971,6 +971,16 @@ p {
 }
 
 @media (max-width: 1024px) {
+  .main-viewport {
+    height: calc(100dvh - 64px) !important;
+  }
+
+  .dashboard-viewport {
+    height: 100% !important;
+    max-height: calc(100dvh - 64px) !important;
+    overflow: hidden !important;
+  }
+
   .dashboard-filter-bar {
     max-width: calc(100% - 24px);
     left: 12px;
@@ -995,7 +1005,7 @@ p {
     bottom: 0;
     top: auto;
     width: 100%;
-    max-height: 75vh;
+    max-height: 75dvh;
     overflow-y: auto;
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
@@ -1018,6 +1028,14 @@ p {
   max-height: calc(100vh - 120px);
   overflow-y: auto;
   box-sizing: border-box;
+}
+
+.dashboard-marker-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 /* Remove duplicate coordinates HUD in desktop view (overlaps pre-existing map coordinates) */
@@ -1050,17 +1068,45 @@ p {
     transform-origin: top left;
   }
 
+  .dashboard-attribution-coords {
+    bottom: 14px !important;
+    left: 10px !important;
+    transform: none !important;
+    max-width: calc(100% - 148px) !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    padding: 4px 8px !important;
+    font-size: 9.5px !important;
+    border-radius: 6px !important;
+    background-color: rgba(255, 255, 255, 0.94) !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
+    z-index: 30 !important;
+  }
+
   .dashboard-marker-card {
     left: 10px !important;
-    right: 10px !important;
-    bottom: 10px !important;
-    width: auto !important;
-    max-width: calc(100% - 20px) !important;
+    right: auto !important;
+    bottom: 66px !important;
+    width: min(255px, calc(100vw - 24px)) !important;
+    max-width: 255px !important;
     max-height: none !important;
     overflow-y: visible !important;
-    padding: 10px 12px 10px 12px !important;
+    padding: 9px 11px !important;
     border-radius: 14px !important;
-    box-shadow: 0 12px 30px rgba(9, 44, 94, 0.28) !important;
+    box-shadow: 0 14px 32px rgba(9, 44, 94, 0.28) !important;
+    z-index: 45 !important;
+  }
+
+  .dashboard-marker-body {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .dashboard-marker-photo {
+    width: 52px !important;
+    height: 52px !important;
   }
 
   .dashboard-coords-hud {

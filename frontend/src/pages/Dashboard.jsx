@@ -314,7 +314,6 @@ function MadgaonInteractiveTileMap({
         position: 'relative',
         width: '100%',
         height: '100%',
-        minHeight: 'calc(100vh - 64px)',
         overflow: 'hidden',
         backgroundColor: '#e5e3df',
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -594,6 +593,7 @@ function MadgaonInteractiveTileMap({
 
       {/* Attribution Footer */}
       <div
+        className="dashboard-attribution-coords"
         style={{
           position: 'absolute',
           bottom: '4px',
@@ -825,7 +825,7 @@ function Dashboard({ user }) {
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', minHeight: 'calc(100vh - 64px)', position: 'relative', overflow: 'hidden' }}>
+    <div className="dashboard-viewport" style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       {/* Toast Notification */}
       {toastMsg && (
         <div
@@ -1240,33 +1240,33 @@ function Dashboard({ user }) {
         </span>
       </div>
 
-      {/* 3. SELECTED MARKER INSPECTION & MUNICIPAL DISPATCH CARD (Bottom Left — High-Contrast Opaque Card) */}
+      {/* 3. SELECTED MARKER INSPECTION & MUNICIPAL DISPATCH CARD (Floating Compact Card — Unobstructed by AI Copilot) */}
       {selectedMarker && (
         <div
           className="ios-glass dashboard-marker-card"
           style={{
             position: 'absolute',
-            bottom: '24px',
-            left: '20px',
-            width: '380px',
-            maxWidth: 'calc(100% - 40px)',
-            borderRadius: '20px',
-            padding: '18px 20px',
-            zIndex: 40,
-            backgroundColor: 'rgba(255, 255, 255, 0.97)',
+            bottom: '36px',
+            left: '16px',
+            width: '290px',
+            maxWidth: 'calc(100% - 32px)',
+            borderRadius: '16px',
+            padding: '12px 14px',
+            zIndex: 45,
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
             backdropFilter: 'saturate(180%) blur(20px)',
             WebkitBackdropFilter: 'saturate(180%) blur(20px)',
             border: '1.5px solid rgba(226, 232, 240, 0.95)',
-            boxShadow: '0 20px 44px rgba(9, 44, 94, 0.24)'
+            boxShadow: '0 16px 36px rgba(9, 44, 94, 0.24)'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
             <span
               style={{
-                fontSize: '9px',
+                fontSize: '8.5px',
                 fontWeight: 800,
                 textTransform: 'uppercase',
-                padding: '2px 8px',
+                padding: '2px 7px',
                 borderRadius: '9999px',
                 backgroundColor: selectedMarker.severity === 'Critical' ? '#fee2e2' : '#fef3c7',
                 color: selectedMarker.severity === 'Critical' ? '#b91c1c' : '#b45309',
@@ -1275,70 +1275,74 @@ function Dashboard({ user }) {
                 gap: '3px'
               }}
             >
-              <AlertTriangle size={11} />
+              <AlertTriangle size={10} />
               {selectedMarker.severity} SEVERITY
             </span>
 
             <button
               onClick={() => setSelectedMarker(null)}
+              aria-label="Close pinned ticket card"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '2px' }}
             >
-              <X size={15} />
+              <X size={14} />
             </button>
           </div>
 
-          <h4 style={{ margin: '0 0 4px 0', fontSize: '0.90rem', fontWeight: 800, color: '#092C5E', lineHeight: 1.2 }}>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '0.84rem', fontWeight: 800, color: '#092C5E', lineHeight: 1.2 }}>
             {selectedMarker.name}
           </h4>
 
-          <div style={{ fontSize: '0.74rem', color: '#334155', lineHeight: 1.35, marginBottom: '6px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '2px' }}>
-              <span><strong>Tonnage:</strong> {selectedMarker.tonnage} {typeof selectedMarker.tonnage === 'number' ? 'Tons' : ''}</span>
-              <span>•</span>
-              <span><strong>Type:</strong> {selectedMarker.type}</span>
+          <div className="dashboard-marker-body">
+            <div style={{ fontSize: '0.70rem', color: '#334155', lineHeight: 1.3, marginBottom: '6px', flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '1px' }}>
+                <span><strong>Tonnage:</strong> {selectedMarker.tonnage} {typeof selectedMarker.tonnage === 'number' ? 'Tons' : ''}</span>
+                <span>•</span>
+                <span><strong>Type:</strong> {selectedMarker.type}</span>
+              </div>
+              {selectedMarker.permit && (
+                <div style={{ marginBottom: '1px' }}>
+                  <strong>Ref:</strong> {selectedMarker.permit}
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginBottom: '1px' }}>
+                <MapPin size={10} color="#0284c7" style={{ flexShrink: 0 }} />
+                <span>Coords: {Number(selectedMarker.coordinates?.[1] || MADGAON_DEFAULT_CENTER.lat).toFixed(4)}, {Number(selectedMarker.coordinates?.[0] || MADGAON_DEFAULT_CENTER.lng).toFixed(4)}</span>
+              </div>
+              <div style={{ marginBottom: '1px' }}>
+                <strong>Crew:</strong> <span style={{ color: '#092C5E', fontWeight: 700 }}>{selectedMarker.assigned || 'Municipal Staff / Pickup Van'}</span>
+              </div>
+              <div>
+                <strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedMarker.status}</span>
+              </div>
             </div>
-            {selectedMarker.permit && (
-              <div style={{ marginBottom: '2px' }}>
-                <strong>Ref:</strong> {selectedMarker.permit}
+
+            {selectedMarker.photo && (
+              <div className="dashboard-marker-photo" style={{ width: '54px', height: '54px', borderRadius: '8px', overflow: 'hidden', marginBottom: '6px', flexShrink: 0 }}>
+                <img src={selectedMarker.photo} alt="Reported Waste" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-              <MapPin size={11} color="#0284c7" />
-              <span>Coords: {Number(selectedMarker.coordinates?.[1] || MADGAON_DEFAULT_CENTER.lat).toFixed(4)}, {Number(selectedMarker.coordinates?.[0] || MADGAON_DEFAULT_CENTER.lng).toFixed(4)}</span>
-            </div>
-            <div style={{ marginBottom: '2px' }}>
-              <strong>Crew:</strong> <span style={{ color: '#092C5E', fontWeight: 700 }}>{selectedMarker.assigned || 'Municipal Staff / Pickup Van'}</span>
-            </div>
-            <div>
-              <strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedMarker.status}</span>
-            </div>
           </div>
 
-          {selectedMarker.photo && (
-            <div style={{ width: '100%', height: '64px', borderRadius: '8px', overflow: 'hidden', marginBottom: '6px' }}>
-              <img src={selectedMarker.photo} alt="Reported Waste" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '5px' }}>
             {isAdmin && (
               <button
                 onClick={handleDispatchFromMap}
                 className="btn btn-primary"
                 style={{
                   flex: 1,
-                  padding: '7px 10px',
-                  fontSize: '0.74rem',
-                  borderRadius: '8px',
+                  padding: '6px 8px',
+                  fontSize: '0.68rem',
+                  borderRadius: '7px',
                   backgroundColor: '#0284c7',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '4px'
+                  gap: '4px',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <Truck size={13} />
+                <Truck size={12} />
                 Dispatch Crew
               </button>
             )}
@@ -1347,9 +1351,9 @@ function Dashboard({ user }) {
               to="/redressal"
               style={{
                 flex: isAdmin ? 'initial' : 1,
-                padding: '7px 12px',
-                fontSize: '0.74rem',
-                borderRadius: '8px',
+                padding: '6px 9px',
+                fontSize: '0.68rem',
+                borderRadius: '7px',
                 backgroundColor: isAdmin ? '#f1f5f9' : '#092C5E',
                 color: isAdmin ? '#092C5E' : 'white',
                 fontWeight: 800,
@@ -1358,11 +1362,12 @@ function Dashboard({ user }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '4px'
+                gap: '3px',
+                whiteSpace: 'nowrap'
               }}
             >
               <span>{isAdmin ? 'Redressal' : 'Track Ticket in Redressal'}</span>
-              <ArrowRight size={13} />
+              <ArrowRight size={12} />
             </Link>
           </div>
         </div>
