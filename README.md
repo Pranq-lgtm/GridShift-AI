@@ -3,7 +3,7 @@
 **GridShift-AI** is a data-driven micro-surge waste forecasting and automated civic redressal platform designed for municipal sanitation departments. By combining real-time city permit data, **Google Maps Platform** geospatial telemetry (centered on **Madgaon, Goa**), predictive Machine Learning (**XGBoost**), and Generative AI (**Google Gemini 3.8 Flash** with **Gemini 3.5 Flash-Lite** fallback), GridShift-AI acts as a **"Waste Surge Copilot"** — empowering municipal teams to proactively deploy existing sanitation staff and vehicles *before* trash overflows happen while closing the loop with citizens through automated SLA ticket tracking.
 
 🌐 **Live Production App (Firebase Hosting):** [https://gridshift-ai.web.app/](https://gridshift-ai.web.app/)  
-🏷️ **UN SDG 11.6 & 12** • **Latest Release:** [v1.3.0 (GitHub Releases)](https://github.com/Pranq-lgtm/GridShift-AI/releases/tag/v1.3.0)
+🏷️ **UN SDG 11.6 & 12** • **Latest Release:** [v1.4.0 (GitHub Releases)](https://github.com/Pranq-lgtm/GridShift-AI/releases/tag/v1.4.0)
 
 ---
 
@@ -16,6 +16,17 @@
 5. **Google OAuth, Email/Password, Forgot Password & Mobile OTP Authentication (`/login`)**: Full Firebase Authentication supporting **Continue with Google (`GoogleAuthProvider`)**, **Email/Password Sign-In & Sign-Up**, **Forgot Password (`sendPasswordResetEmail`)**, and **Mobile SMS OTP (`+91`)**. Authenticating as **`pranavkantak9@gmail.com`** or **`+91 7219341650`** automatically unlocks the **Platform Admin Dispatch & Nitrosend Internal Console**.
 6. **Vectorized Bulk Permit Scraper & MongoDB `permits` / `tickets` Persistence**: Ingests municipal open-data permits using parallelized batch XGBoost inference (`/predict/batch`) and single-roundtrip `Permit.insertMany()` into the MongoDB `permits` collection.
 7. **Resilient Waste Surge Copilot (`gemini-3.8-flash` + `gemini-3.5-flash-lite` fallback)**: Integrates **Google Gemini 3.8 Flash** (`gemini-3.8-flash`) as the primary reasoning model with automatic fallback to **Google Gemini 3.5 Flash-Lite** (`gemini-3.5-flash-lite`), clean plain-text formatting, live ticket ID lookup (`TKT-2026-*`), sliding-window rate limiting (`12 RPM` guard), and HTTP `429` exponential backoff.
+
+---
+
+## 🆕 What's New in v1.4.0
+
+> 📄 Full release notes are published in the **[GitHub Releases Section](https://github.com/Pranq-lgtm/GridShift-AI/releases/tag/v1.4.0)**.
+
+- **🧠 Dedicated Deep Learning Vision Model (`GridShift-VisionNet`) & False-Report Guard**: Added a standalone Deep Learning pixel-inspection model alongside the tabular **XGBoost** surge forecaster (`ml_service/vision_model.py` + server-side multimodal distillation `/api/vision/scan`). Independently verifies every citizen-captured photo before dispatch—blocking prank/empty false reports, estimating tonnage & detected materials directly from pixels, and automatically flagging or correcting **Citizen vs. AI Discrepancies** (e.g., misclassified construction rubble or severity mismatches).
+- **🎙️ Hands-Free Multilingual Voice Reporting (`/api/voice/transcribe`)**: Added one-tap **Speak Report** voice dictation inside `WasteCameraModal.jsx` supporting **English, Hindi, Konkani, and Marathi** with resilient multimodal Gemini fallback and parallel browser Web Speech API transcription—automatically populating Incident Notes, Municipal Ward, Waste Category, and Urgency without typing.
+- **📊 Dual-Model Surge Analytics & Active-Learning Training Lab (`/analytics`)**: Upgraded the Analytics dashboard to compare **Model 1: XGBoost Tabular Forecaster** vs. **Model 2: GridShift-VisionNet (Deep Learning)** with live KPI telemetry (Validation Accuracy, False Reports Blocked, Mismatches Overridden, Labeled Training Images), human-in-the-loop **Confirm Waste / Mark False** labeling (`/api/vision/feedback-label`), and one-click incremental **Train Epoch** retraining (`/api/vision/retrain`).
+- **📱 Mobile Live Map Floating Pinned Ticket Card & Safe JSON API Guards**: Redesigned the mobile pinned citizen ticket overlay in `Dashboard.jsx` into a compact floating card cleared above the AI Copilot FAB so map markers and redressal buttons remain unobscured for both logged-in and normal views, and added `BACKEND_API_URL` routing + JSON error guards to eliminate HTML-response JSON parse failures across Firebase Hosting and local deployments.
 
 ---
 

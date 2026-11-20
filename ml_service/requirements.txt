@@ -7,3 +7,4 @@ pydantic
 requests
 beautifulsoup4
 google-generativeai
+pillow

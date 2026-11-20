@@ -1,5 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
-import { Camera, RefreshCw, X, Check, MapPin, ShieldCheck, Clock, ArrowRight, Video } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Camera,
+  RefreshCw,
+  X,
+  Check,
+  MapPin,
+  ShieldCheck,
+  ShieldAlert,
+  Clock,
+  ArrowRight,
+  Video,
+  Mic,
+  Square,
+  Sparkles,
+  ScanEye,
+  AlertTriangle,
+  Loader2,
+  Database
+} from 'lucide-react';
 import { INITIAL_REDRESSAL_TICKETS } from '../pages/Redressal';
 import { BACKEND_API_URL } from '../firebase';
 import '../index.css';
@@ -55,6 +73,110 @@ function compressDataUrl(dataUrl, maxWidth = 480, quality = 0.68) {
   });
 }
 
+async function resolveImageToBase64(imageSrc) {
+  if (!imageSrc) return '';
+  if (imageSrc.startsWith('data:')) return imageSrc;
+  const resp = await fetch(imageSrc);
+  const blob = await resp.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(new Error('Failed to encode image for Deep Learning scan'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(new Error('Failed to read recorded voice clip'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function buildApiUrl(endpointPath) {
+  return BACKEND_API_URL ? `${BACKEND_API_URL}${endpointPath}` : endpointPath;
+}
+
+async function parseJsonSafely(resp) {
+  const rawText = await resp.text();
+  const trimmed = rawText.trim();
+  const contentType = (resp.headers.get('content-type') || '').toLowerCase();
+  if (!trimmed) {
+    return { ok: false, data: null, isHtml: false, message: `Empty response (HTTP ${resp.status})` };
+  }
+  if (trimmed.startsWith('<') || contentType.includes('text/html')) {
+    return {
+      ok: false,
+      data: null,
+      isHtml: true,
+      message: 'API service returned an HTML page instead of JSON. Please retry in a moment.'
+    };
+  }
+  try {
+    return { ok: true, data: JSON.parse(trimmed), isHtml: false, message: '' };
+  } catch {
+    return {
+      ok: false,
+      data: null,
+      isHtml: false,
+      message: `Invalid server response format (HTTP ${resp.status}).`
+    };
+  }
+}
+
+function extractIncidentFromTranscript(transcript) {
+  const t = String(transcript || '').trim();
+  const lower = t.toLowerCase();
+
+  let suggestedWard = '';
+  if (lower.includes('fatorda') || lower.includes('stadium') || lower.includes('ward 2')) {
+    suggestedWard = 'Ward 2 — Fatorda Stadium Sector';
+  } else if (lower.includes('aquem') || lower.includes('ward 14')) {
+    suggestedWard = 'Ward 14 — Aquem Commercial';
+  } else if (lower.includes('comba') || lower.includes('ward 10')) {
+    suggestedWard = 'Ward 10 — Comba Heritage Zone';
+  } else if (lower.includes('borda') || lower.includes('ward 18')) {
+    suggestedWard = 'Ward 18 — Borda Residential';
+  } else if (lower.includes('market') || lower.includes('margao') || lower.includes('madgaon') || lower.includes('ward 7')) {
+    suggestedWard = 'Ward 7 — Margao Central Market';
+  }
+
+  let suggestedCategory = '';
+  if (/(rubble|concrete|brick|cement|construction|demolition|debris|malba)/i.test(lower)) {
+    suggestedCategory = 'Construction Debris';
+  } else if (/(chemical|hazard|toxic|battery|paint|medical|oil|acid)/i.test(lower)) {
+    suggestedCategory = 'Hazardous / Chemical';
+  } else if (/(vegetable|fish|food|organic|market waste|rotting|smell)/i.test(lower)) {
+    suggestedCategory = 'Commercial Organics';
+  } else if (/(bin|dustbin|container|overflow)/i.test(lower)) {
+    suggestedCategory = 'Overflowing Bin';
+  } else if (/(dump|garbage|trash|plastic|litter|waste|kachra)/i.test(lower)) {
+    suggestedCategory = 'Illegal Curbside Dump';
+  }
+
+  let suggestedSeverity = '';
+  if (/(urgent|emergency|critical|blocking road|toxic|hazard|immediately)/i.test(lower)) {
+    suggestedSeverity = 'Critical';
+  } else if (/(huge|large|heavy|big pile|overflowing|severe)/i.test(lower)) {
+    suggestedSeverity = 'High';
+  } else if (/(moderate|medium|some)/i.test(lower)) {
+    suggestedSeverity = 'Medium';
+  } else if (/(small|minor|little)/i.test(lower)) {
+    suggestedSeverity = 'Low';
+  }
+
+  return {
+    transcript: t,
+    cleanNotes: t,
+    suggestedWard,
+    suggestedCategory,
+    suggestedSeverity,
+    detectedLanguage: 'Browser Speech'
+  };
+}
+
 function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
   const [facingMode, setFacingMode] = useState('environment');
   const [videoDevices, setVideoDevices] = useState([]);
@@ -70,78 +192,193 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
   const [cameraError, setCameraError] = useState(null);
   const [submittedTicket, setSubmittedTicket] = useState(null);
 
+  // Deep Learning Vision Scanner state
+  const [visionScanning, setVisionScanning] = useState(false);
+  const [visionResult, setVisionResult] = useState(null);
+  const [visionError, setVisionError] = useState(null);
+  const [overrideFalseReportForAudit, setOverrideFalseReportForAudit] = useState(false);
+
+  // Hands-Free Voice Reporting state
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceSeconds, setVoiceSeconds] = useState(0);
+  const [voiceTranscribing, setVoiceTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
+  const [voiceMeta, setVoiceMeta] = useState(null);
+
   const isMobileDevice = detectMobileViewportOrAgent();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const mobileCameraInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const voiceStreamRef = useRef(null);
+  const voiceTimerRef = useRef(null);
+  const speechRecognitionRef = useRef(null);
+  const liveTranscriptRef = useRef('');
 
-  const startCamera = async (mode = facingMode, customDeviceId = selectedDeviceId) => {
-    stopCamera();
-    setCameraError(null);
-    setStreamActive(false);
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCameraError('Live webcam API is restricted in this browser context. Click "Capture Live Camera Frame" below to snap a geotagged live frame.');
-      return;
+  const stopVoiceRecorder = useCallback(() => {
+    if (voiceTimerRef.current) {
+      clearInterval(voiceTimerRef.current);
+      voiceTimerRef.current = null;
     }
-
-    try {
-      let stream = null;
+    if (speechRecognitionRef.current) {
       try {
-        const primaryConstraints = customDeviceId
-          ? {
-              video: {
-                deviceId: { exact: customDeviceId },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              },
-              audio: false
-            }
-          : {
-              video: {
-                facingMode: { ideal: isMobileDevice ? mode : 'user' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              },
-              audio: false
-            };
-        stream = await navigator.mediaDevices.getUserMedia(primaryConstraints);
+        speechRecognitionRef.current.stop();
       } catch {
-        // Fallback for desktop webcams that reject facingMode or resolution constraints
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        // ignore
       }
-
-      streamRef.current = stream;
-      setStreamActive(true);
-
-      if (navigator.mediaDevices.enumerateDevices) {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter((d) => d.kind === 'videoinput');
-        setVideoDevices(cams);
-        const activeTrack = stream.getVideoTracks()[0];
-        const activeId = activeTrack?.getSettings?.()?.deviceId;
-        if (activeId && !customDeviceId) {
-          setSelectedDeviceId(activeId);
-        }
-      }
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-    } catch (err) {
-      console.warn('Live camera stream warning:', err);
-      setCameraError('Please allow camera permission in your browser address bar for live webcam video, or click "Capture Live Camera Photo" below.');
+      speechRecognitionRef.current = null;
     }
-  };
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+    }
+    if (voiceStreamRef.current) {
+      voiceStreamRef.current.getTracks().forEach((t) => t.stop());
+      voiceStreamRef.current = null;
+    }
+    setIsRecordingVoice(false);
+  }, []);
 
-  const stopCamera = () => {
+  const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
     setStreamActive(false);
-  };
+  }, []);
+
+  const startCamera = useCallback(
+    async (mode = facingMode, customDeviceId = selectedDeviceId) => {
+      stopCamera();
+      setCameraError(null);
+      setStreamActive(false);
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError(
+          'Live webcam API is restricted in this browser context. Click "Capture & Scan with AI Vision" below to snap and verify a geotagged frame.'
+        );
+        return;
+      }
+
+      try {
+        let stream = null;
+        try {
+          const primaryConstraints = customDeviceId
+            ? {
+                video: {
+                  deviceId: { exact: customDeviceId },
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 }
+                },
+                audio: false
+              }
+            : {
+                video: {
+                  facingMode: { ideal: isMobileDevice ? mode : 'user' },
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 }
+                },
+                audio: false
+              };
+          stream = await navigator.mediaDevices.getUserMedia(primaryConstraints);
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+
+        streamRef.current = stream;
+        setStreamActive(true);
+
+        if (navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter((d) => d.kind === 'videoinput');
+          setVideoDevices(cams);
+          const activeTrack = stream.getVideoTracks()[0];
+          const activeId = activeTrack?.getSettings?.()?.deviceId;
+          if (activeId && !customDeviceId) {
+            setSelectedDeviceId(activeId);
+          }
+        }
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch (err) {
+        console.warn('Live camera stream warning:', err);
+        setCameraError(
+          'Please allow camera permission in your browser address bar for live webcam video, or click "Capture & Scan with AI Vision" below.'
+        );
+      }
+    },
+    [facingMode, selectedDeviceId, isMobileDevice, stopCamera]
+  );
+
+  // Run Deep Learning Vision Scan independently on every captured image
+  const runDeepLearningVisionScan = useCallback(
+    async (imageSrc, currentCat = category, currentSev = severity, currentWard = ward) => {
+      if (!imageSrc) return;
+      setVisionScanning(true);
+      setVisionError(null);
+      setOverrideFalseReportForAudit(false);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 22000);
+
+      try {
+        const base64Img = await resolveImageToBase64(imageSrc);
+        const res = await fetch(buildApiUrl('/api/vision/scan'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            imageBase64: base64Img,
+            citizenCategory: currentCat,
+            citizenSeverity: currentSev,
+            ward: currentWard
+          })
+        });
+
+        const parsed = await parseJsonSafely(res);
+        if (!parsed.ok) {
+          throw new Error(parsed.message || `Vision scan failed (HTTP ${res.status})`);
+        }
+        const payload = parsed.data;
+        if (!res.ok) {
+          throw new Error(payload?.error || `Vision scan failed (HTTP ${res.status})`);
+        }
+
+        const scan = payload.scan;
+        setVisionResult(scan);
+
+        // Automatically align category & severity to independent Deep Learning vision evidence when waste is confirmed
+        if (scan?.isWasteDetected) {
+          if (scan.detectedCategory && scan.detectedCategory !== 'No Waste / False Report') {
+            setCategory(scan.detectedCategory);
+          }
+          if (scan.detectedSeverity) {
+            setSeverity(scan.detectedSeverity);
+          }
+        }
+      } catch (err) {
+        const msg =
+          err?.name === 'AbortError'
+            ? 'Deep Learning Vision scan timed out. Tap "Re-scan" to retry or submit for manual audit.'
+            : err instanceof Error
+            ? err.message
+            : 'Unable to scan image with Deep Learning Vision model.';
+        setVisionError(msg);
+        setVisionResult(null);
+      } finally {
+        clearTimeout(timeoutId);
+        setVisionScanning(false);
+      }
+    },
+    [category, severity, ward]
+  );
 
   // Keep coordinates synced with selected Madgaon ward unless user is physically inside Madgaon
   const handleWardChange = (nextWard) => {
@@ -181,7 +418,10 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
     } else {
       stopCamera();
     }
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+      stopVoiceRecorder();
+    };
   }, [isOpen, photoData, submittedTicket]);
 
   const toggleOrCycleCamera = () => {
@@ -208,7 +448,6 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
   };
 
   const capturePhoto = async () => {
-    // If stream wasn't started yet on desktop, attempt to start it first
     if (!streamRef.current && navigator.mediaDevices?.getUserMedia) {
       try {
         const liveStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -224,6 +463,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       }
     }
 
+    let capturedSrc = '/street-detection.jpg';
     if (videoRef.current && videoRef.current.videoWidth) {
       const canvas = document.createElement('canvas');
       const scale = Math.min(1, 480 / videoRef.current.videoWidth);
@@ -232,14 +472,12 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       stampTelemetryWatermark(ctx, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
-      setPhotoData(dataUrl);
-      stopCamera();
-    } else {
-      // Fallback live telemetry capture when testing in a headless/no-webcam environment
-      setPhotoData('/street-detection.jpg');
-      stopCamera();
+      capturedSrc = canvas.toDataURL('image/jpeg', 0.72);
     }
+
+    setPhotoData(capturedSrc);
+    stopCamera();
+    runDeepLearningVisionScan(capturedSrc, category, severity, ward);
   };
 
   // Mobile-only native camera app capture handler (capture="environment")
@@ -251,22 +489,215 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
         const compressed = await compressDataUrl(event.target.result, 480, 0.68);
         setPhotoData(compressed);
         stopCamera();
+        runDeepLearningVisionScan(compressed, category, severity, ward);
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Hands-Free Voice Reporting: record audio via MediaRecorder + parallel Web Speech API fallback -> POST /api/voice/transcribe
+  const startVoiceReport = async () => {
+    setVoiceError(null);
+    liveTranscriptRef.current = '';
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setVoiceError('Voice recording is not supported in this browser. Please type your incident notes below.');
+      return;
+    }
+
+    const applyVoiceData = (data) => {
+      if (data.cleanNotes) {
+        setDescription(data.cleanNotes);
+      } else if (data.transcript) {
+        setDescription(data.transcript);
+      }
+
+      // Auto-fill ward from speech; fill category/severity if VisionNet hasn't locked a visual override
+      if (data.suggestedWard && WARD_COORDINATES_MAP[data.suggestedWard]) {
+        handleWardChange(data.suggestedWard);
+      }
+      if (data.suggestedCategory && (!visionResult || !visionResult.isWasteDetected)) {
+        setCategory(data.suggestedCategory);
+      }
+      if (data.suggestedSeverity && (!visionResult || !visionResult.isWasteDetected)) {
+        setSeverity(data.suggestedSeverity);
+      }
+
+      setVoiceMeta({
+        language: data.detectedLanguage || 'English',
+        transcript: data.transcript || data.cleanNotes,
+        autoFilledFields: [
+          'Incident Notes',
+          data.suggestedWard ? 'Ward' : null,
+          data.suggestedCategory && !visionResult?.isWasteDetected ? 'Category' : null,
+          data.suggestedSeverity && !visionResult?.isWasteDetected ? 'Severity' : null
+        ].filter(Boolean)
+      });
+    };
+
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceStreamRef.current = audioStream;
+      audioChunksRef.current = [];
+
+      // Start native browser SpeechRecognition in parallel as an instant resilient fallback
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRec) {
+        try {
+          const rec = new SpeechRec();
+          rec.continuous = true;
+          rec.interimResults = true;
+          rec.lang = 'en-IN';
+          rec.onresult = (event) => {
+            let combined = '';
+            for (let i = 0; i < event.results.length; i += 1) {
+              combined += event.results[i][0].transcript + ' ';
+            }
+            liveTranscriptRef.current = combined.trim();
+          };
+          rec.onerror = () => {
+            // Silently ignore browser speech errors when server transcription is primary
+          };
+          rec.start();
+          speechRecognitionRef.current = rec;
+        } catch {
+          speechRecognitionRef.current = null;
+        }
+      }
+
+      const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : '';
+
+      const recorder = preferredMime
+        ? new MediaRecorder(audioStream, { mimeType: preferredMime })
+        : new MediaRecorder(audioStream);
+
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) {
+          audioChunksRef.current.push(ev.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        if (speechRecognitionRef.current) {
+          try {
+            speechRecognitionRef.current.stop();
+          } catch {
+            // ignore
+          }
+          speechRecognitionRef.current = null;
+        }
+        if (voiceStreamRef.current) {
+          voiceStreamRef.current.getTracks().forEach((t) => t.stop());
+          voiceStreamRef.current = null;
+        }
+        const chunks = audioChunksRef.current;
+        if (!chunks.length) return;
+
+        const mimeType = recorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(chunks, { type: mimeType });
+        if (audioBlob.size < 400 && !liveTranscriptRef.current) {
+          setVoiceError('Recording was too short. Hold and speak for at least 2 seconds.');
+          return;
+        }
+
+        setVoiceTranscribing(true);
+        setVoiceError(null);
+        try {
+          const audioDataUrl = await blobToDataUrl(audioBlob);
+          const resp = await fetch(buildApiUrl('/api/voice/transcribe'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audioBase64: audioDataUrl,
+              mimeType: mimeType.split(';')[0]
+            })
+          });
+          const parsed = await parseJsonSafely(resp);
+          if (parsed.ok && resp.ok && parsed.data) {
+            applyVoiceData(parsed.data);
+            return;
+          }
+
+          // Graceful fallback to parallel Web Speech API transcript if server returned non-JSON/HTML or transient error
+          if (liveTranscriptRef.current) {
+            applyVoiceData(extractIncidentFromTranscript(liveTranscriptRef.current));
+            return;
+          }
+
+          const errMsg = parsed.ok
+            ? parsed.data?.error || `Voice transcription failed (HTTP ${resp.status})`
+            : parsed.message;
+          throw new Error(errMsg);
+        } catch (err) {
+          if (liveTranscriptRef.current) {
+            applyVoiceData(extractIncidentFromTranscript(liveTranscriptRef.current));
+          } else {
+            setVoiceError(
+              err instanceof Error
+                ? err.message
+                : 'Voice transcription failed. You can still type notes manually.'
+            );
+          }
+        } finally {
+          setVoiceTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      setIsRecordingVoice(true);
+      setVoiceSeconds(0);
+      voiceTimerRef.current = setInterval(() => {
+        setVoiceSeconds((prev) => {
+          if (prev >= 29) {
+            stopVoiceRecorder();
+            return 30;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      console.warn('Microphone access error:', err);
+      setVoiceError('Microphone permission was denied. Allow microphone access in your browser bar to use Voice Reporting.');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Prevent accidental dispatch when Deep Learning Vision detects a false/non-waste photo
+    if (visionResult && !visionResult.isWasteDetected && !overrideFalseReportForAudit) {
+      return;
+    }
+
     const ticketNum = Math.floor(1000 + Math.random() * 9000);
     const ticketId = `TKT-2026-${ticketNum}`;
-    const slaHours = SLA_HOURS_BY_SEVERITY[severity] || 24;
-    const assignedUnit =
-      category === 'Illegal Curbside Dump' || category === 'Overflowing Bin'
-        ? severity === 'Critical' || severity === 'High'
-          ? 'Municipal Small Pickup Van V-102 (Light Response)'
-          : 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)'
-        : DEFAULT_UNIT_BY_SEVERITY[severity] || 'Municipal Sanitation Staff (On Foot)';
+
+    // If VisionNet confirmed waste, prefer its objective classification & unit recommendation
+    const effectiveCategory =
+      visionResult?.isWasteDetected && visionResult.detectedCategory !== 'No Waste / False Report'
+        ? visionResult.detectedCategory
+        : category;
+    const effectiveSeverity = visionResult?.isWasteDetected ? visionResult.detectedSeverity || severity : severity;
+    const slaHours = SLA_HOURS_BY_SEVERITY[effectiveSeverity] || 24;
+    const isFlaggedAudit = Boolean(visionResult && !visionResult.isWasteDetected && overrideFalseReportForAudit);
+
+    const assignedUnit = isFlaggedAudit
+      ? 'Held for Municipal Admin Visual Audit (No Truck Dispatched)'
+      : visionResult?.recommendedUnit ||
+        (effectiveCategory === 'Illegal Curbside Dump' || effectiveCategory === 'Overflowing Bin'
+          ? effectiveSeverity === 'Critical' || effectiveSeverity === 'High'
+            ? 'Municipal Small Pickup Van V-102 (Light Response)'
+            : 'Municipal Sanitation Staff (On Foot — Ward Beat Crew)'
+          : DEFAULT_UNIT_BY_SEVERITY[effectiveSeverity] || 'Municipal Sanitation Staff (On Foot)');
+
     const reporterEmail = currentUser?.email || 'citizen.margao@goa.gov.in';
     const createdAtIso = new Date().toISOString();
     const slaDeadlineIso = new Date(Date.now() + slaHours * 3600 * 1000).toISOString();
@@ -280,14 +711,22 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
             lng: Number((wardFallback.lng + (Math.random() - 0.5) * 0.0012).toFixed(4))
           };
 
+    const visionSummaryNote = visionResult
+      ? `VisionNet Deep Learning Scan (${visionResult.confidence}% conf, Authenticity ${visionResult.authenticityScore}%): ${visionResult.detectedCategory} (~${visionResult.estimatedTonnage}T). ${visionResult.reasoning}`
+      : `AI Triage confirmed ${effectiveSeverity} urgency (${slaHours}h SLA). Zero-capex dispatch queued: ${assignedUnit}.`;
+
     const newTicket = {
       id: ticketId,
       reportId: `WD-${ticketNum}`,
-      category,
-      severity,
-      status: 'TRIAGED',
+      category: effectiveCategory,
+      severity: effectiveSeverity,
+      status: isFlaggedAudit ? 'REPORTED' : 'TRIAGED',
       ward,
-      description: description || `${category} reported at ${ward}`,
+      description:
+        description ||
+        (visionResult?.reasoning
+          ? `${effectiveCategory} verified via AI Vision at ${ward}: ${visionResult.reasoning}`
+          : `${effectiveCategory} reported at ${ward}`),
       coordinates: safeCoords,
       location: `${ward} (${safeCoords.lat}, ${safeCoords.lng})`,
       photo: photoData,
@@ -297,19 +736,23 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       createdAt: createdAtIso,
       slaDeadline: slaDeadlineIso,
       timestamp: new Date().toLocaleString(),
-      adminNotes: `AI Triage confirmed ${severity} urgency (${slaHours}h SLA). Zero-capex dispatch queued: ${assignedUnit}.`,
+      adminNotes: visionSummaryNote,
+      visionVerification: visionResult || null,
+      voiceReported: Boolean(voiceMeta),
       feedback: null,
       history: [
         {
           status: 'REPORTED',
           by: reporterEmail,
-          note: 'Geotagged live camera incident submitted by citizen.',
+          note: voiceMeta
+            ? `Geotagged live camera + hands-free voice report (${voiceMeta.language}) submitted by citizen.`
+            : 'Geotagged live camera incident submitted by citizen.',
           timestamp: createdAtIso
         },
         {
-          status: 'TRIAGED',
-          by: 'GridShift AI Triage Engine',
-          note: `Classified as ${category} (${severity} priority • ${slaHours}h SLA). Assigned ${assignedUnit}.`,
+          status: isFlaggedAudit ? 'REPORTED' : 'TRIAGED',
+          by: 'GridShift-VisionNet Deep Learning Engine',
+          note: visionSummaryNote,
           timestamp: createdAtIso
         }
       ]
@@ -347,17 +790,17 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       // ignore
     }
 
-    // 3. Log Nitrosend Transactional Email Receipt for Client-Facing & Admin Email Dashboard
+    // 3. Log Nitrosend Transactional Email Receipt
     try {
       const existingLogs = JSON.parse(localStorage.getItem('gridshift_nitrosend_logs') || '[]');
       const receiptLog = {
         id: `ns-tx-${Date.now()}`,
         recipient: reporterEmail,
         type: 'SLA Ticket Receipt',
-        subject: `[GridShift-AI] Redressal Ticket ${ticketId} Registered (${severity} • ${slaHours}h SLA)`,
+        subject: `[GridShift-AI] Redressal Ticket ${ticketId} Registered (${effectiveSeverity} • ${slaHours}h SLA)`,
         status: 'Delivered',
         timestamp: new Date().toLocaleString(),
-        preview: `Your live geotagged report for ${category} at ${ward} (${safeCoords.lat}, ${safeCoords.lng}) has been triaged and assigned to ${assignedUnit}. Target resolution window: ${slaHours} hours.`
+        preview: `Your live geotagged report for ${effectiveCategory} at ${ward} (${safeCoords.lat}, ${safeCoords.lng}) was scanned by GridShift-VisionNet and assigned to ${assignedUnit}.`
       };
       localStorage.setItem('gridshift_nitrosend_logs', JSON.stringify([receiptLog, ...existingLogs].slice(0, 50)));
       window.dispatchEvent(new CustomEvent('nitrosendLogAdded', { detail: receiptLog }));
@@ -367,7 +810,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
 
     // 4. Sync with backend /api/tickets if reachable
     try {
-      const backendUrl = BACKEND_API_URL;
+      const backendUrl = BACKEND_API_URL || '';
       fetch(`${backendUrl}/api/tickets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -386,13 +829,22 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
   };
 
   const resetAndClose = () => {
+    stopVoiceRecorder();
+    stopCamera();
     setPhotoData(null);
     setDescription('');
+    setVisionResult(null);
+    setVisionError(null);
+    setVoiceMeta(null);
+    setVoiceError(null);
+    setOverrideFalseReportForAudit(false);
     setSubmittedTicket(null);
     onClose();
   };
 
   if (!isOpen) return null;
+
+  const isFalseReportBlocked = Boolean(visionResult && !visionResult.isWasteDetected && !overrideFalseReportForAudit);
 
   return (
     <div
@@ -412,7 +864,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: '580px',
           backgroundColor: '#ffffff',
           borderRadius: '28px',
           overflow: 'hidden',
@@ -437,9 +889,11 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Camera size={22} color="#22c55e" />
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Live Camera Incident Report</h3>
+              <h3 style={{ margin: 0, fontSize: '1.12rem', fontWeight: 800 }}>
+                AI Vision & Voice Incident Report
+              </h3>
               <span style={{ fontSize: '11px', color: '#93c5fd' }}>
-                Verified Live Camera Capture Only • Geotagged Map Pin • Nitrosend Receipt
+                Deep Learning False-Report Guard • Hands-Free Voice Reporting • Geotagged Pin
               </span>
             </div>
           </div>
@@ -501,10 +955,10 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
               </span>
 
               <h4 style={{ fontSize: '1.3rem', fontWeight: 900, color: '#092C5E', margin: '0 0 8px 0' }}>
-                Geotagged Incident Queued for Redressal
+                AI-Verified Incident Queued for Redressal
               </h4>
               <p style={{ fontSize: '0.86rem', color: '#475569', margin: '0 0 18px 0', lineHeight: 1.5 }}>
-                Your live camera report has been pinned to the 3D Live Grid Map, routed to the Municipal Admin Console (<strong>pranavkantak9@gmail.com</strong>), and logged in your <strong>Nitrosend Transactional Receipts</strong>.
+                Your report was inspected by <strong>GridShift-VisionNet</strong>, logged into the Deep Learning training dataset, pinned to the Live Grid Map, and sent to <strong>Nitrosend Transactional Receipts</strong>.
               </p>
 
               <div
@@ -686,9 +1140,9 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                   />
                   {isMobileDevice
                     ? facingMode === 'environment'
-                      ? '📷 Mobile Back Camera (Live)'
-                      : '🤳 Mobile Front Camera (Live)'
-                    : '🎥 Live Desktop Webcam Feed'}
+                      ? 'Mobile Back Camera (Live)'
+                      : 'Mobile Front Camera (Live)'
+                    : 'Live Desktop Webcam Feed'}
                 </div>
 
                 {/* Camera Flip / Switch Button */}
@@ -736,8 +1190,8 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                     fontWeight: 700
                   }}
                 >
-                  <span>📍 GPS: {coords.lat}, {coords.lng}</span>
-                  <span style={{ color: '#4ade80' }}>ANTI-SPOOF LIVE CAPTURE</span>
+                  <span>GPS: {coords.lat}, {coords.lng}</span>
+                  <span style={{ color: '#4ade80' }}>AI VISION + VOICE READY</span>
                 </div>
               </div>
 
@@ -747,7 +1201,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                 </div>
               )}
 
-              {/* Live Capture Actions: Desktop blocks arbitrary computer file explorer uploads and captures live webcam; Mobile supports live viewfinder + native mobile camera redirect */}
+              {/* Live Capture Actions */}
               <div style={{ display: 'flex', gap: '10px', marginTop: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button
                   type="button"
@@ -764,7 +1218,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                   }}
                 >
                   <Camera size={17} />
-                  Capture Live Camera Photo
+                  Capture & Scan with AI Vision
                 </button>
 
                 {isMobileDevice ? (
@@ -828,24 +1282,31 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                   textAlign: 'center',
                   fontSize: '0.74rem',
                   color: '#64748b',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  lineHeight: 1.45
                 }}
               >
-                🔒 Local computer file uploads are disabled on desktop to guarantee authentic, real-time geotagged municipal field evidence.
+                Every captured frame is automatically scanned by <strong>GridShift-VisionNet</strong> (Deep Learning) to prevent false reporting, classify waste independently, and allow hands-free voice notes on the next step.
               </div>
             </div>
           ) : (
-            /* Photo Captured -> Incident Form */
+            /* Photo Captured -> Deep Learning Vision Panel + Voice Reporting + Incident Form */
             <form onSubmit={handleSubmit}>
               <div
                 style={{
                   position: 'relative',
                   width: '100%',
-                  height: '185px',
+                  height: '165px',
                   borderRadius: '16px',
                   overflow: 'hidden',
-                  marginBottom: '14px',
-                  border: '2px solid #22c55e'
+                  marginBottom: '12px',
+                  border: `2px solid ${
+                    visionScanning
+                      ? '#0ea5e9'
+                      : visionResult && !visionResult.isWasteDetected
+                      ? '#dc2626'
+                      : '#22c55e'
+                  }`
                 }}
               >
                 <img
@@ -853,62 +1314,382 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                   alt="Captured Waste"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPhotoData(null);
-                    startCamera(facingMode, selectedDeviceId);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    backgroundColor: 'rgba(0,0,0,0.7)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 12px',
-                    borderRadius: '9999px',
-                    fontSize: '11px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <RefreshCw size={12} /> Retake Live Photo
-                </button>
+
+                <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    disabled={visionScanning}
+                    onClick={() => runDeepLearningVisionScan(photoData, category, severity, ward)}
+                    style={{
+                      backgroundColor: 'rgba(15, 23, 42, 0.82)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(56, 189, 248, 0.4)',
+                      padding: '5px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: visionScanning ? 'wait' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <ScanEye size={12} /> {visionScanning ? 'Scanning...' : 'Re-Scan AI'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      stopVoiceRecorder();
+                      setPhotoData(null);
+                      setVisionResult(null);
+                      setVisionError(null);
+                      setOverrideFalseReportForAudit(false);
+                      startCamera(facingMode, selectedDeviceId);
+                    }}
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.72)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '5px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <RefreshCw size={12} /> Retake
+                  </button>
+                </div>
+              </div>
+
+              {/* DEEP LEARNING VISION VERIFICATION & FALSE-REPORT GUARD PANEL */}
+              <div
+                style={{
+                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  marginBottom: '12px',
+                  backgroundColor: visionScanning
+                    ? '#f0f9ff'
+                    : visionError
+                    ? '#fff7ed'
+                    : visionResult && !visionResult.isWasteDetected
+                    ? '#fef2f2'
+                    : '#f0fdf4',
+                  border: `1px solid ${
+                    visionScanning
+                      ? '#bae6fd'
+                      : visionError
+                      ? '#fed7aa'
+                      : visionResult && !visionResult.isWasteDetected
+                      ? '#fecaca'
+                      : '#bbf7d0'
+                  }`
+                }}
+              >
+                {visionScanning ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#0369a1' }}>
+                    <Loader2 size={18} className="animate-spin" />
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>
+                        GridShift-VisionNet Deep Learning Scan in Progress...
+                      </div>
+                      <div style={{ fontSize: '0.73rem', color: '#0c4a6e' }}>
+                        Independently verifying waste pixels, checking false-report risk, and estimating tonnage.
+                      </div>
+                    </div>
+                  </div>
+                ) : visionError ? (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: '#9a3412' }}>
+                    <AlertTriangle size={17} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ fontSize: '0.78rem', lineHeight: 1.4 }}>
+                      <strong>Deep Learning Vision Unavailable:</strong> {visionError}
+                    </div>
+                  </div>
+                ) : visionResult ? (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          color: visionResult.isWasteDetected ? '#15803d' : '#b91c1c'
+                        }}
+                      >
+                        {visionResult.isWasteDetected ? <ShieldCheck size={17} /> : <ShieldAlert size={17} />}
+                        <span>
+                          {visionResult.isWasteDetected
+                            ? `AI Verified Waste: ${visionResult.detectedCategory} (${visionResult.detectedSeverity})`
+                            : 'False Report Guard: No Municipal Waste Detected'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '6px', fontSize: '10.5px', fontWeight: 800 }}>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: visionResult.isWasteDetected ? '#dcfce7' : '#fee2e2',
+                            color: visionResult.isWasteDetected ? '#166534' : '#991b1b'
+                          }}
+                        >
+                          Authenticity {visionResult.authenticityScore}%
+                        </span>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: '#e0f2fe',
+                            color: '#075985'
+                          }}
+                        >
+                          {visionResult.confidence}% Conf
+                        </span>
+                        {visionResult.isWasteDetected && (
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: '#f1f5f9',
+                              color: '#0f172a'
+                            }}
+                          >
+                            ~{visionResult.estimatedTonnage}T
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <p style={{ margin: '0 0 6px 0', fontSize: '0.76rem', color: '#334155', lineHeight: 1.45 }}>
+                      {visionResult.reasoning}
+                    </p>
+
+                    {visionResult.detectedMaterials?.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '6px' }}>
+                        {visionResult.detectedMaterials.map((mat, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              backgroundColor: 'rgba(255,255,255,0.85)',
+                              border: '1px solid #cbd5e1',
+                              color: '#1e293b'
+                            }}
+                          >
+                            {mat}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {visionResult.citizenDiscrepancy && visionResult.discrepancyNote && (
+                      <div
+                        style={{
+                          marginTop: '6px',
+                          padding: '6px 9px',
+                          borderRadius: '8px',
+                          backgroundColor: visionResult.isWasteDetected ? '#fffbeb' : '#fee2e2',
+                          border: `1px solid ${visionResult.isWasteDetected ? '#fde68a' : '#fca5a5'}`,
+                          color: visionResult.isWasteDetected ? '#92400e' : '#991b1b',
+                          fontSize: '0.73rem',
+                          fontWeight: 700
+                        }}
+                      >
+                        {visionResult.discrepancyNote}
+                      </div>
+                    )}
+
+                    {!visionResult.isWasteDetected && (
+                      <label
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          marginTop: '8px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          color: '#7f1d1d',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={overrideFalseReportForAudit}
+                          onChange={(e) => setOverrideFalseReportForAudit(e.target.checked)}
+                        />
+                        <span>This is a real edge-case waste photo — flag for Municipal Admin Audit & Active-Learning review (no truck auto-dispatched)</span>
+                      </label>
+                    )}
+
+                    <div
+                      style={{
+                        marginTop: '7px',
+                        paddingTop: '6px',
+                        borderTop: '1px solid rgba(15, 23, 42, 0.08)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '10.5px',
+                        color: '#475569',
+                        fontWeight: 600
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Database size={11} color="#0284c7" />
+                        Logged to VisionNet Training Dataset ({visionResult.sampleId})
+                      </span>
+                      <span>Crew: {visionResult.recommendedUnit}</span>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* HANDS-FREE VOICE REPORTING BAR */}
+              <div
+                style={{
+                  borderRadius: '14px',
+                  padding: '10px 12px',
+                  marginBottom: '12px',
+                  backgroundColor: isRecordingVoice ? '#fef2f2' : '#f8fafc',
+                  border: `1px solid ${isRecordingVoice ? '#fca5a5' : '#cbd5e1'}`
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#092C5E', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Mic size={14} color={isRecordingVoice ? '#dc2626' : '#0284c7'} />
+                      <span>Hands-Free Voice Report (No Typing Needed)</span>
+                    </div>
+                    <div style={{ fontSize: '0.70rem', color: '#64748b' }}>
+                      Speak in English, Hindi, Konkani, or Marathi — AI transcribes & auto-fills notes, ward, and urgency.
+                    </div>
+                  </div>
+
+                  {!isRecordingVoice ? (
+                    <button
+                      type="button"
+                      disabled={voiceTranscribing}
+                      onClick={startVoiceReport}
+                      style={{
+                        padding: '7px 13px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        backgroundColor: '#092C5E',
+                        color: 'white',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: voiceTranscribing ? 'wait' : 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        flexShrink: 0
+                      }}
+                    >
+                      {voiceTranscribing ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Transcribing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic size={13} color="#38bdf8" />
+                          <span>Speak Report</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={stopVoiceRecorder}
+                      style={{
+                        padding: '7px 13px',
+                        borderRadius: '9999px',
+                        border: 'none',
+                        backgroundColor: '#dc2626',
+                        color: 'white',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        flexShrink: 0
+                      }}
+                    >
+                      <Square size={11} fill="white" />
+                      <span>Stop & Transcribe (0:{String(voiceSeconds).padStart(2, '0')})</span>
+                    </button>
+                  )}
+                </div>
+
+                {voiceMeta && (
+                  <div
+                    style={{
+                      marginTop: '7px',
+                      padding: '5px 8px',
+                      borderRadius: '8px',
+                      backgroundColor: '#ecfeff',
+                      border: '1px solid #a5f3fc',
+                      color: '#0e7490',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Sparkles size={12} />
+                    <span>
+                      Voice transcribed ({voiceMeta.language}) • Auto-filled: {voiceMeta.autoFilledFields.join(', ')}
+                    </span>
+                  </div>
+                )}
+
+                {voiceError && (
+                  <div style={{ marginTop: '6px', fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
+                    {voiceError}
+                  </div>
+                )}
               </div>
 
               {/* Category & Ward Picker */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#092C5E', marginBottom: '5px' }}>
-                    Waste Category
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#092C5E', marginBottom: '4px' }}>
+                    Waste Category {visionResult?.isWasteDetected ? '(AI Verified)' : ''}
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '10px 12px',
+                      padding: '9px 11px',
                       borderRadius: '10px',
                       border: '1px solid #cbd5e1',
                       backgroundColor: '#f8fafc',
-                      fontSize: '0.84rem',
+                      fontSize: '0.82rem',
                       fontWeight: 600,
                       outline: 'none'
                     }}
                   >
-                    <option value="Construction Debris">🏗️ Construction & Demolition</option>
-                    <option value="Illegal Curbside Dump">🚯 Illegal Curbside Dumping</option>
-                    <option value="Overflowing Bin">⚠️ Overflowing Municipal Bin</option>
-                    <option value="Commercial Organics">🥦 Commercial Kitchen Organics</option>
-                    <option value="Hazardous / Chemical">🧪 Hazardous / Chemical Waste</option>
+                    <option value="Construction Debris">Construction & Demolition</option>
+                    <option value="Illegal Curbside Dump">Illegal Curbside Dumping</option>
+                    <option value="Overflowing Bin">Overflowing Municipal Bin</option>
+                    <option value="Commercial Organics">Commercial Kitchen Organics</option>
+                    <option value="Hazardous / Chemical">Hazardous / Chemical Waste</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#092C5E', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#092C5E', marginBottom: '4px' }}>
                     Municipal Ward
                   </label>
                   <select
@@ -916,11 +1697,11 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                     onChange={(e) => handleWardChange(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '10px 12px',
+                      padding: '9px 11px',
                       borderRadius: '10px',
                       border: '1px solid #cbd5e1',
                       backgroundColor: '#f8fafc',
-                      fontSize: '0.84rem',
+                      fontSize: '0.82rem',
                       fontWeight: 600,
                       outline: 'none'
                     }}
@@ -935,9 +1716,9 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
               </div>
 
               {/* Severity & Coords */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#092C5E', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#092C5E', marginBottom: '4px' }}>
                     Urgency Level & SLA
                   </label>
                   <select
@@ -945,32 +1726,32 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                     onChange={(e) => setSeverity(e.target.value)}
                     style={{
                       width: '100%',
-                      padding: '10px 12px',
+                      padding: '9px 11px',
                       borderRadius: '10px',
                       border: '1px solid #cbd5e1',
                       backgroundColor: '#f8fafc',
-                      fontSize: '0.84rem',
+                      fontSize: '0.82rem',
                       fontWeight: 600,
                       outline: 'none'
                     }}
                   >
-                    <option value="Critical">🔴 Critical (4h SLA)</option>
-                    <option value="High">🟠 High (12h SLA)</option>
-                    <option value="Medium">🟡 Medium (24h SLA)</option>
-                    <option value="Low">🟢 Low (48h SLA)</option>
+                    <option value="Critical">Critical (4h SLA)</option>
+                    <option value="High">High (12h SLA)</option>
+                    <option value="Medium">Medium (24h SLA)</option>
+                    <option value="Low">Low (48h SLA)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#092C5E', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#092C5E', marginBottom: '4px' }}>
                     GPS Coordinates
                   </label>
                   <div
                     style={{
-                      padding: '10px 12px',
+                      padding: '9px 11px',
                       borderRadius: '10px',
                       backgroundColor: '#f1f5f9',
-                      fontSize: '0.8rem',
+                      fontSize: '0.78rem',
                       fontWeight: 600,
                       color: '#334155',
                       display: 'flex',
@@ -984,23 +1765,25 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                 </div>
               </div>
 
-              {/* Description */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#092C5E', marginBottom: '5px' }}>
-                  Incident Notes
+              {/* Description (auto-filled by voice or optional typing) */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#092C5E', marginBottom: '4px' }}>
+                  Incident Notes (Typed or Voice-Transcribed)
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Concrete rubble blocking pedestrian pavement near market gate"
+                <textarea
+                  rows={2}
+                  placeholder="Tap 'Speak Report' above to dictate hands-free, or type brief notes..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
+                    padding: '9px 12px',
                     borderRadius: '10px',
                     border: '1px solid #cbd5e1',
-                    fontSize: '0.85rem',
-                    outline: 'none'
+                    fontSize: '0.83rem',
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
                   }}
                 />
               </div>
@@ -1008,21 +1791,42 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
               {/* Submit Button */}
               <button
                 type="submit"
+                disabled={visionScanning || isFalseReportBlocked}
                 className="btn btn-primary"
                 style={{
                   width: '100%',
-                  padding: '14px',
+                  padding: '13px',
                   borderRadius: '9999px',
                   fontWeight: 800,
-                  fontSize: '0.95rem',
+                  fontSize: '0.92rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  opacity: visionScanning || isFalseReportBlocked ? 0.55 : 1,
+                  cursor: visionScanning || isFalseReportBlocked ? 'not-allowed' : 'pointer'
                 }}
               >
-                <Check size={18} />
-                Create Redressal Ticket & Pin to Live Map
+                {visionScanning ? (
+                  <>
+                    <Loader2 size={17} className="animate-spin" />
+                    <span>Waiting for Deep Learning Vision Verification...</span>
+                  </>
+                ) : isFalseReportBlocked ? (
+                  <>
+                    <ShieldAlert size={17} />
+                    <span>Blocked by False-Report Guard — Retake Waste Photo</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={18} />
+                    <span>
+                      {overrideFalseReportForAudit
+                        ? 'Submit Flagged Report for Admin Audit'
+                        : 'Create Verified Redressal Ticket & Pin to Map'}
+                    </span>
+                  </>
+                )}
               </button>
             </form>
           )}
