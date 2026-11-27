@@ -26,7 +26,7 @@ import {
   Cpu,
   Database
 } from 'lucide-react';
-import { BACKEND_API_URL } from '../firebase';
+import { BACKEND_API_URL, isAdminUser } from '../firebase';
 import {
   INITIAL_VISION_MODEL_STATE,
   applyHumanVerificationLabel,
@@ -331,7 +331,8 @@ function syncVerdictToRedressalTicket(sample, confirmedLabel, confirmedFalseRepo
   }
 }
 
-function Analytics() {
+function Analytics({ user }) {
+  const isAdmin = isAdminUser(user);
   const [visionState, setVisionState] = useState(() => ({
     ...INITIAL_VISION_MODEL_STATE,
     samples: buildMergedVisionSamples(INITIAL_VISION_MODEL_STATE.samples)
@@ -340,6 +341,7 @@ function Analytics() {
   const [trainBanner, setTrainBanner] = useState('');
 
   const loadVisionStatus = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       const data = await fetchJsonSafe(buildVisionApiUrl('/api/vision/model-status'));
       if (data && typeof data.validationAccuracy === 'number') {
@@ -356,9 +358,10 @@ function Analytics() {
       ...(prev || INITIAL_VISION_MODEL_STATE),
       samples: buildMergedVisionSamples(prev?.samples || INITIAL_VISION_MODEL_STATE.samples)
     }));
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
+    if (!isAdmin) return;
     loadVisionStatus();
     const handleSync = () => loadVisionStatus();
     window.addEventListener('citizenReportAdded', handleSync);
@@ -369,7 +372,7 @@ function Analytics() {
       window.removeEventListener('visionSampleAdded', handleSync);
       window.removeEventListener('redressalTicketUpdated', handleSync);
     };
-  }, [loadVisionStatus]);
+  }, [isAdmin, loadVisionStatus]);
 
   const handleLabelSample = async (sample, confirmedLabel, confirmedFalseReport) => {
     const sampleId = sample.id;
@@ -697,8 +700,8 @@ function Analytics() {
         </div>
       </div>
 
-      {/* DEEP LEARNING VISION TRAINING & FALSE-REPORT PREVENTION PANEL */}
-      {visionState && (
+      {/* DEEP LEARNING VISION TRAINING & FALSE-REPORT PREVENTION PANEL (ADMIN ONLY) */}
+      {isAdmin && visionState && (
         <div className="gs-card" style={{ padding: '24px', marginBottom: '24px' }}>
           <div
             style={{

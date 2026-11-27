@@ -16,8 +16,10 @@ import {
   AlertTriangle,
   User,
   ShieldCheck,
-  Mail
+  Mail,
+  KeyRound
 } from 'lucide-react';
+import { scrollToTop } from './components/ScrollToTop';
 import './index.css';
 
 function formatNavUserName(user, isAdmin) {
@@ -37,7 +39,7 @@ function formatNavUserName(user, isAdmin) {
     .join(' ');
 }
 
-function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenChatbot }) {
+function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenChatbot, onOpenLoginModal }) {
   const location = useLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const isAdmin = isAdminUser(user);
@@ -113,6 +115,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={scrollToTop}
                 className={`gs-nav-link ${isActive ? 'active' : ''}`}
               >
                 {item.icon}
@@ -141,45 +144,71 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             <span>Report Incident</span>
           </button>
 
-          {/* Authenticated User Pill (Clean Name Extracted from Account/Email) */}
-          <div
-            className="desktop-only-btn"
-            title={user?.email || displayUserName}
-            style={{
-              padding: '7px 14px',
-              borderRadius: '9999px',
-              border: isAdmin ? '1px solid rgba(22, 163, 74, 0.35)' : '1px solid rgba(15, 23, 42, 0.14)',
-              backgroundColor: isAdmin ? 'rgba(22, 163, 74, 0.08)' : 'rgba(15, 23, 42, 0.04)',
-              color: isAdmin ? '#15803d' : '#334155',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              maxWidth: '170px'
-            }}
-          >
-            {isAdmin ? <ShieldCheck size={15} style={{ flexShrink: 0 }} /> : <User size={15} style={{ flexShrink: 0 }} />}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUserName}</span>
-          </div>
+          {/* Authenticated User Pill vs Guest Sign In Button */}
+          {user ? (
+            <>
+              <div
+                className="desktop-only-btn"
+                title={user?.email || displayUserName}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '9999px',
+                  border: isAdmin ? '1px solid rgba(22, 163, 74, 0.35)' : '1px solid rgba(15, 23, 42, 0.14)',
+                  backgroundColor: isAdmin ? 'rgba(22, 163, 74, 0.08)' : 'rgba(15, 23, 42, 0.04)',
+                  color: isAdmin ? '#15803d' : '#334155',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  maxWidth: '170px'
+                }}
+              >
+                {isAdmin ? <ShieldCheck size={15} style={{ flexShrink: 0 }} /> : <User size={15} style={{ flexShrink: 0 }} />}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUserName}</span>
+              </div>
 
-          {/* Compact Rounded-Square Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="gs-btn-ghost desktop-only-btn"
-            title={`Sign Out (${user?.email || displayUserName})`}
-            aria-label="Sign Out"
-            style={{
-              width: '36px',
-              height: '36px',
-              padding: 0,
-              borderRadius: '10px',
-              justifyContent: 'center',
-              border: '1px solid rgba(15, 23, 42, 0.10)',
-              backgroundColor: 'rgba(255, 255, 255, 0.85)'
-            }}
-          >
-            <LogOut size={15} style={{ opacity: 0.65 }} />
-          </button>
+              {/* Compact Rounded-Square Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="gs-btn-ghost desktop-only-btn"
+                title={`Sign Out (${user?.email || displayUserName})`}
+                aria-label="Sign Out"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: 0,
+                  borderRadius: '10px',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(15, 23, 42, 0.10)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.85)'
+                }}
+              >
+                <LogOut size={15} style={{ opacity: 0.65 }} />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLoginModal}
+              className="desktop-only-btn"
+              style={{
+                padding: '8px 16px',
+                fontSize: '0.82rem',
+                backgroundColor: '#092C5E',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '9999px',
+                fontWeight: 700,
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(9, 44, 94, 0.18)'
+              }}
+            >
+              <KeyRound size={14} />
+              <span>Sign In</span>
+            </button>
+          )}
 
           {/* Mobile Hamburger */}
           <button
@@ -337,39 +366,66 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
           </div>
         </div>
 
-        {/* Bottom Authenticated Account Info */}
+        {/* Bottom Authenticated Account Info vs Guest Sign-In */}
         <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', backgroundColor: isAdmin ? '#dcfce7' : '#e0f2fe', color: isAdmin ? '#15803d' : '#0369a1' }}>
-              {isAdmin ? 'ADMINISTRATOR' : 'AUTHENTICATED USER'}
-            </span>
-            <Radio size={13} color="#059669" className="pulse-dot" />
-          </div>
-          <p style={{ fontSize: '0.76rem', fontWeight: 700, color: '#092C5E', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {user?.email}
-          </p>
-          <button
-            type="button"
-            onClick={handleLogout}
-            style={{
-              width: '100%',
-              padding: '8px 10px',
-              borderRadius: '8px',
-              border: '1px solid rgba(220, 38, 38, 0.2)',
-              backgroundColor: 'rgba(220, 38, 38, 0.06)',
-              color: '#DC2626',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
-          >
-            <LogOut size={13} />
-            Sign Out
-          </button>
+          {user ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '6px', backgroundColor: isAdmin ? '#dcfce7' : '#e0f2fe', color: isAdmin ? '#15803d' : '#0369a1' }}>
+                  {isAdmin ? 'ADMINISTRATOR' : 'AUTHENTICATED USER'}
+                </span>
+                <Radio size={13} color="#059669" className="pulse-dot" />
+              </div>
+              <p style={{ fontSize: '0.76rem', fontWeight: 700, color: '#092C5E', margin: '0 0 10px 0', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.email}
+              </p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(220, 38, 38, 0.2)',
+                  backgroundColor: 'rgba(220, 38, 38, 0.06)',
+                  color: '#DC2626',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <LogOut size={13} />
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLoginModal}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: '#092C5E',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <KeyRound size={14} />
+              Sign In to Your Account
+            </button>
+          )}
         </div>
       </aside>
 
@@ -480,30 +536,60 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             </div>
 
             <div style={{ borderTop: '1px solid rgba(15, 23, 42, 0.06)', paddingTop: '16px' }}>
-              <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>
-                {user?.email}
-              </p>
-              <button
-                onClick={handleLogout}
-                style={{
-                  width: '100%',
-                  padding: '11px',
-                  backgroundColor: 'rgba(220, 38, 38, 0.06)',
-                  color: '#DC2626',
-                  border: '1px solid rgba(220, 38, 38, 0.10)',
-                  borderRadius: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                <LogOut size={15} />
-                Sign Out
-              </button>
+              {user ? (
+                <>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '10px' }}>
+                    {user?.email}
+                  </p>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: '100%',
+                      padding: '11px',
+                      backgroundColor: 'rgba(220, 38, 38, 0.06)',
+                      color: '#DC2626',
+                      border: '1px solid rgba(220, 38, 38, 0.10)',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <LogOut size={15} />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileDrawerOpen(false);
+                    onOpenLoginModal();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: '#092C5E',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <KeyRound size={15} />
+                  Sign In / Register
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -166,7 +166,7 @@ const DEFAULT_SEGMENTS = [
   }
 ];
 
-function NitrosendDashboard({ user }) {
+function NitrosendDashboard({ user, onOpenLoginModal }) {
   const isAdmin = isAdminUser(user);
   const [nitroStatus, setNitroStatus] = useState({
     configured: true,
@@ -266,6 +266,12 @@ function NitrosendDashboard({ user }) {
 
   const handleSavePreferences = (e) => {
     e.preventDefault();
+    if (!user) {
+      if (typeof onOpenLoginModal === 'function') {
+        onOpenLoginModal();
+      }
+      return;
+    }
     localStorage.setItem('gridshift_nitrosend_prefs', JSON.stringify(preferences));
     fetch(`${BACKEND_API_URL}/api/nitrosend/preferences`, {
       method: 'POST',
@@ -278,6 +284,12 @@ function NitrosendDashboard({ user }) {
 
   const handleSendOutboxEmail = async (e) => {
     e.preventDefault();
+    if (!user) {
+      if (typeof onOpenLoginModal === 'function') {
+        onOpenLoginModal();
+      }
+      return;
+    }
     if (!composeTo.trim() || !composeSubject.trim()) return;
     setSendingEmail(true);
     setSendFeedback('');
@@ -675,6 +687,46 @@ function NitrosendDashboard({ user }) {
                   Dispatch civic incident summaries or notices to ward stakeholders and track real-time Delivered, Opened, or Bounced status.
                 </p>
 
+                {!user && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      backgroundColor: 'rgba(2, 132, 199, 0.08)',
+                      border: '1px solid rgba(2, 132, 199, 0.22)',
+                      color: '#0369a1',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      marginBottom: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px'
+                    }}
+                  >
+                    <span>
+                      🔒 <strong>Sign-In Required:</strong> Please sign in to dispatch emails through the Nitrosend Outbox.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={onOpenLoginModal}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        backgroundColor: '#0284c7',
+                        color: 'white',
+                        border: 'none',
+                        fontWeight: 800,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                )}
+
                 <form onSubmit={handleSendOutboxEmail} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
                   <input
                     type="email"
@@ -702,6 +754,12 @@ function NitrosendDashboard({ user }) {
                   <button
                     type="submit"
                     disabled={sendingEmail}
+                    onClick={(e) => {
+                      if (!user) {
+                        e.preventDefault();
+                        if (typeof onOpenLoginModal === 'function') onOpenLoginModal();
+                      }
+                    }}
                     className="btn btn-primary"
                     style={{ gridColumn: '1 / -1', padding: '11px', borderRadius: '10px', fontWeight: 800, fontSize: '0.86rem' }}
                   >

@@ -163,7 +163,7 @@ export const INITIAL_REDRESSAL_TICKETS = [
   }
 ];
 
-function Redressal({ user, onOpenWasteCamera }) {
+function Redressal({ user, onOpenWasteCamera, onOpenLoginModal }) {
   const isAdmin = isAdminUser(user);
 
   const [tickets, setTickets] = useState(() => {
@@ -449,6 +449,12 @@ function Redressal({ user, onOpenWasteCamera }) {
   // Citizen Action: Submit Verification Rating & Closed-Loop Feedback
   const handleCitizenSubmitFeedback = (e) => {
     e.preventDefault();
+    if (!user) {
+      if (typeof onOpenLoginModal === 'function') {
+        onOpenLoginModal();
+      }
+      return;
+    }
     if (!selectedTicket) return;
 
     const ratingNum = Number(citizenRating);
