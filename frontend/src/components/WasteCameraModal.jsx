@@ -875,7 +875,47 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       // ignore offline backend
     }
 
-    // 5. Dispatch global events so Dashboard and Redressal views update immediately
+    // 5. Persist scanned photo into local VisionNet Active-Learning Queue so flagged tickets & photos always appear for Admin review
+    try {
+      const existingVisionSamples = JSON.parse(localStorage.getItem('gridshift_vision_samples') || '[]');
+      const sampleEntry = {
+        id: visionResult?.sampleId || `VS-2026-${ticketNum}`,
+        ticketId: newTicket.id,
+        createdAt: createdAtIso,
+        ward,
+        imagePreview: photoData,
+        citizenCategory: category,
+        citizenSeverity: citizenClaimedSeverity || severity,
+        aiDetectedCategory:
+          visionResult?.detectedCategory || (isFlaggedAudit ? 'No Waste / False Report' : effectiveCategory),
+        aiDetectedSeverity: visionResult?.detectedSeverity || effectiveSeverity,
+        isWasteDetected: visionResult ? Boolean(visionResult.isWasteDetected) : true,
+        authenticityScore: visionResult?.authenticityScore ?? 88,
+        confidence: visionResult?.confidence ?? 91,
+        discrepancyFlagged: Boolean(visionResult?.citizenDiscrepancy || isFlaggedAudit),
+        confirmedLabel: null,
+        confirmedFalseReport: null,
+        adminVerdict: null,
+        trainingStatus: isFlaggedAudit || (visionResult && !visionResult.isWasteDetected)
+          ? 'QUEUED_FOR_TRAINING'
+          : 'QUEUED_FOR_TRAINING',
+        reasoning:
+          visionResult?.reasoning ||
+          `Submitted via live camera report ${newTicket.id} at ${ward}.`
+      };
+      const mergedSamples = [
+        sampleEntry,
+        ...(Array.isArray(existingVisionSamples)
+          ? existingVisionSamples.filter((s) => s.id !== sampleEntry.id && s.ticketId !== sampleEntry.ticketId)
+          : [])
+      ].slice(0, 20);
+      localStorage.setItem('gridshift_vision_samples', JSON.stringify(mergedSamples));
+      window.dispatchEvent(new CustomEvent('visionSampleAdded', { detail: sampleEntry }));
+    } catch {
+      // ignore storage quota errors
+    }
+
+    // 6. Dispatch global events so Dashboard, Redressal, and Analytics views update immediately
     window.dispatchEvent(new CustomEvent('citizenReportAdded', { detail: newTicket }));
     window.dispatchEvent(new CustomEvent('redressalTicketUpdated', { detail: newTicket }));
 

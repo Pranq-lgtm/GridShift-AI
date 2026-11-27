@@ -9,9 +9,13 @@ import {
   Cpu,
   Database,
   Layers,
-  MapPin
+  MapPin,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { ADMIN_EMAIL, isAdminUser, BACKEND_API_URL } from '../firebase';
+import { recommendMunicipalUnit } from '../utils/visionTrainingEngine';
 import '../index.css';
 
 const LIFECYCLE_STAGES = [
@@ -357,6 +361,88 @@ function Redressal({ user, onOpenWasteCamera }) {
       }).catch(() => {});
     } catch {
       // ignore
+    }
+  };
+
+  // Admin Visual Audit Action for AI-flagged tickets (Confirm Waste vs Mark False) — syncs with VisionNet Active-Learning Queue
+  const handleAdminVisualAuditVerdict = (confirmedFalseReport) => {
+    if (!isAdmin || !selectedTicket) return;
+    const sampleId =
+      selectedTicket.visionVerification?.sampleId || `VS-${selectedTicket.id.replace(/^TKT-/, '')}`;
+    const confirmedLabel = confirmedFalseReport
+      ? 'No Waste / False Report'
+      : selectedTicket.category || 'Illegal Curbside Dump';
+    const nextUnit = confirmedFalseReport
+      ? 'Rejected — Confirmed False Report by Admin (No Dispatch)'
+      : recommendMunicipalUnit(confirmedLabel, selectedTicket.severity || 'High');
+    const nextStatus = confirmedFalseReport ? 'VERIFIED_CLOSED' : 'TRIAGED';
+    const logMessage = confirmedFalseReport
+      ? `Admin visual audit confirmed ${sampleId} is a False / Non-Waste Report. Ticket closed without crew dispatch.`
+      : `Admin visual audit overrode AI flag on ${sampleId} and confirmed real ${confirmedLabel}. Ticket approved for ${nextUnit}.`;
+
+    const updatedVisionVerification = {
+      ...(selectedTicket.visionVerification || {}),
+      sampleId,
+      isWasteDetected: !confirmedFalseReport,
+      detectedCategory: confirmedLabel,
+      adminVerdict: confirmedFalseReport ? 'MARKED_FALSE' : 'CONFIRMED_WASTE'
+    };
+
+    handleAdminUpdateTicket(
+      {
+        status: nextStatus,
+        assignedUnit: nextUnit,
+        adminNotes: logMessage,
+        visionVerification: updatedVisionVerification
+      },
+      logMessage
+    );
+
+    // Persist verdict to localStorage so Analytics VisionNet Active-Learning Queue updates immediately
+    try {
+      const verdicts = JSON.parse(localStorage.getItem('gridshift_vision_verdicts') || '{}');
+      const payload = {
+        confirmedLabel,
+        confirmedFalseReport: Boolean(confirmedFalseReport),
+        updatedAt: new Date().toISOString()
+      };
+      verdicts[sampleId] = payload;
+      verdicts[selectedTicket.id] = payload;
+      localStorage.setItem('gridshift_vision_verdicts', JSON.stringify(verdicts));
+      window.dispatchEvent(new CustomEvent('visionSampleAdded', { detail: { id: sampleId, ticketId: selectedTicket.id } }));
+    } catch {
+      // ignore storage errors
+    }
+
+    try {
+      const backendUrl = BACKEND_API_URL || '';
+      fetch(`${backendUrl}/api/vision/feedback-label`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sampleId,
+          confirmedLabel,
+          confirmedFalseReport: Boolean(confirmedFalseReport),
+          sample: {
+            id: sampleId,
+            ticketId: selectedTicket.id,
+            createdAt: selectedTicket.createdAt || new Date().toISOString(),
+            ward: selectedTicket.ward,
+            imagePreview: selectedTicket.photo,
+            citizenCategory: selectedTicket.category,
+            citizenSeverity: selectedTicket.severity,
+            aiDetectedCategory: selectedTicket.visionVerification?.detectedCategory || 'No Waste / False Report',
+            aiDetectedSeverity: selectedTicket.severity || 'Low',
+            isWasteDetected: !confirmedFalseReport,
+            authenticityScore: selectedTicket.visionVerification?.authenticityScore ?? 18,
+            confidence: selectedTicket.visionVerification?.confidence ?? 92,
+            discrepancyFlagged: true,
+            reasoning: selectedTicket.visionVerification?.reasoning || selectedTicket.description
+          }
+        })
+      }).catch(() => {});
+    } catch {
+      // ignore offline backend
     }
   };
 
@@ -753,6 +839,80 @@ function Redressal({ user, onOpenWasteCamera }) {
                 })}
               </div>
             </div>
+
+            {/* AI Visual Audit Approval Bar when AI flagged a ticket as Non-Waste / False Report */}
+            {isAdmin &&
+              (String(selectedTicket.assignedUnit || '').toLowerCase().includes('visual audit') ||
+                (selectedTicket.visionVerification &&
+                  !selectedTicket.visionVerification.isWasteDetected &&
+                  !selectedTicket.visionVerification.adminVerdict)) && (
+                <div
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '14px',
+                    backgroundColor: '#fff7ed',
+                    border: '1.5px solid #fdba74',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                      <ShieldAlert size={17} color="#c2410c" />
+                      <strong style={{ fontSize: '0.88rem', color: '#9a3412' }}>
+                        AI Flagged as Non-Waste / False Report — Admin Visual Audit Required
+                      </strong>
+                    </div>
+                    <span style={{ fontSize: '10.5px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', backgroundColor: '#ffedd5', color: '#c2410c' }}>
+                      Synced with VisionNet Queue
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#7c2d12', lineHeight: 1.45 }}>
+                    Review the citizen photo above. Approving waste overrides the AI hold and queues crew dispatch; marking false closes the ticket and reinforces the VisionNet spam filter.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleAdminVisualAuditVerdict(false)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '9px',
+                        border: '1px solid #15803d',
+                        backgroundColor: '#16a34a',
+                        color: '#ffffff',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <CheckCircle2 size={14} /> Confirm Waste & Approve Ticket
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdminVisualAuditVerdict(true)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '9px',
+                        border: '1px solid #b91c1c',
+                        backgroundColor: '#fef2f2',
+                        color: '#b91c1c',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <XCircle size={14} /> Mark False & Reject Ticket
+                    </button>
+                  </div>
+                </div>
+              )}
 
             {/* ROLE-SPECIFIC SECTION:
                 - When logged in as Admin (pranavkantak9@gmail.com): Show Municipal Admin Triage & Fleet Dispatch Console

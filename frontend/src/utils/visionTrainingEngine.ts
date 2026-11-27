@@ -61,6 +61,8 @@ export interface VisionTrainingSample {
   confirmedFalseReport: boolean | null;
   trainingStatus: 'QUEUED_FOR_TRAINING' | 'VERIFIED_IN_DATASET' | 'BLOCKED_FALSE_REPORT';
   reasoning: string;
+  ticketId?: string;
+  adminVerdict?: 'CONFIRMED_WASTE' | 'MARKED_FALSE' | null;
 }
 
 export interface VisionModelState {
@@ -349,21 +351,28 @@ export function applyHumanVerificationLabel(
   confirmedLabel: VisionWasteCategory,
   confirmedFalseReport: boolean
 ): VisionModelState {
-  const updatedSamples = state.samples.map((s) =>
-    s.id === sampleId
-      ? {
-          ...s,
-          confirmedLabel,
-          confirmedFalseReport,
-          trainingStatus: confirmedFalseReport
-            ? ('BLOCKED_FALSE_REPORT' as const)
-            : ('VERIFIED_IN_DATASET' as const),
-        }
-      : s
-  );
+  let blockedDelta = 0;
+  const updatedSamples = state.samples.map((s) => {
+    if (s.id !== sampleId && s.ticketId !== sampleId) return s;
+    const wasFalse = s.confirmedFalseReport ?? !s.isWasteDetected;
+    if (confirmedFalseReport && !wasFalse) blockedDelta += 1;
+    if (!confirmedFalseReport && wasFalse) blockedDelta -= 1;
+    return {
+      ...s,
+      isWasteDetected: !confirmedFalseReport,
+      aiDetectedCategory: confirmedFalseReport ? ('No Waste / False Report' as const) : confirmedLabel,
+      confirmedLabel,
+      confirmedFalseReport,
+      adminVerdict: confirmedFalseReport ? ('MARKED_FALSE' as const) : ('CONFIRMED_WASTE' as const),
+      trainingStatus: confirmedFalseReport
+        ? ('BLOCKED_FALSE_REPORT' as const)
+        : ('VERIFIED_IN_DATASET' as const),
+    };
+  });
 
   return {
     ...state,
+    falseReportsBlocked: Math.max(0, state.falseReportsBlocked + blockedDelta),
     samples: updatedSamples,
   };
 }

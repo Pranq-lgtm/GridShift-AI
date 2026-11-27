@@ -20,11 +20,28 @@ import {
 } from 'lucide-react';
 import './index.css';
 
+function formatNavUserName(user, isAdmin) {
+  if (user?.displayName && !String(user.displayName).includes('@')) {
+    return String(user.displayName).trim();
+  }
+  if (isAdmin) return 'Pranav Kantak';
+  const rawLocal = user?.email ? String(user.email).split('@')[0] : 'User';
+  const cleaned = rawLocal
+    .replace(/[._-]+/g, ' ')
+    .replace(/([a-zA-Z])\d+$/g, '$1')
+    .trim();
+  if (!cleaned) return rawLocal || 'User';
+  return cleaned
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenChatbot }) {
   const location = useLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const isAdmin = isAdminUser(user);
-  const emailUsername = user?.email ? String(user.email).split('@')[0] : user?.displayName || 'User';
+  const displayUserName = formatNavUserName(user, isAdmin);
 
   const handleLogout = async () => {
     sessionStorage.setItem('gridshift_signed_out', 'true');
@@ -39,11 +56,11 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
 
   const navItems = [
     { path: '/', label: 'Overview', icon: <HomeIcon size={16} /> },
-    { path: '/dashboard', label: 'Live Grid Map', icon: <LayoutDashboard size={16} /> },
-    { path: '/redressal', label: 'Ticket Redressal', icon: <ShieldCheck size={16} /> },
-    { path: '/fleet', label: 'Fleet Dispatch', icon: <Truck size={16} /> },
-    { path: '/analytics', label: 'Surge Analytics', icon: <BarChart3 size={16} /> },
-    { path: '/email-agent', label: 'Nitrosend Email', icon: <Mail size={16} /> },
+    { path: '/dashboard', label: 'Grid Map', icon: <LayoutDashboard size={16} /> },
+    { path: '/redressal', label: 'Redressal', icon: <ShieldCheck size={16} /> },
+    { path: '/fleet', label: 'Fleet', icon: <Truck size={16} /> },
+    { path: '/analytics', label: 'Analytics', icon: <BarChart3 size={16} /> },
+    { path: '/email-agent', label: 'Nitrosend', icon: <Mail size={16} /> },
   ];
 
   return (
@@ -107,46 +124,61 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
 
         {/* Right: Action Buttons & Authenticated Profile */}
         <div className="gs-nav-actions">
-          {/* Report Incident — Glossy Primary */}
+          {/* Report Incident — Glossy Cyan Pill */}
           <button
             onClick={onOpenWasteCamera}
             className="gs-btn-primary desktop-only-btn"
-            style={{ padding: '7px 14px', fontSize: '0.78rem' }}
+            style={{
+              padding: '8px 16px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              borderRadius: '9999px',
+              background: 'linear-gradient(135deg, #00B4D8, #0EA5E9)',
+              boxShadow: '0 4px 14px rgba(6, 182, 212, 0.34)'
+            }}
           >
-            <AlertTriangle size={13} />
+            <AlertTriangle size={14} />
             <span>Report Incident</span>
           </button>
 
-          {/* Authenticated User Display (Username extracted from email) */}
+          {/* Authenticated User Pill (Clean Name Extracted from Account/Email) */}
           <div
             className="desktop-only-btn"
-            title={user?.email || emailUsername}
+            title={user?.email || displayUserName}
             style={{
-              padding: '6px 12px',
+              padding: '7px 14px',
               borderRadius: '9999px',
-              border: isAdmin ? '1px solid rgba(22, 163, 74, 0.35)' : '1px solid rgba(15, 23, 42, 0.12)',
+              border: isAdmin ? '1px solid rgba(22, 163, 74, 0.35)' : '1px solid rgba(15, 23, 42, 0.14)',
               backgroundColor: isAdmin ? 'rgba(22, 163, 74, 0.08)' : 'rgba(15, 23, 42, 0.04)',
               color: isAdmin ? '#15803d' : '#334155',
               alignItems: 'center',
               gap: '6px',
-              fontSize: '0.76rem',
+              fontSize: '0.82rem',
               fontWeight: 700,
-              maxWidth: '148px'
+              maxWidth: '170px'
             }}
           >
-            {isAdmin ? <ShieldCheck size={13} style={{ flexShrink: 0 }} /> : <User size={13} style={{ flexShrink: 0 }} />}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emailUsername}</span>
+            {isAdmin ? <ShieldCheck size={15} style={{ flexShrink: 0 }} /> : <User size={15} style={{ flexShrink: 0 }} />}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayUserName}</span>
           </div>
 
-          {/* Compact Logout Button */}
+          {/* Compact Rounded-Square Logout Button */}
           <button
             onClick={handleLogout}
             className="gs-btn-ghost desktop-only-btn"
-            title={`Sign Out (${user?.email || ''})`}
+            title={`Sign Out (${user?.email || displayUserName})`}
             aria-label="Sign Out"
-            style={{ padding: '7px 9px' }}
+            style={{
+              width: '36px',
+              height: '36px',
+              padding: 0,
+              borderRadius: '10px',
+              justifyContent: 'center',
+              border: '1px solid rgba(15, 23, 42, 0.10)',
+              backgroundColor: 'rgba(255, 255, 255, 0.85)'
+            }}
           >
-            <LogOut size={14} style={{ opacity: 0.7 }} />
+            <LogOut size={15} style={{ opacity: 0.65 }} />
           </button>
 
           {/* Mobile Hamburger */}

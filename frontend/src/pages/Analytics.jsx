@@ -30,6 +30,7 @@ import { BACKEND_API_URL } from '../firebase';
 import {
   INITIAL_VISION_MODEL_STATE,
   applyHumanVerificationLabel,
+  recommendMunicipalUnit,
   runIncrementalTrainingEpoch
 } from '../utils/visionTrainingEngine';
 
@@ -144,8 +145,197 @@ async function fetchJsonSafe(url, options) {
   }
 }
 
+function loadPersistedVerdicts() {
+  try {
+    const raw = JSON.parse(localStorage.getItem('gridshift_vision_verdicts') || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePersistedVerdict(key, verdict) {
+  try {
+    const current = loadPersistedVerdicts();
+    current[key] = verdict;
+    localStorage.setItem('gridshift_vision_verdicts', JSON.stringify(current));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function buildMergedVisionSamples(serverSamples = []) {
+  const verdicts = loadPersistedVerdicts();
+  const byKey = new Map();
+
+  const normalizeKey = (s) => s.ticketId || s.id;
+
+  const upsert = (raw) => {
+    if (!raw || !raw.id) return;
+    const key = normalizeKey(raw);
+    const existing = byKey.get(key) || byKey.get(raw.id);
+    const verdict = verdicts[raw.id] || (raw.ticketId ? verdicts[raw.ticketId] : null);
+    const merged = {
+      ...(existing || {}),
+      ...raw,
+      imagePreview: raw.imagePreview || existing?.imagePreview || undefined,
+      ticketId: raw.ticketId || existing?.ticketId,
+      ...(verdict
+        ? {
+            isWasteDetected: !verdict.confirmedFalseReport,
+            aiDetectedCategory: verdict.confirmedFalseReport ? 'No Waste / False Report' : verdict.confirmedLabel,
+            confirmedLabel: verdict.confirmedLabel,
+            confirmedFalseReport: verdict.confirmedFalseReport,
+            adminVerdict: verdict.confirmedFalseReport ? 'MARKED_FALSE' : 'CONFIRMED_WASTE',
+            trainingStatus: verdict.confirmedFalseReport ? 'BLOCKED_FALSE_REPORT' : 'VERIFIED_IN_DATASET'
+          }
+        : {})
+    };
+    byKey.set(key, merged);
+    if (merged.id !== key) {
+      byKey.delete(merged.id);
+    }
+  };
+
+  // 1. Seed with server/default samples
+  (serverSamples || []).forEach(upsert);
+
+  // 2. Merge locally persisted VisionNet scans
+  try {
+    const localSamples = JSON.parse(localStorage.getItem('gridshift_vision_samples') || '[]');
+    if (Array.isArray(localSamples)) {
+      localSamples.forEach(upsert);
+    }
+  } catch {
+    // ignore
+  }
+
+  // 3. Merge citizen tickets (ensures flagged tickets like TKT-2026-1516 always appear with their real photo)
+  try {
+    const tickets = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+    if (Array.isArray(tickets)) {
+      tickets.forEach((t) => {
+        if (!t || !t.id) return;
+        const isHeldForAudit =
+          String(t.assignedUnit || '').toLowerCase().includes('visual audit') ||
+          String(t.description || '').toLowerCase().includes('no waste / false report') ||
+          String(t.adminNotes || '').toLowerCase().includes('false report');
+        const hasCustomPhoto = Boolean(t.photo && t.photo !== '/street-detection.jpg');
+        if (!t.visionVerification && !isHeldForAudit && !hasCustomPhoto) return;
+
+        const v = t.visionVerification || {};
+        const sampleId = v.sampleId || `VS-${t.id.replace(/^TKT-/, '')}`;
+        const isWaste = typeof v.isWasteDetected === 'boolean' ? v.isWasteDetected : !isHeldForAudit;
+        upsert({
+          id: sampleId,
+          ticketId: t.id,
+          createdAt: t.createdAt || new Date().toISOString(),
+          ward: t.ward || 'Ward 7 — Margao Central Market',
+          imagePreview: t.photo || undefined,
+          citizenCategory: t.category || 'Construction Debris',
+          citizenSeverity: t.severity || 'High',
+          aiDetectedCategory: v.detectedCategory || (isWaste ? t.category || 'Illegal Curbside Dump' : 'No Waste / False Report'),
+          aiDetectedSeverity: v.detectedSeverity || t.severity || 'Low',
+          isWasteDetected: isWaste,
+          authenticityScore: v.authenticityScore ?? (isWaste ? 90 : 18),
+          confidence: v.confidence ?? 92,
+          discrepancyFlagged: Boolean(v.citizenDiscrepancy || isHeldForAudit),
+          confirmedLabel: v.adminVerdict
+            ? v.adminVerdict === 'MARKED_FALSE'
+              ? 'No Waste / False Report'
+              : t.category
+            : null,
+          confirmedFalseReport: v.adminVerdict ? v.adminVerdict === 'MARKED_FALSE' : null,
+          adminVerdict: v.adminVerdict || null,
+          trainingStatus: v.adminVerdict
+            ? v.adminVerdict === 'MARKED_FALSE'
+              ? 'BLOCKED_FALSE_REPORT'
+              : 'VERIFIED_IN_DATASET'
+            : isHeldForAudit
+            ? 'QUEUED_FOR_TRAINING'
+            : isWaste
+            ? 'QUEUED_FOR_TRAINING'
+            : 'BLOCKED_FALSE_REPORT',
+          reasoning:
+            v.reasoning ||
+            t.description ||
+            (isHeldForAudit
+              ? `Flagged by GridShift-VisionNet as No Waste / False Report for ${t.id} — awaiting Admin visual confirmation.`
+              : `Citizen photo report ${t.id} scanned at ${t.ward}.`)
+        });
+      });
+    }
+  } catch {
+    // ignore
+  }
+
+  // Sort newest / pending-audit citizen samples first
+  return Array.from(byKey.values()).sort((a, b) => {
+    const aPending = a.ticketId && !a.adminVerdict ? 1 : 0;
+    const bPending = b.ticketId && !b.adminVerdict ? 1 : 0;
+    if (aPending !== bPending) return bPending - aPending;
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
+}
+
+function syncVerdictToRedressalTicket(sample, confirmedLabel, confirmedFalseReport) {
+  if (!sample?.ticketId) return;
+  try {
+    const raw = JSON.parse(localStorage.getItem('gridshift_redressal_tickets') || '[]');
+    if (!Array.isArray(raw) || raw.length === 0) return;
+    const nowLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let updatedTicket = null;
+    const updatedTickets = raw.map((t) => {
+      if (t.id !== sample.ticketId) return t;
+      const nextCategory = confirmedFalseReport ? t.category : confirmedLabel || t.category;
+      const nextStatus = confirmedFalseReport ? 'VERIFIED_CLOSED' : t.status === 'REPORTED' ? 'TRIAGED' : t.status;
+      const nextUnit = confirmedFalseReport
+        ? 'Rejected — Confirmed False Report by Admin (No Dispatch)'
+        : String(t.assignedUnit || '').toLowerCase().includes('visual audit')
+        ? recommendMunicipalUnit(nextCategory, t.severity || 'High')
+        : t.assignedUnit;
+      const note = confirmedFalseReport
+        ? `Admin visual audit confirmed ${sample.id} is a False / Non-Waste Report. Ticket closed without truck dispatch.`
+        : `Admin visual audit overrode AI flag on ${sample.id} and confirmed real ${nextCategory}. Ticket approved & dispatched to ${nextUnit}.`;
+      updatedTicket = {
+        ...t,
+        category: nextCategory,
+        status: nextStatus,
+        assignedUnit: nextUnit,
+        adminNotes: note,
+        visionVerification: {
+          ...(t.visionVerification || {}),
+          sampleId: sample.id,
+          isWasteDetected: !confirmedFalseReport,
+          detectedCategory: confirmedFalseReport ? 'No Waste / False Report' : nextCategory,
+          adminVerdict: confirmedFalseReport ? 'MARKED_FALSE' : 'CONFIRMED_WASTE'
+        },
+        history: [
+          ...(t.history || []),
+          {
+            status: nextStatus,
+            by: 'pranavkantak9@gmail.com (Admin Visual Audit)',
+            note,
+            timestamp: `Today, ${nowLabel}`
+          }
+        ]
+      };
+      return updatedTicket;
+    });
+    if (updatedTicket) {
+      localStorage.setItem('gridshift_redressal_tickets', JSON.stringify(updatedTickets));
+      window.dispatchEvent(new CustomEvent('redressalTicketUpdated', { detail: updatedTicket }));
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function Analytics() {
-  const [visionState, setVisionState] = useState(INITIAL_VISION_MODEL_STATE);
+  const [visionState, setVisionState] = useState(() => ({
+    ...INITIAL_VISION_MODEL_STATE,
+    samples: buildMergedVisionSamples(INITIAL_VISION_MODEL_STATE.samples)
+  }));
   const [retraining, setRetraining] = useState(false);
   const [trainBanner, setTrainBanner] = useState('');
 
@@ -153,44 +343,81 @@ function Analytics() {
     try {
       const data = await fetchJsonSafe(buildVisionApiUrl('/api/vision/model-status'));
       if (data && typeof data.validationAccuracy === 'number') {
-        setVisionState(data);
+        setVisionState({
+          ...data,
+          samples: buildMergedVisionSamples(data.samples || INITIAL_VISION_MODEL_STATE.samples)
+        });
+        return;
       }
     } catch {
-      // keep existing state when offline
+      // keep local merged state when offline
     }
+    setVisionState((prev) => ({
+      ...(prev || INITIAL_VISION_MODEL_STATE),
+      samples: buildMergedVisionSamples(prev?.samples || INITIAL_VISION_MODEL_STATE.samples)
+    }));
   }, []);
 
   useEffect(() => {
     loadVisionStatus();
-    const handleReport = () => loadVisionStatus();
-    window.addEventListener('citizenReportAdded', handleReport);
-    return () => window.removeEventListener('citizenReportAdded', handleReport);
+    const handleSync = () => loadVisionStatus();
+    window.addEventListener('citizenReportAdded', handleSync);
+    window.addEventListener('visionSampleAdded', handleSync);
+    window.addEventListener('redressalTicketUpdated', handleSync);
+    return () => {
+      window.removeEventListener('citizenReportAdded', handleSync);
+      window.removeEventListener('visionSampleAdded', handleSync);
+      window.removeEventListener('redressalTicketUpdated', handleSync);
+    };
   }, [loadVisionStatus]);
 
-  const handleLabelSample = async (sampleId, confirmedLabel, confirmedFalseReport) => {
+  const handleLabelSample = async (sample, confirmedLabel, confirmedFalseReport) => {
+    const sampleId = sample.id;
+    const verdictPayload = {
+      confirmedLabel,
+      confirmedFalseReport: Boolean(confirmedFalseReport),
+      updatedAt: new Date().toISOString()
+    };
+
+    // 1. Persist verdict locally so UI updates immediately and never resets on reload
+    savePersistedVerdict(sampleId, verdictPayload);
+    if (sample.ticketId) {
+      savePersistedVerdict(sample.ticketId, verdictPayload);
+    }
+
+    // 2. Update React state immediately (optimistic & guaranteed responsive)
+    setVisionState((prev) =>
+      applyHumanVerificationLabel(prev || INITIAL_VISION_MODEL_STATE, sampleId, confirmedLabel, confirmedFalseReport)
+    );
+
+    // 3. Sync decision to linked Redressal ticket (e.g., TKT-2026-1516)
+    syncVerdictToRedressalTicket(sample, confirmedLabel, confirmedFalseReport);
+
+    const ticketSuffix = sample.ticketId
+      ? confirmedFalseReport
+        ? ` • Linked ticket ${sample.ticketId} closed as False Report.`
+        : ` • Linked ticket ${sample.ticketId} approved & moved to TRIAGED queue.`
+      : '';
+    setTrainBanner(
+      confirmedFalseReport
+        ? `Marked ${sampleId} as False / Non-Waste Report and queued for active-learning negative training.${ticketSuffix}`
+        : `Confirmed real waste ("${confirmedLabel}") for ${sampleId} and queued for active-learning training.${ticketSuffix}`
+    );
+
+    // 4. Sync with backend in background (without overwriting local merged samples)
     try {
-      const data = await fetchJsonSafe(buildVisionApiUrl('/api/vision/feedback-label'), {
+      await fetchJsonSafe(buildVisionApiUrl('/api/vision/feedback-label'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sampleId, confirmedLabel, confirmedFalseReport })
+        body: JSON.stringify({
+          sampleId,
+          confirmedLabel,
+          confirmedFalseReport,
+          sample
+        })
       });
-      if (data?.modelState) {
-        setVisionState(data.modelState);
-      } else {
-        setVisionState((prev) =>
-          applyHumanVerificationLabel(prev || INITIAL_VISION_MODEL_STATE, sampleId, confirmedLabel, confirmedFalseReport)
-        );
-      }
-      setTrainBanner(
-        `Ground-truth label "${confirmedLabel}" recorded for sample ${sampleId}. Ready for next training epoch.`
-      );
     } catch {
-      setVisionState((prev) =>
-        applyHumanVerificationLabel(prev || INITIAL_VISION_MODEL_STATE, sampleId, confirmedLabel, confirmedFalseReport)
-      );
-      setTrainBanner(
-        `Ground-truth label "${confirmedLabel}" recorded for sample ${sampleId}. Ready for next training epoch.`
-      );
+      // local state & localStorage already persisted
     }
   };
 
@@ -200,7 +427,10 @@ function Analytics() {
     try {
       const data = await fetchJsonSafe(buildVisionApiUrl('/api/vision/retrain'), { method: 'POST' });
       if (data?.modelState) {
-        setVisionState(data.modelState);
+        setVisionState({
+          ...data.modelState,
+          samples: buildMergedVisionSamples(data.modelState.samples || visionState?.samples)
+        });
         setTrainBanner(
           `Completed Epoch #${data.modelState.epoch} (${data.modelState.version}): ingested ${data.samplesTrainedThisEpoch} samples, validation accuracy +${data.accuracyDelta}% -> ${data.modelState.validationAccuracy}%.`
         );
@@ -596,117 +826,163 @@ function Analytics() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {(visionState.samples || []).slice(0, 6).map((sample) => (
-                <div
-                  key={sample.id}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: '14px',
-                    flexWrap: 'wrap'
-                  }}
-                >
-                  <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '240px' }}>
-                    {sample.imagePreview && (
-                      <img
-                        src={sample.imagePreview}
-                        alt={sample.id}
-                        style={{
-                          width: '56px',
-                          height: '56px',
-                          borderRadius: '8px',
-                          objectFit: 'cover',
-                          border: '1px solid #cbd5e1',
-                          flexShrink: 0
-                        }}
-                      />
-                    )}
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
-                        <strong style={{ fontSize: '0.82rem', color: '#092C5E' }}>{sample.id}</strong>
-                        <span
+              {(visionState.samples || []).slice(0, 10).map((sample) => {
+                const isConfirmedWaste =
+                  sample.adminVerdict === 'CONFIRMED_WASTE' ||
+                  (sample.confirmedFalseReport === false && sample.trainingStatus === 'VERIFIED_IN_DATASET');
+                const isMarkedFalse =
+                  sample.adminVerdict === 'MARKED_FALSE' ||
+                  (sample.confirmedFalseReport === true && sample.trainingStatus === 'BLOCKED_FALSE_REPORT');
+                const needsAdminAudit = Boolean(sample.ticketId && !sample.adminVerdict && !sample.isWasteDetected);
+                const resolvedWasteLabel =
+                  sample.citizenCategory && sample.citizenCategory !== 'No Waste / False Report'
+                    ? sample.citizenCategory
+                    : sample.aiDetectedCategory && sample.aiDetectedCategory !== 'No Waste / False Report'
+                    ? sample.aiDetectedCategory
+                    : 'Illegal Curbside Dump';
+
+                return (
+                  <div
+                    key={sample.ticketId || sample.id}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      backgroundColor: needsAdminAudit ? '#fff7ed' : '#f8fafc',
+                      border: needsAdminAudit ? '1.5px solid #fdba74' : '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '240px' }}>
+                      {sample.imagePreview && (
+                        <img
+                          src={sample.imagePreview}
+                          alt={sample.ticketId || sample.id}
                           style={{
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                            padding: '2px 7px',
-                            borderRadius: '6px',
-                            backgroundColor: sample.isWasteDetected ? '#dcfce7' : '#fee2e2',
-                            color: sample.isWasteDetected ? '#166534' : '#991b1b',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px'
+                            width: '64px',
+                            height: '64px',
+                            borderRadius: '8px',
+                            objectFit: 'cover',
+                            border: '1px solid #cbd5e1',
+                            flexShrink: 0
                           }}
-                        >
-                          {sample.isWasteDetected ? <ShieldCheck size={11} /> : <ShieldAlert size={11} />}
-                          AI: {sample.aiDetectedCategory} ({sample.confidence}%)
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
-                          Citizen said: {sample.citizenCategory} ({sample.citizenSeverity})
-                        </span>
-                      </div>
-                      <p style={{ margin: '0 0 3px 0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.4 }}>
-                        {sample.reasoning}
-                      </p>
-                      <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
-                        {sample.ward} • Authenticity {sample.authenticityScore}% • Status:{' '}
-                        <strong style={{ color: '#092C5E' }}>{sample.trainingStatus}</strong>
+                        />
+                      )}
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+                          <strong style={{ fontSize: '0.82rem', color: '#092C5E' }}>{sample.id}</strong>
+                          {sample.ticketId && (
+                            <span
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                backgroundColor: '#e0f2fe',
+                                color: '#0369a1'
+                              }}
+                            >
+                              {sample.ticketId}
+                            </span>
+                          )}
+                          {needsAdminAudit && (
+                            <span
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                backgroundColor: '#ffedd5',
+                                color: '#c2410c'
+                              }}
+                            >
+                              Awaiting Admin Review
+                            </span>
+                          )}
+                          <span
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              backgroundColor: sample.isWasteDetected ? '#dcfce7' : '#fee2e2',
+                              color: sample.isWasteDetected ? '#166534' : '#991b1b',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            {sample.isWasteDetected ? <ShieldCheck size={11} /> : <ShieldAlert size={11} />}
+                            {sample.adminVerdict === 'CONFIRMED_WASTE'
+                              ? `Admin Verified: ${sample.confirmedLabel || resolvedWasteLabel}`
+                              : sample.adminVerdict === 'MARKED_FALSE'
+                              ? 'Admin Confirmed: False Report'
+                              : `AI: ${sample.aiDetectedCategory} (${sample.confidence}%)`}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
+                            Citizen said: {sample.citizenCategory} ({sample.citizenSeverity})
+                          </span>
+                        </div>
+                        <p style={{ margin: '0 0 3px 0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.4 }}>
+                          {sample.reasoning}
+                        </p>
+                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
+                          {sample.ward} • Authenticity {sample.authenticityScore}% • Status:{' '}
+                          <strong style={{ color: isMarkedFalse ? '#b91c1c' : isConfirmedWaste ? '#15803d' : '#092C5E' }}>
+                            {sample.trainingStatus}
+                          </strong>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleLabelSample(
-                          sample.id,
-                          sample.isWasteDetected ? sample.aiDetectedCategory : 'Illegal Curbside Dump',
-                          false
-                        )
-                      }
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid #bbf7d0',
-                        backgroundColor: '#f0fdf4',
-                        color: '#15803d',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <CheckCircle2 size={13} /> Confirm Waste
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLabelSample(sample.id, 'No Waste / False Report', true)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid #fecaca',
-                        backgroundColor: '#fef2f2',
-                        color: '#b91c1c',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <XCircle size={13} /> Mark False
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleLabelSample(sample, resolvedWasteLabel, false)}
+                        style={{
+                          padding: '6px 11px',
+                          borderRadius: '8px',
+                          border: isConfirmedWaste ? '1px solid #15803d' : '1px solid #bbf7d0',
+                          backgroundColor: isConfirmedWaste ? '#16a34a' : '#f0fdf4',
+                          color: isConfirmedWaste ? '#ffffff' : '#15803d',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <CheckCircle2 size={13} /> {isConfirmedWaste ? 'Waste Confirmed' : 'Confirm Waste'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLabelSample(sample, 'No Waste / False Report', true)}
+                        style={{
+                          padding: '6px 11px',
+                          borderRadius: '8px',
+                          border: isMarkedFalse ? '1px solid #b91c1c' : '1px solid #fecaca',
+                          backgroundColor: isMarkedFalse ? '#dc2626' : '#fef2f2',
+                          color: isMarkedFalse ? '#ffffff' : '#b91c1c',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <XCircle size={13} /> {isMarkedFalse ? 'Marked False' : 'Mark False'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

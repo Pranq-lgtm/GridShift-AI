@@ -902,7 +902,7 @@ If the photo shows a person/selfie, face, indoor room, desk, calendar, wall, or 
             id: sampleId,
             createdAt: scannedAt,
             ward: String(ward),
-            imagePreview: imageBase64.length < 350000 ? imageBase64 : undefined,
+            imagePreview: imageBase64.length < 1200000 ? imageBase64 : undefined,
             citizenCategory: String(citizenCategory),
             citizenSeverity: String(citizenSeverity),
             aiDetectedCategory: detectedCategory,
@@ -947,20 +947,52 @@ If the photo shows a person/selfie, face, indoor room, desk, calendar, wall, or 
 });
 
 app.post('/api/vision/feedback-label', (req, res) => {
-  const { sampleId, confirmedLabel, confirmedFalseReport } = req.body || {};
+  const { sampleId, confirmedLabel, confirmedFalseReport, sample } = req.body || {};
   if (!sampleId || !confirmedLabel) {
     return res.status(400).json({ error: 'sampleId and confirmedLabel are required.' });
   }
-  visionModelState.samples = visionModelState.samples.map((s) =>
-    s.id === sampleId
-      ? {
-          ...s,
-          confirmedLabel,
-          confirmedFalseReport: Boolean(confirmedFalseReport),
-          trainingStatus: confirmedFalseReport ? 'BLOCKED_FALSE_REPORT' : 'VERIFIED_IN_DATASET'
-        }
-      : s
-  );
+  const exists = visionModelState.samples.some((s) => s.id === sampleId || s.ticketId === sampleId);
+  if (!exists && sample && typeof sample === 'object') {
+    visionModelState.samples = [
+      {
+        id: String(sample.id || sampleId),
+        ticketId: sample.ticketId ? String(sample.ticketId) : undefined,
+        createdAt: String(sample.createdAt || new Date().toISOString()),
+        ward: String(sample.ward || 'Ward 7 — Margao Central Market'),
+        imagePreview: typeof sample.imagePreview === 'string' && sample.imagePreview.length < 1200000 ? sample.imagePreview : undefined,
+        citizenCategory: String(sample.citizenCategory || 'Illegal Curbside Dump'),
+        citizenSeverity: String(sample.citizenSeverity || 'Medium'),
+        aiDetectedCategory: sample.aiDetectedCategory || 'No Waste / False Report',
+        aiDetectedSeverity: sample.aiDetectedSeverity || 'Medium',
+        isWasteDetected: Boolean(sample.isWasteDetected),
+        authenticityScore: Number(sample.authenticityScore) || 50,
+        confidence: Number(sample.confidence) || 90,
+        discrepancyFlagged: Boolean(sample.discrepancyFlagged),
+        confirmedLabel: null,
+        confirmedFalseReport: null,
+        adminVerdict: null,
+        trainingStatus: 'QUEUED_FOR_TRAINING',
+        reasoning: String(sample.reasoning || 'Submitted for admin visual review.')
+      },
+      ...visionModelState.samples
+    ].slice(0, 30);
+  }
+  const isFalse = Boolean(confirmedFalseReport);
+  visionModelState.samples = visionModelState.samples.map((s) => {
+    if (s.id !== sampleId && s.ticketId !== sampleId) return s;
+    const wasFalse = s.confirmedFalseReport ?? !s.isWasteDetected;
+    if (isFalse && !wasFalse) visionModelState.falseReportsBlocked += 1;
+    if (!isFalse && wasFalse) visionModelState.falseReportsBlocked = Math.max(0, visionModelState.falseReportsBlocked - 1);
+    return {
+      ...s,
+      isWasteDetected: !isFalse,
+      aiDetectedCategory: isFalse ? 'No Waste / False Report' : confirmedLabel,
+      confirmedLabel,
+      confirmedFalseReport: isFalse,
+      adminVerdict: isFalse ? 'MARKED_FALSE' : 'CONFIRMED_WASTE',
+      trainingStatus: isFalse ? 'BLOCKED_FALSE_REPORT' : 'VERIFIED_IN_DATASET'
+    };
+  });
   res.json({ success: true, modelState: visionModelState });
 });
 

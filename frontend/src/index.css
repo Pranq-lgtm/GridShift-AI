@@ -183,7 +183,7 @@ p {
 .gs-nav-center {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   position: relative;
 }
 
@@ -191,10 +191,10 @@ p {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   padding: 8px 12px;
   text-decoration: none;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 600;
   white-space: nowrap;
   color: var(--gs-text-muted);
@@ -209,17 +209,17 @@ p {
 
 .gs-nav-link.active {
   color: var(--gs-navy);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .gs-nav-link.active::after {
   content: '';
   position: absolute;
-  bottom: 2px;
+  bottom: 0px;
   left: 50%;
   transform: translateX(-50%);
-  width: 24px;
-  height: 2.5px;
+  width: 26px;
+  height: 3px;
   border-radius: 99px;
   background: linear-gradient(90deg, var(--gs-cyan), var(--gs-sky));
   box-shadow: 0 0 8px var(--gs-cyan-glow);
@@ -229,7 +229,7 @@ p {
 .gs-nav-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
