@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   INITIAL_VISION_MODEL_STATE,
   evaluateCitizenVsAiDiscrepancy,
+  evaluateSlaPriorityAudit,
   recommendMunicipalUnit,
   enqueueVisionSample,
   applyHumanVerificationLabel,
@@ -83,3 +84,41 @@ test('Active-learning pipeline enqueues samples, applies human labels, and advan
   assert.ok(nextState.trainingLoss < INITIAL_VISION_MODEL_STATE.trainingLoss);
   assert.ok(accuracyDelta > 0);
 });
+
+test('SLA priority audit catches citizen priority inflation on minor litter claimed as Critical', () => {
+  const audit = evaluateSlaPriorityAudit('Critical', 'Illegal Curbside Dump', 'Low', 0.2, true);
+  assert.equal(audit.verdict, 'PRIORITY_INFLATED');
+  assert.equal(audit.priorityInflationDetected, true);
+  assert.equal(audit.slaAdjusted, true);
+  assert.equal(audit.citizenClaimedSlaHours, 4);
+  assert.equal(audit.aiVerifiedSeverity, 'Low');
+  assert.equal(audit.aiVerifiedSlaHours, 48);
+  assert.match(audit.auditReason, /Priority inflation flagged/i);
+});
+
+test('SLA priority audit caps Critical claims on tiny non-hazardous piles (<0.8T)', () => {
+  const audit = evaluateSlaPriorityAudit('Critical', 'Overflowing Bin', 'Critical', 0.2, true);
+  assert.equal(audit.verdict, 'PRIORITY_INFLATED');
+  assert.equal(audit.aiVerifiedSeverity, 'Low');
+  assert.equal(audit.aiVerifiedSlaHours, 48);
+});
+
+test('SLA priority audit escalates under-reported Hazardous waste to Critical 4h SLA', () => {
+  const audit = evaluateSlaPriorityAudit('Low', 'Hazardous / Chemical', 'Medium', 0.5, true);
+  assert.equal(audit.verdict, 'ESCALATED_HAZARD');
+  assert.equal(audit.priorityInflationDetected, false);
+  assert.equal(audit.aiVerifiedSeverity, 'Critical');
+  assert.equal(audit.aiVerifiedSlaHours, 4);
+});
+
+test('SLA priority audit verifies honest matching severity and suspends false reports', () => {
+  const verified = evaluateSlaPriorityAudit('High', 'Construction Debris', 'High', 4.5, true);
+  assert.equal(verified.verdict, 'VERIFIED');
+  assert.equal(verified.slaAdjusted, false);
+  assert.equal(verified.aiVerifiedSlaHours, 12);
+
+  const blocked = evaluateSlaPriorityAudit('Critical', 'No Waste / False Report', 'Low', 0, false);
+  assert.equal(blocked.verdict, 'BLOCKED_FALSE_REPORT');
+  assert.equal(blocked.priorityInflationDetected, true);
+});
+

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_REDRESSAL_TICKETS } from '../pages/Redressal';
 import { BACKEND_API_URL } from '../firebase';
+import { evaluateSlaPriorityAudit } from '../utils/visionTrainingEngine';
 import '../index.css';
 
 const SLA_HOURS_BY_SEVERITY = {
@@ -144,26 +145,26 @@ function extractIncidentFromTranscript(transcript) {
   }
 
   let suggestedCategory = '';
-  if (/(rubble|concrete|brick|cement|construction|demolition|debris|malba)/i.test(lower)) {
+  if (/(rubble|concrete|brick|cement|construction|demolition|debris|malba|bandhkam|fator)/i.test(lower)) {
     suggestedCategory = 'Construction Debris';
-  } else if (/(chemical|hazard|toxic|battery|paint|medical|oil|acid)/i.test(lower)) {
+  } else if (/(chemical|hazard|toxic|battery|paint|medical|oil|acid|vish)/i.test(lower)) {
     suggestedCategory = 'Hazardous / Chemical';
-  } else if (/(vegetable|fish|food|organic|market waste|rotting|smell)/i.test(lower)) {
+  } else if (/(vegetable|fish|food|organic|market waste|rotting|smell|bhaji|nuste|ghann)/i.test(lower)) {
     suggestedCategory = 'Commercial Organics';
-  } else if (/(bin|dustbin|container|overflow)/i.test(lower)) {
+  } else if (/(bin|dustbin|container|overflow|dabo|dabbo|kundi)/i.test(lower)) {
     suggestedCategory = 'Overflowing Bin';
-  } else if (/(dump|garbage|trash|plastic|litter|waste|kachra)/i.test(lower)) {
+  } else if (/(dump|garbage|trash|plastic|litter|waste|kachra|kachro|koyro|koiro|pishvi)/i.test(lower)) {
     suggestedCategory = 'Illegal Curbside Dump';
   }
 
   let suggestedSeverity = '';
-  if (/(urgent|emergency|critical|blocking road|toxic|hazard|immediately)/i.test(lower)) {
+  if (/(urgent|emergency|critical|blocking road|toxic|hazard|immediately|tatkal|begi)/i.test(lower)) {
     suggestedSeverity = 'Critical';
-  } else if (/(huge|large|heavy|big pile|overflowing|severe)/i.test(lower)) {
+  } else if (/(huge|large|heavy|big pile|overflowing|severe|khup|motho|bharla)/i.test(lower)) {
     suggestedSeverity = 'High';
   } else if (/(moderate|medium|some)/i.test(lower)) {
     suggestedSeverity = 'Medium';
-  } else if (/(small|minor|little)/i.test(lower)) {
+  } else if (/(small|minor|little|thoda|thodo)/i.test(lower)) {
     suggestedSeverity = 'Low';
   }
 
@@ -176,6 +177,14 @@ function extractIncidentFromTranscript(transcript) {
     detectedLanguage: 'Browser Speech'
   };
 }
+
+const VOICE_LANGUAGE_OPTIONS = [
+  { id: 'auto', label: 'Auto', speechLang: 'en-IN' },
+  { id: 'konkani', label: 'Konkani', speechLang: 'mr-IN' },
+  { id: 'marathi', label: 'Marathi', speechLang: 'mr-IN' },
+  { id: 'hindi', label: 'Hindi', speechLang: 'hi-IN' },
+  { id: 'english', label: 'English', speechLang: 'en-IN' }
+];
 
 function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
   const [facingMode, setFacingMode] = useState('environment');
@@ -204,6 +213,8 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
   const [voiceTranscribing, setVoiceTranscribing] = useState(false);
   const [voiceError, setVoiceError] = useState(null);
   const [voiceMeta, setVoiceMeta] = useState(null);
+  const [voiceLanguage, setVoiceLanguage] = useState('auto');
+  const [citizenClaimedSeverity, setCitizenClaimedSeverity] = useState('High');
 
   const isMobileDevice = detectMobileViewportOrAgent();
   const videoRef = useRef(null);
@@ -519,8 +530,11 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       if (data.suggestedCategory && (!visionResult || !visionResult.isWasteDetected)) {
         setCategory(data.suggestedCategory);
       }
-      if (data.suggestedSeverity && (!visionResult || !visionResult.isWasteDetected)) {
-        setSeverity(data.suggestedSeverity);
+      if (data.suggestedSeverity) {
+        setCitizenClaimedSeverity(data.suggestedSeverity);
+        if (!visionResult || !visionResult.isWasteDetected) {
+          setSeverity(data.suggestedSeverity);
+        }
       }
 
       setVoiceMeta({
@@ -536,18 +550,25 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
     };
 
     try {
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
       voiceStreamRef.current = audioStream;
       audioChunksRef.current = [];
 
       // Start native browser SpeechRecognition in parallel as an instant resilient fallback
       const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const langOption = VOICE_LANGUAGE_OPTIONS.find((l) => l.id === voiceLanguage) || VOICE_LANGUAGE_OPTIONS[0];
       if (SpeechRec) {
         try {
           const rec = new SpeechRec();
           rec.continuous = true;
           rec.interimResults = true;
-          rec.lang = 'en-IN';
+          rec.lang = langOption.speechLang;
           rec.onresult = (event) => {
             let combined = '';
             for (let i = 0; i < event.results.length; i += 1) {
@@ -573,9 +594,18 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
         ? 'audio/mp4'
         : '';
 
-      const recorder = preferredMime
-        ? new MediaRecorder(audioStream, { mimeType: preferredMime })
-        : new MediaRecorder(audioStream);
+      // Use compact 24kbps speech bitrate for fast mobile uploads (critical for Konkani/Marathi/Hindi voice clips)
+      const recorderOptions = preferredMime
+        ? { mimeType: preferredMime, audioBitsPerSecond: 24000 }
+        : { audioBitsPerSecond: 24000 };
+      let recorder;
+      try {
+        recorder = new MediaRecorder(audioStream, recorderOptions);
+      } catch {
+        recorder = preferredMime
+          ? new MediaRecorder(audioStream, { mimeType: preferredMime })
+          : new MediaRecorder(audioStream);
+      }
 
       mediaRecorderRef.current = recorder;
 
@@ -610,14 +640,18 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
 
         setVoiceTranscribing(true);
         setVoiceError(null);
+        const voiceController = new AbortController();
+        const voiceTimeoutId = setTimeout(() => voiceController.abort(), 14000);
         try {
           const audioDataUrl = await blobToDataUrl(audioBlob);
           const resp = await fetch(buildApiUrl('/api/voice/transcribe'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: voiceController.signal,
             body: JSON.stringify({
               audioBase64: audioDataUrl,
-              mimeType: mimeType.split(';')[0]
+              mimeType: mimeType.split(';')[0],
+              languageHint: voiceLanguage
             })
           });
           const parsed = await parseJsonSafely(resp);
@@ -640,13 +674,16 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
           if (liveTranscriptRef.current) {
             applyVoiceData(extractIncidentFromTranscript(liveTranscriptRef.current));
           } else {
-            setVoiceError(
-              err instanceof Error
+            const msg =
+              err?.name === 'AbortError'
+                ? 'Voice transcription timed out (>12s). Try selecting your exact language (e.g. Konkani) and speaking a shorter 3–6 second clip.'
+                : err instanceof Error
                 ? err.message
-                : 'Voice transcription failed. You can still type notes manually.'
-            );
+                : 'Voice transcription failed. You can still type notes manually.';
+            setVoiceError(msg);
           }
         } finally {
+          clearTimeout(voiceTimeoutId);
           setVoiceTranscribing(false);
         }
       };
@@ -680,13 +717,29 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
     const ticketNum = Math.floor(1000 + Math.random() * 9000);
     const ticketId = `TKT-2026-${ticketNum}`;
 
-    // If VisionNet confirmed waste, prefer its objective classification & unit recommendation
+    // Compute objective SLA priority audit so citizens cannot inflate minor litter into Critical (4h) queue
+    const liveSlaAudit = visionResult
+      ? evaluateSlaPriorityAudit(
+          citizenClaimedSeverity || severity,
+          visionResult.detectedCategory,
+          visionResult.detectedSeverity,
+          visionResult.estimatedTonnage ?? 0.5,
+          visionResult.isWasteDetected
+        )
+      : null;
+
+    // If VisionNet confirmed waste, enforce its objective classification, audited SLA & unit recommendation
     const effectiveCategory =
       visionResult?.isWasteDetected && visionResult.detectedCategory !== 'No Waste / False Report'
         ? visionResult.detectedCategory
         : category;
-    const effectiveSeverity = visionResult?.isWasteDetected ? visionResult.detectedSeverity || severity : severity;
-    const slaHours = SLA_HOURS_BY_SEVERITY[effectiveSeverity] || 24;
+    const effectiveSeverity =
+      visionResult?.isWasteDetected && liveSlaAudit
+        ? liveSlaAudit.aiVerifiedSeverity
+        : visionResult?.isWasteDetected
+        ? visionResult.detectedSeverity || severity
+        : severity;
+    const slaHours = liveSlaAudit?.aiVerifiedSlaHours || SLA_HOURS_BY_SEVERITY[effectiveSeverity] || 24;
     const isFlaggedAudit = Boolean(visionResult && !visionResult.isWasteDetected && overrideFalseReportForAudit);
 
     const assignedUnit = isFlaggedAudit
@@ -711,8 +764,9 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
             lng: Number((wardFallback.lng + (Math.random() - 0.5) * 0.0012).toFixed(4))
           };
 
+    const slaAuditNote = liveSlaAudit ? ` SLA Audit [${liveSlaAudit.verdict}]: ${liveSlaAudit.auditReason}` : '';
     const visionSummaryNote = visionResult
-      ? `VisionNet Deep Learning Scan (${visionResult.confidence}% conf, Authenticity ${visionResult.authenticityScore}%): ${visionResult.detectedCategory} (~${visionResult.estimatedTonnage}T). ${visionResult.reasoning}`
+      ? `VisionNet Deep Learning Scan (${visionResult.confidence}% conf, Authenticity ${visionResult.authenticityScore}%): ${visionResult.detectedCategory} (~${visionResult.estimatedTonnage}T). ${visionResult.reasoning}${slaAuditNote}`
       : `AI Triage confirmed ${effectiveSeverity} urgency (${slaHours}h SLA). Zero-capex dispatch queued: ${assignedUnit}.`;
 
     const newTicket = {
@@ -738,6 +792,7 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
       timestamp: new Date().toLocaleString(),
       adminNotes: visionSummaryNote,
       visionVerification: visionResult || null,
+      slaAudit: liveSlaAudit,
       voiceReported: Boolean(voiceMeta),
       feedback: null,
       history: [
@@ -839,12 +894,22 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
     setVoiceError(null);
     setOverrideFalseReportForAudit(false);
     setSubmittedTicket(null);
+    setCitizenClaimedSeverity('High');
     onClose();
   };
 
   if (!isOpen) return null;
 
   const isFalseReportBlocked = Boolean(visionResult && !visionResult.isWasteDetected && !overrideFalseReportForAudit);
+  const activeSlaAudit = visionResult
+    ? evaluateSlaPriorityAudit(
+        citizenClaimedSeverity || severity,
+        visionResult.detectedCategory,
+        visionResult.detectedSeverity,
+        visionResult.estimatedTonnage ?? 0.5,
+        visionResult.isWasteDetected
+      )
+    : null;
 
   return (
     <div
@@ -1507,6 +1572,90 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                       </div>
                     )}
 
+                    {/* AI SLA TICKET PRIORITY AUDIT (PREVENTS PRIORITY INFLATION / QUEUE JUMPING) */}
+                    {activeSlaAudit && (
+                      <div
+                        style={{
+                          marginTop: '7px',
+                          padding: '8px 10px',
+                          borderRadius: '10px',
+                          backgroundColor:
+                            activeSlaAudit.verdict === 'PRIORITY_INFLATED'
+                              ? '#fff7ed'
+                              : activeSlaAudit.verdict === 'ESCALATED_HAZARD'
+                              ? '#eff6ff'
+                              : activeSlaAudit.verdict === 'BLOCKED_FALSE_REPORT'
+                              ? '#fef2f2'
+                              : '#ecfdf5',
+                          border: `1px solid ${
+                            activeSlaAudit.verdict === 'PRIORITY_INFLATED'
+                              ? '#fdba74'
+                              : activeSlaAudit.verdict === 'ESCALATED_HAZARD'
+                              ? '#93c5fd'
+                              : activeSlaAudit.verdict === 'BLOCKED_FALSE_REPORT'
+                              ? '#fca5a5'
+                              : '#a7f3d0'
+                          }`
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.73rem',
+                              fontWeight: 800,
+                              color:
+                                activeSlaAudit.verdict === 'PRIORITY_INFLATED'
+                                  ? '#9a3412'
+                                  : activeSlaAudit.verdict === 'ESCALATED_HAZARD'
+                                  ? '#1d4ed8'
+                                  : activeSlaAudit.verdict === 'BLOCKED_FALSE_REPORT'
+                                  ? '#991b1b'
+                                  : '#065f46',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}
+                          >
+                            <Clock size={13} />
+                            <span>
+                              {activeSlaAudit.verdict === 'PRIORITY_INFLATED'
+                                ? 'AI SLA Audit: Priority Inflation Blocked'
+                                : activeSlaAudit.verdict === 'ESCALATED_HAZARD'
+                                ? 'AI SLA Audit: Hazard Priority Escalated'
+                                : activeSlaAudit.verdict === 'BLOCKED_FALSE_REPORT'
+                                ? 'AI SLA Audit: SLA Suspended (False Report)'
+                                : 'AI SLA Audit: Priority Verified'}
+                            </span>
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              backgroundColor: 'rgba(255,255,255,0.9)',
+                              color: '#092C5E',
+                              border: '1px solid rgba(15,23,42,0.1)'
+                            }}
+                          >
+                            Claimed: {activeSlaAudit.citizenClaimedSeverity} ({activeSlaAudit.citizenClaimedSlaHours}h) → Enforced: {activeSlaAudit.aiVerifiedSeverity} ({activeSlaAudit.aiVerifiedSlaHours}h)
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.71rem', color: '#334155', lineHeight: 1.4 }}>
+                          {activeSlaAudit.auditReason}
+                        </div>
+                      </div>
+                    )}
+
                     {!visionResult.isWasteDetected && (
                       <label
                         style={{
@@ -1569,7 +1718,29 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                       <span>Hands-Free Voice Report (No Typing Needed)</span>
                     </div>
                     <div style={{ fontSize: '0.70rem', color: '#64748b' }}>
-                      Speak in English, Hindi, Konkani, or Marathi — AI transcribes & auto-fills notes, ward, and urgency.
+                      Pick language for faster Konkani, Marathi, Hindi, or English transcription.
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                      {VOICE_LANGUAGE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          disabled={isRecordingVoice || voiceTranscribing}
+                          onClick={() => setVoiceLanguage(opt.id)}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            border: voiceLanguage === opt.id ? '1px solid #0284c7' : '1px solid #cbd5e1',
+                            backgroundColor: voiceLanguage === opt.id ? '#e0f2fe' : '#ffffff',
+                            color: voiceLanguage === opt.id ? '#0369a1' : '#475569',
+                            cursor: isRecordingVoice || voiceTranscribing ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -1719,17 +1890,21 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#092C5E', marginBottom: '4px' }}>
-                    Urgency Level & SLA
+                    Urgency Level & SLA {activeSlaAudit?.slaAdjusted ? `(AI Enforced: ${activeSlaAudit.aiVerifiedSlaHours}h)` : ''}
                   </label>
                   <select
                     value={severity}
-                    onChange={(e) => setSeverity(e.target.value)}
+                    onChange={(e) => {
+                      const nextVal = e.target.value;
+                      setSeverity(nextVal);
+                      setCitizenClaimedSeverity(nextVal);
+                    }}
                     style={{
                       width: '100%',
                       padding: '9px 11px',
                       borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#f8fafc',
+                      border: activeSlaAudit?.priorityInflationDetected ? '1.5px solid #ea580c' : '1px solid #cbd5e1',
+                      backgroundColor: activeSlaAudit?.priorityInflationDetected ? '#fff7ed' : '#f8fafc',
                       fontSize: '0.82rem',
                       fontWeight: 600,
                       outline: 'none'
@@ -1740,6 +1915,11 @@ function WasteCameraModal({ isOpen, onClose, onReportAdded, currentUser }) {
                     <option value="Medium">Medium (24h SLA)</option>
                     <option value="Low">Low (48h SLA)</option>
                   </select>
+                  {activeSlaAudit?.priorityInflationDetected && visionResult?.isWasteDetected && (
+                    <div style={{ marginTop: '4px', fontSize: '10.5px', fontWeight: 700, color: '#c2410c' }}>
+                      AI SLA Guard: Ticket will be queued at {activeSlaAudit.aiVerifiedSeverity} ({activeSlaAudit.aiVerifiedSlaHours}h SLA) based on photo evidence.
+                    </div>
+                  )}
                 </div>
 
                 <div>

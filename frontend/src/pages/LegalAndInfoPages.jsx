@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { scrollToTop } from '../components/ScrollToTop';
 import {
   ShieldCheck,
   Mail,
@@ -36,15 +35,15 @@ function PageFooterLinks() {
         fontWeight: 700
       }}
     >
-      <Link to="/" onClick={scrollToTop} style={{ color: '#092C5E', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+      <Link to="/" style={{ color: '#092C5E', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
         <ArrowLeft size={14} /> Back to Overview
       </Link>
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <Link to="/about" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>About Us</Link>
-        <Link to="/contact" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>Contact Us</Link>
-        <Link to="/privacy" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>Privacy Policy</Link>
-        <Link to="/terms" onClick={scrollToTop} style={{ color: '#475569', textDecoration: 'none' }}>Terms &amp; Conditions</Link>
-        <Link to="/email-agent" onClick={scrollToTop} style={{ color: '#0891B2', textDecoration: 'none' }}>Nitrosend Email Hub</Link>
+        <Link to="/about" style={{ color: '#475569', textDecoration: 'none' }}>About Us</Link>
+        <Link to="/contact" style={{ color: '#475569', textDecoration: 'none' }}>Contact Us</Link>
+        <Link to="/privacy" style={{ color: '#475569', textDecoration: 'none' }}>Privacy Policy</Link>
+        <Link to="/terms" style={{ color: '#475569', textDecoration: 'none' }}>Terms & Conditions</Link>
+        <Link to="/email-agent" style={{ color: '#0891B2', textDecoration: 'none' }}>Nitrosend Email Hub</Link>
       </div>
     </div>
   );
@@ -53,7 +52,7 @@ function PageFooterLinks() {
 export function AboutUsPage() {
   return (
     <div className="page-container">
-      <div className="ios-card" style={{ padding: 'clamp(18px, 4vw, 32px)' }}>
+      <div className="ios-card" style={{ padding: '32px' }}>
         <div
           style={{
             display: 'inline-flex',
@@ -173,7 +172,7 @@ export function ContactUsPage() {
 
   return (
     <div className="page-container">
-      <div className="ios-card" style={{ padding: 'clamp(16px, 3.5vw, 32px)', boxSizing: 'border-box', overflow: 'hidden' }}>
+      <div className="ios-card" style={{ padding: '32px' }}>
         <div
           style={{
             display: 'inline-flex',
@@ -201,7 +200,7 @@ export function ContactUsPage() {
         <div className="redressal-admin-grid">
           {/* Left: Official Admin Contact Details */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ padding: 'clamp(14px, 3vw, 20px)', borderRadius: '16px', backgroundColor: '#092C5E', color: 'white', boxSizing: 'border-box', width: '100%', wordBreak: 'break-word' }}>
+            <div style={{ padding: '20px', borderRadius: '16px', backgroundColor: '#092C5E', color: 'white' }}>
               <span style={{ fontSize: '10px', fontWeight: 800, color: '#67e8f9', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 DESIGNATED PLATFORM ADMINISTRATOR
               </span>
@@ -230,7 +229,7 @@ export function ContactUsPage() {
                   <Mail size={17} color="#4ade80" />
                   <div>
                     <div style={{ fontSize: '10px', color: '#93c5fd', textTransform: 'uppercase' }}>Administrator Email</div>
-                    <div style={{ wordBreak: 'break-all' }}>{ADMIN_EMAIL}</div>
+                    <div>{ADMIN_EMAIL}</div>
                   </div>
                 </a>
 
@@ -277,19 +276,19 @@ export function ContactUsPage() {
           </div>
 
           {/* Right: Direct Inquiry Form via Nitrosend Agent */}
-          <form onSubmit={handleContactSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: 'clamp(14px, 3vw, 20px)', borderRadius: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', width: '100%', boxSizing: 'border-box' }}>
+          <form onSubmit={handleContactSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px', borderRadius: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
             <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#092C5E' }}>
               Send Direct Message via Nitrosend Agent
             </h3>
 
-            <div className="contact-form-row">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <input
                 type="text"
                 placeholder="Your Full Name"
                 value={senderName}
                 onChange={(e) => setSenderName(e.target.value)}
                 required
-                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
               <input
                 type="email"
@@ -297,22 +296,22 @@ export function ContactUsPage() {
                 value={senderEmail}
                 onChange={(e) => setSenderEmail(e.target.value)}
                 required
-                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
             </div>
 
-            <div className="contact-form-row">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <input
                 type="tel"
                 placeholder="Phone (e.g., +91 98XXXXXXXX)"
                 value={senderPhone}
                 onChange={(e) => setSenderPhone(e.target.value)}
-                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
               />
               <select
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 600, backgroundColor: '#ffffff' }}
+                style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 600 }}
               >
                 <option value="Municipal Ward SLA Escalation">Municipal Ward SLA Escalation</option>
                 <option value="Citizen Redressal & Verification Support">Citizen Redressal Support</option>
@@ -327,10 +326,10 @@ export function ContactUsPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               required
-              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', resize: 'vertical' }}
+              style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', resize: 'vertical' }}
             />
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '10px', fontWeight: 800, fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <button type="submit" className="btn btn-primary" style={{ padding: '12px', borderRadius: '10px', fontWeight: 800, fontSize: '0.9rem' }}>
               <Send size={15} /> Dispatch Inquiry to Admin ({ADMIN_EMAIL})
             </button>
 

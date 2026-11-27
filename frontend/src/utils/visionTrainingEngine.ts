@@ -8,6 +8,23 @@ export type VisionWasteCategory =
 
 export type VisionSeverity = 'Critical' | 'High' | 'Medium' | 'Low';
 
+export type SlaAuditVerdict =
+  | 'VERIFIED'
+  | 'PRIORITY_INFLATED'
+  | 'ESCALATED_HAZARD'
+  | 'BLOCKED_FALSE_REPORT';
+
+export interface SlaPriorityAudit {
+  verdict: SlaAuditVerdict;
+  citizenClaimedSeverity: VisionSeverity;
+  citizenClaimedSlaHours: number;
+  aiVerifiedSeverity: VisionSeverity;
+  aiVerifiedSlaHours: number;
+  priorityInflationDetected: boolean;
+  slaAdjusted: boolean;
+  auditReason: string;
+}
+
 export interface VisionScanResult {
   sampleId: string;
   isWasteDetected: boolean;
@@ -24,6 +41,7 @@ export interface VisionScanResult {
   reasoning: string;
   modelArchitecture: string;
   scannedAt: string;
+  slaAudit?: SlaPriorityAudit;
 }
 
 export interface VisionTrainingSample {
@@ -146,6 +164,97 @@ const SEVERITY_RANK: Record<VisionSeverity, number> = {
   High: 3,
   Critical: 4,
 };
+
+export const VISION_SLA_HOURS: Record<VisionSeverity, number> = {
+  Critical: 4,
+  High: 12,
+  Medium: 24,
+  Low: 48,
+};
+
+function normalizeSeverity(raw: string): VisionSeverity {
+  if (raw === 'Critical' || raw === 'High' || raw === 'Medium' || raw === 'Low') {
+    return raw;
+  }
+  return 'Medium';
+}
+
+export function evaluateSlaPriorityAudit(
+  citizenSeverityRaw: string,
+  detectedCategory: VisionWasteCategory,
+  detectedSeverityRaw: VisionSeverity,
+  estimatedTonnage: number,
+  isWasteDetected: boolean
+): SlaPriorityAudit {
+  const citizenClaimedSeverity = normalizeSeverity(citizenSeverityRaw);
+  const citizenClaimedSlaHours = VISION_SLA_HOURS[citizenClaimedSeverity];
+
+  if (!isWasteDetected || detectedCategory === 'No Waste / False Report') {
+    return {
+      verdict: 'BLOCKED_FALSE_REPORT',
+      citizenClaimedSeverity,
+      citizenClaimedSlaHours,
+      aiVerifiedSeverity: 'Low',
+      aiVerifiedSlaHours: 48,
+      priorityInflationDetected: citizenClaimedSeverity === 'Critical' || citizenClaimedSeverity === 'High',
+      slaAdjusted: true,
+      auditReason: `SLA suspended: citizen claimed ${citizenClaimedSeverity} (${citizenClaimedSlaHours}h SLA), but no municipal waste was detected in the photo.`,
+    };
+  }
+
+  let aiVerifiedSeverity: VisionSeverity = normalizeSeverity(detectedSeverityRaw);
+
+  // Enforce objective municipal SLA guardrails based on category and visual tonnage
+  if (detectedCategory === 'Hazardous / Chemical') {
+    aiVerifiedSeverity = 'Critical';
+  } else if (aiVerifiedSeverity === 'Critical' && estimatedTonnage < 0.8) {
+    // Minor non-hazardous litter cannot claim the 4h emergency Critical SLA queue
+    aiVerifiedSeverity = estimatedTonnage < 0.3 ? 'Low' : 'Medium';
+  } else if (aiVerifiedSeverity === 'High' && estimatedTonnage < 0.25) {
+    aiVerifiedSeverity = 'Medium';
+  }
+
+  const aiVerifiedSlaHours = VISION_SLA_HOURS[aiVerifiedSeverity];
+  const citizenRank = SEVERITY_RANK[citizenClaimedSeverity];
+  const aiRank = SEVERITY_RANK[aiVerifiedSeverity];
+
+  if (citizenRank > aiRank) {
+    return {
+      verdict: 'PRIORITY_INFLATED',
+      citizenClaimedSeverity,
+      citizenClaimedSlaHours,
+      aiVerifiedSeverity,
+      aiVerifiedSlaHours,
+      priorityInflationDetected: true,
+      slaAdjusted: true,
+      auditReason: `Priority inflation flagged: citizen selected ${citizenClaimedSeverity} (${citizenClaimedSlaHours}h SLA), but visual evidence (~${estimatedTonnage}T ${detectedCategory}) qualifies for ${aiVerifiedSeverity} (${aiVerifiedSlaHours}h SLA). Ticket SLA automatically normalized to protect emergency queues.`,
+    };
+  }
+
+  if (citizenRank < aiRank) {
+    return {
+      verdict: 'ESCALATED_HAZARD',
+      citizenClaimedSeverity,
+      citizenClaimedSlaHours,
+      aiVerifiedSeverity,
+      aiVerifiedSlaHours,
+      priorityInflationDetected: false,
+      slaAdjusted: true,
+      auditReason: `Hazard escalated: visual evidence (~${estimatedTonnage}T ${detectedCategory}) is more urgent than citizen's ${citizenClaimedSeverity} (${citizenClaimedSlaHours}h SLA) claim; upgraded to ${aiVerifiedSeverity} (${aiVerifiedSlaHours}h SLA).`,
+    };
+  }
+
+  return {
+    verdict: 'VERIFIED',
+    citizenClaimedSeverity,
+    citizenClaimedSlaHours,
+    aiVerifiedSeverity,
+    aiVerifiedSlaHours,
+    priorityInflationDetected: false,
+    slaAdjusted: false,
+    auditReason: `SLA verified: visual evidence (~${estimatedTonnage}T ${detectedCategory}) genuinely justifies ${aiVerifiedSeverity} (${aiVerifiedSlaHours}h SLA).`,
+  };
+}
 
 export function recommendMunicipalUnit(category: VisionWasteCategory, severity: VisionSeverity): string {
   if (category === 'No Waste / False Report') {

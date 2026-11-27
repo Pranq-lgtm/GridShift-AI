@@ -1,4 +1,4 @@
-import { type CitizenTicket } from '../utils/redressalEngine';
+import { type CitizenTicket } from '../utils/redressalEngine.ts';
 
 export interface RepoBottleneckFinding {
   id: string;

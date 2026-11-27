@@ -515,17 +515,74 @@ async def vision_scan_image(req: Request):
         discrepancy_note = f'Severity adjusted: citizen reported "{citizen_severity}", VisionNet assessed "{detected_sev}" from visual volume.'
 
     sample_id = f"VS-2026-{int(time.time() * 1000) % 900 + 100}"
+    tonnage = float(pred.get("estimatedTonnage", 1.2 if is_waste else 0.0))
+    sla_hours_map = {"Critical": 4, "High": 12, "Medium": 24, "Low": 48}
+    sev_rank = {"Low": 1, "Medium": 2, "High": 3, "Critical": 4}
+    c_sev = citizen_severity if citizen_severity in sla_hours_map else "Medium"
+    ai_sev = detected_sev if detected_sev in sla_hours_map else "Medium"
+    if not is_waste:
+        sla_audit = {
+            "verdict": "BLOCKED_FALSE_REPORT",
+            "citizenClaimedSeverity": c_sev,
+            "citizenClaimedSlaHours": sla_hours_map[c_sev],
+            "aiVerifiedSeverity": "Low",
+            "aiVerifiedSlaHours": 48,
+            "priorityInflationDetected": c_sev in ("Critical", "High"),
+            "slaAdjusted": True,
+            "auditReason": f"SLA suspended: citizen claimed {c_sev} ({sla_hours_map[c_sev]}h SLA), but no municipal waste was detected.",
+        }
+    else:
+        if detected_cat == "Hazardous / Chemical":
+            ai_sev = "Critical"
+        elif ai_sev == "Critical" and tonnage < 0.8:
+            ai_sev = "Low" if tonnage < 0.3 else "Medium"
+        elif ai_sev == "High" and tonnage < 0.25:
+            ai_sev = "Medium"
+        if sev_rank[c_sev] > sev_rank[ai_sev]:
+            sla_audit = {
+                "verdict": "PRIORITY_INFLATED",
+                "citizenClaimedSeverity": c_sev,
+                "citizenClaimedSlaHours": sla_hours_map[c_sev],
+                "aiVerifiedSeverity": ai_sev,
+                "aiVerifiedSlaHours": sla_hours_map[ai_sev],
+                "priorityInflationDetected": True,
+                "slaAdjusted": True,
+                "auditReason": f"Priority inflation flagged: citizen selected {c_sev} ({sla_hours_map[c_sev]}h SLA), but visual evidence (~{tonnage}T {detected_cat}) qualifies for {ai_sev} ({sla_hours_map[ai_sev]}h SLA).",
+            }
+        elif sev_rank[c_sev] < sev_rank[ai_sev]:
+            sla_audit = {
+                "verdict": "ESCALATED_HAZARD",
+                "citizenClaimedSeverity": c_sev,
+                "citizenClaimedSlaHours": sla_hours_map[c_sev],
+                "aiVerifiedSeverity": ai_sev,
+                "aiVerifiedSlaHours": sla_hours_map[ai_sev],
+                "priorityInflationDetected": False,
+                "slaAdjusted": True,
+                "auditReason": f"Hazard escalated: visual evidence (~{tonnage}T {detected_cat}) upgraded from {c_sev} to {ai_sev} ({sla_hours_map[ai_sev]}h SLA).",
+            }
+        else:
+            sla_audit = {
+                "verdict": "VERIFIED",
+                "citizenClaimedSeverity": c_sev,
+                "citizenClaimedSlaHours": sla_hours_map[c_sev],
+                "aiVerifiedSeverity": ai_sev,
+                "aiVerifiedSlaHours": sla_hours_map[ai_sev],
+                "priorityInflationDetected": False,
+                "slaAdjusted": False,
+                "auditReason": f"SLA verified: visual evidence (~{tonnage}T {detected_cat}) genuinely justifies {ai_sev} ({sla_hours_map[ai_sev]}h SLA).",
+            }
+
     scan = {
         "sampleId": sample_id,
         "isWasteDetected": is_waste,
         "authenticityScore": int(pred.get("authenticityScore", 88 if is_waste else 18)),
         "falseReportRisk": "High" if not is_waste else "Low",
         "detectedCategory": detected_cat,
-        "detectedSeverity": detected_sev,
-        "estimatedTonnage": float(pred.get("estimatedTonnage", 1.2 if is_waste else 0.0)),
+        "detectedSeverity": ai_sev if is_waste else detected_sev,
+        "estimatedTonnage": tonnage,
         "confidence": int(pred.get("confidence", 91)),
         "detectedMaterials": pred.get("detectedMaterials") or ["mixed urban waste"],
-        "citizenDiscrepancy": discrepancy,
+        "citizenDiscrepancy": discrepancy or sla_audit["slaAdjusted"],
         "discrepancyNote": discrepancy_note,
         "recommendedUnit": (
             "Blocked — Manual Verification Only (No Truck Dispatch)"
@@ -533,12 +590,13 @@ async def vision_scan_image(req: Request):
             else "Municipal Tipping Truck T-304 (C&D Debris Crew)"
             if detected_cat == "Construction Debris"
             else "Municipal Small Pickup Van V-102 (Rapid Cleanup)"
-            if detected_sev in ("Critical", "High")
+            if ai_sev in ("Critical", "High")
             else "Municipal Sanitation Staff (On Foot — Ward Beat Crew)"
         ),
         "reasoning": pred.get("reasoning") or f"GridShift-VisionNet classified this scene in {ward} as {detected_cat}.",
         "modelArchitecture": f"GridShift-VisionNet {vision_net.version} (Spatial CNN Patch Extractor + Online MLP)",
         "scannedAt": datetime.utcnow().isoformat() + "Z",
+        "slaAudit": sla_audit,
     }
     status = vision_net.get_status()
     return {"scan": scan, "modelStatus": status}
@@ -579,6 +637,7 @@ async def voice_transcribe(req: Request):
     body = await req.json()
     audio_b64 = body.get("audioBase64") or ""
     mime_type = str(body.get("mimeType") or "audio/webm").split(";")[0].strip()
+    lang_hint = str(body.get("languageHint") or "auto").strip().lower()
     if not audio_b64:
         raise HTTPException(status_code=400, detail="audioBase64 is required")
 
@@ -587,9 +646,14 @@ async def voice_transcribe(req: Request):
         try:
             import base64
             audio_bytes = base64.b64decode(raw_b64)
+            prompt = (
+                f"Fast single-pass transcription of a citizen waste report from Madgaon, Goa (language hint: {lang_hint}). "
+                "Recognize Goan Konkani/Marathi/Hindi terms (koyro/kachro/kachra=garbage, ghann=filth, dabo=bin, rasto=road, bazar=market, Fatorda, Aquem, Comba, Borda). "
+                "Return concise plain-text English notes (no markdown)."
+            )
             resp = gemini_model.generate_content([
                 {"mime_type": mime_type, "data": audio_bytes},
-                "Transcribe this citizen municipal waste report in Madgaon, Goa accurately in plain text (no markdown). If spoken in Hindi, Konkani, or Marathi, include an English translation."
+                prompt
             ])
             transcript = (resp.text or "").replace("**", "").strip()
             if transcript:
@@ -599,7 +663,7 @@ async def voice_transcribe(req: Request):
                     "suggestedCategory": "",
                     "suggestedSeverity": "",
                     "suggestedWard": "",
-                    "detectedLanguage": "Multilingual",
+                    "detectedLanguage": lang_hint.capitalize() if lang_hint != "auto" else "Multilingual",
                     "model": active_gemini_model_name,
                 }
         except Exception as err:

@@ -11,7 +11,7 @@ import {
   computeBackoffDelayMs,
   simulateArchitectureBenchmark,
   type CitizenTicket,
-} from './redressalEngine';
+} from './redressalEngine.ts';
 
 test('resolveUserRole assigns admin strictly to pranavkantak9@gmail.com', () => {
   assert.equal(resolveUserRole('pranavkantak9@gmail.com'), 'admin');

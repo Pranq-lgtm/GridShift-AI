@@ -584,7 +584,74 @@ app.post('/api/gemini/copilot', async (req, res) => {
 
 // --- DEEP LEARNING VISION (GridShift-VisionNet) & MULTILINGUAL VOICE REPORTING ---
 const mlServiceBase = (process.env.ML_SERVICE_URL || '').trim().replace(/\/+$/, '');
-const VISION_GEMINI_MODELS = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash-lite'];
+const VISION_GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-4-hydrogen', 'gemini-3.8-flash', 'gemini-3.5-flash-lite'];
+const FAST_VOICE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-4-hydrogen'];
+const SLA_HOURS_BY_SEV = { Critical: 4, High: 12, Medium: 24, Low: 48 };
+const SEV_RANK = { Low: 1, Medium: 2, High: 3, Critical: 4 };
+
+function evaluateSlaPriorityAudit(citizenSeverityRaw, detectedCategory, detectedSeverityRaw, estimatedTonnage, isWasteDetected) {
+  const norm = (s) => (['Critical', 'High', 'Medium', 'Low'].includes(s) ? s : 'Medium');
+  const citizenClaimedSeverity = norm(citizenSeverityRaw);
+  const citizenClaimedSlaHours = SLA_HOURS_BY_SEV[citizenClaimedSeverity];
+
+  if (!isWasteDetected || detectedCategory === 'No Waste / False Report') {
+    return {
+      verdict: 'BLOCKED_FALSE_REPORT',
+      citizenClaimedSeverity,
+      citizenClaimedSlaHours,
+      aiVerifiedSeverity: 'Low',
+      aiVerifiedSlaHours: 48,
+      priorityInflationDetected: citizenClaimedSeverity === 'Critical' || citizenClaimedSeverity === 'High',
+      slaAdjusted: true,
+      auditReason: `SLA suspended: citizen claimed ${citizenClaimedSeverity} (${citizenClaimedSlaHours}h SLA), but no municipal waste was detected in the photo.`
+    };
+  }
+
+  let aiVerifiedSeverity = norm(detectedSeverityRaw);
+  if (detectedCategory === 'Hazardous / Chemical') {
+    aiVerifiedSeverity = 'Critical';
+  } else if (aiVerifiedSeverity === 'Critical' && estimatedTonnage < 0.8) {
+    aiVerifiedSeverity = estimatedTonnage < 0.3 ? 'Low' : 'Medium';
+  } else if (aiVerifiedSeverity === 'High' && estimatedTonnage < 0.25) {
+    aiVerifiedSeverity = 'Medium';
+  }
+
+  const aiVerifiedSlaHours = SLA_HOURS_BY_SEV[aiVerifiedSeverity];
+  if (SEV_RANK[citizenClaimedSeverity] > SEV_RANK[aiVerifiedSeverity]) {
+    return {
+      verdict: 'PRIORITY_INFLATED',
+      citizenClaimedSeverity,
+      citizenClaimedSlaHours,
+      aiVerifiedSeverity,
+      aiVerifiedSlaHours,
+      priorityInflationDetected: true,
+      slaAdjusted: true,
+      auditReason: `Priority inflation flagged: citizen selected ${citizenClaimedSeverity} (${citizenClaimedSlaHours}h SLA), but visual evidence (~${estimatedTonnage}T ${detectedCategory}) qualifies for ${aiVerifiedSeverity} (${aiVerifiedSlaHours}h SLA). Ticket SLA automatically normalized to protect emergency queues.`
+    };
+  }
+  if (SEV_RANK[citizenClaimedSeverity] < SEV_RANK[aiVerifiedSeverity]) {
+    return {
+      verdict: 'ESCALATED_HAZARD',
+      citizenClaimedSeverity,
+      citizenClaimedSlaHours,
+      aiVerifiedSeverity,
+      aiVerifiedSlaHours,
+      priorityInflationDetected: false,
+      slaAdjusted: true,
+      auditReason: `Hazard escalated: visual evidence (~${estimatedTonnage}T ${detectedCategory}) is more urgent than citizen's ${citizenClaimedSeverity} (${citizenClaimedSlaHours}h SLA) claim; upgraded to ${aiVerifiedSeverity} (${aiVerifiedSlaHours}h SLA).`
+    };
+  }
+  return {
+    verdict: 'VERIFIED',
+    citizenClaimedSeverity,
+    citizenClaimedSlaHours,
+    aiVerifiedSeverity,
+    aiVerifiedSlaHours,
+    priorityInflationDetected: false,
+    slaAdjusted: false,
+    auditReason: `SLA verified: visual evidence (~${estimatedTonnage}T ${detectedCategory}) genuinely justifies ${aiVerifiedSeverity} (${aiVerifiedSlaHours}h SLA).`
+  };
+}
 
 let visionModelState = {
   modelName: 'GridShift-VisionNet',
@@ -753,7 +820,11 @@ If the photo shows a person/selfie, face, indoor room, desk, calendar, wall, or 
                   ]
                 }
               ],
-              generationConfig: { responseMimeType: 'application/json' }
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+                thinkingConfig: { thinkingLevel: 'MINIMAL' }
+              }
             })
           }
         );
@@ -781,15 +852,24 @@ If the photo shows a person/selfie, face, indoor room, desk, calendar, wall, or 
           ? parsed.falseReportRisk
           : 'Low';
 
+        const slaAudit = evaluateSlaPriorityAudit(
+          citizenSeverity,
+          detectedCategory,
+          detectedSeverity,
+          estimatedTonnage,
+          isWasteDetected
+        );
+        const auditedSeverity = isWasteDetected ? slaAudit.aiVerifiedSeverity : detectedSeverity;
+
         const citizenDiscrepancy =
-          !isWasteDetected || detectedCategory !== citizenCategory || detectedSeverity !== citizenSeverity;
+          !isWasteDetected || detectedCategory !== citizenCategory || auditedSeverity !== citizenSeverity;
         let discrepancyNote = null;
         if (!isWasteDetected) {
           discrepancyNote = `False-report guard triggered: Citizen reported "${citizenCategory}", but VisionNet found no municipal waste in this image.`;
         } else if (detectedCategory !== citizenCategory) {
           discrepancyNote = `Category mismatch: citizen selected "${citizenCategory}", but VisionNet identified "${detectedCategory}" directly from the image.`;
-        } else if (detectedSeverity !== citizenSeverity) {
-          discrepancyNote = `Severity adjusted: citizen reported "${citizenSeverity}", VisionNet assessed "${detectedSeverity}" from visual volume.`;
+        } else if (auditedSeverity !== citizenSeverity) {
+          discrepancyNote = `Severity adjusted: citizen reported "${citizenSeverity}", VisionNet assessed "${auditedSeverity}" from visual volume.`;
         }
 
         const sampleId = `VS-2026-${Math.floor(100 + Math.random() * 899)}`;
@@ -802,16 +882,17 @@ If the photo shows a person/selfie, face, indoor room, desk, calendar, wall, or 
           authenticityScore,
           falseReportRisk,
           detectedCategory,
-          detectedSeverity,
+          detectedSeverity: auditedSeverity,
           estimatedTonnage,
           confidence,
           detectedMaterials: Array.isArray(parsed.detectedMaterials) ? parsed.detectedMaterials.slice(0, 6) : [],
           citizenDiscrepancy,
           discrepancyNote,
-          recommendedUnit: recommendMunicipalUnit(detectedCategory, detectedSeverity),
+          recommendedUnit: recommendMunicipalUnit(detectedCategory, auditedSeverity),
           reasoning: cleanReasoning,
           modelArchitecture: `${visionModelState.modelName} ${visionModelState.version} (${modelName})`,
-          scannedAt
+          scannedAt,
+          slaAudit
         };
 
         if (!isWasteDetected) visionModelState.falseReportsBlocked += 1;
@@ -825,7 +906,7 @@ If the photo shows a person/selfie, face, indoor room, desk, calendar, wall, or 
             citizenCategory: String(citizenCategory),
             citizenSeverity: String(citizenSeverity),
             aiDetectedCategory: detectedCategory,
-            aiDetectedSeverity: detectedSeverity,
+            aiDetectedSeverity: auditedSeverity,
             isWasteDetected,
             authenticityScore,
             confidence,
@@ -898,7 +979,7 @@ app.post('/api/vision/retrain', (_req, res) => {
 });
 
 app.post('/api/voice/transcribe', async (req, res) => {
-  const { audioBase64, mimeType = 'audio/webm' } = req.body || {};
+  const { audioBase64, mimeType = 'audio/webm', languageHint = 'auto' } = req.body || {};
   if (!audioBase64 || typeof audioBase64 !== 'string') {
     return res.status(400).json({ error: 'audioBase64 is required for voice transcription.' });
   }
@@ -913,9 +994,33 @@ app.post('/api/voice/transcribe', async (req, res) => {
     }
   }
 
+  const hintLabels = {
+    konkani: 'Goan Konkani (कोंकणी / Romi Konkani spoken in Madgaon, Goa)',
+    marathi: 'Marathi (मराठी)',
+    hindi: 'Hindi (हिन्दी)',
+    english: 'Indian English'
+  };
+  const hintClause = hintLabels[String(languageHint).toLowerCase()]
+    ? `Expected spoken language: ${hintLabels[String(languageHint).toLowerCase()]}.`
+    : 'Spoken language may be Goan Konkani (कोंकणी / Romi), Marathi, Hindi, or English.';
+
+  const voicePrompt = `Listen to this short citizen waste report from Madgaon, Goa and return ONLY valid JSON in ONE fast pass.
+${hintClause}
+Recognize Goan Konkani, Marathi & Hindi waste vocabulary (koyro/kachro/kachra = garbage, ghann = filth, dabo/dabbo = dustbin, rasto = road, bazar = market, bandhkam/malba = construction debris, Fatorda, Aquem, Comba, Borda, Margao/Madgaon).
+CRITICAL: If the audio contains only silence, noise, or no clear human speech, return "" for "transcript" and "" for "cleanNotes" — NEVER invent or hallucinate example sentences.
+JSON keys:
+{
+  "transcript": "concise verbatim transcript or empty string if silent",
+  "cleanNotes": "1-2 plain English sentences describing the issue (no markdown) or empty string if silent",
+  "suggestedCategory": "Construction Debris" | "Illegal Curbside Dump" | "Overflowing Bin" | "Commercial Organics" | "Hazardous / Chemical" | "None",
+  "suggestedSeverity": "Critical" | "High" | "Medium" | "Low" | "None",
+  "suggestedWard": "Ward 7 — Margao Central Market" | "Ward 2 — Fatorda Stadium Sector" | "Ward 14 — Aquem Commercial" | "Ward 10 — Comba Heritage Zone" | "Ward 18 — Borda Residential" | "None",
+  "detectedLanguage": "Konkani" | "Marathi" | "Hindi" | "English" | "None"
+}`;
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
-    for (const modelName of VISION_GEMINI_MODELS) {
+    for (const modelName of FAST_VOICE_MODELS) {
       try {
         const resp = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
@@ -928,31 +1033,43 @@ app.post('/api/voice/transcribe', async (req, res) => {
                   role: 'user',
                   parts: [
                     { inline_data: { mime_type: cleanMime, data: rawAudio } },
-                    {
-                      text: 'Transcribe this citizen municipal waste report for Madgaon, Goa in plain text (no markdown). If spoken in Hindi, Konkani, or Marathi, include an English translation in parentheses.'
-                    }
+                    { text: voicePrompt }
                   ]
                 }
-              ]
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+                maxOutputTokens: 240,
+                thinkingConfig: { thinkingLevel: 'MINIMAL' }
+              }
             })
           }
         );
         if (!resp.ok) continue;
         const data = await resp.json();
-        const transcript = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').replace(/\*\*/g, '').trim();
-        if (transcript) {
-          return res.json({
-            transcript,
-            cleanNotes: transcript,
-            suggestedCategory: '',
-            suggestedSeverity: '',
-            suggestedWard: '',
-            detectedLanguage: 'Multilingual',
-            model: modelName
+        const rawText = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+        if (!rawText) continue;
+        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+        const parsed = JSON.parse(cleaned);
+        const transcript = String(parsed.transcript || '').replace(/\*\*/g, '').trim();
+        const cleanNotes = String(parsed.cleanNotes || transcript).replace(/\*\*/g, '').trim();
+        if (!transcript && !cleanNotes) {
+          return res.status(422).json({
+            error: 'No clear speech was detected in the recording. Please speak closer to the microphone and try again.'
           });
         }
+        return res.json({
+          transcript: transcript || cleanNotes,
+          cleanNotes: cleanNotes || transcript,
+          suggestedCategory: parsed.suggestedCategory && parsed.suggestedCategory !== 'None' ? parsed.suggestedCategory : '',
+          suggestedSeverity: parsed.suggestedSeverity && parsed.suggestedSeverity !== 'None' ? parsed.suggestedSeverity : '',
+          suggestedWard: parsed.suggestedWard && parsed.suggestedWard !== 'None' ? parsed.suggestedWard : '',
+          detectedLanguage: parsed.detectedLanguage || (languageHint !== 'auto' ? String(languageHint) : 'English'),
+          model: modelName
+        });
       } catch {
-        // Try next model
+        // Try next fast model
       }
     }
   }
