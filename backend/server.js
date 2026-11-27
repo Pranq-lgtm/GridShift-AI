@@ -8,7 +8,7 @@ const ADMIN_EMAIL = 'pranavkantak9@gmail.com';
 const ADMIN_PHONE = '+91 7219341650';
 const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
 
-// Nitrosend Email Agent Configuration (Replaces Mailchimp)
+// Nitrosend Email Agent Configuration
 const NITROSEND_PUBLIC_KEY =
   process.env.Nitrosend_Public_Key || process.env.NITROSEND_PUBLIC_KEY || '';
 const NITROSEND_SECRET_KEY =
@@ -213,13 +213,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// --- NITROSEND EMAIL AGENT ENDPOINTS (REPLACES MAILCHIMP) ---
+// --- NITROSEND EMAIL AGENT ENDPOINTS ---
 app.get('/api/nitrosend/status', (req, res) => {
   res.json({
     configured: Boolean(NITROSEND_SECRET_KEY || NITROSEND_PUBLIC_KEY),
     publicKeyMasked: maskNitroKey(NITROSEND_PUBLIC_KEY, 'ns_pub'),
     secretKeyMasked: maskNitroKey(NITROSEND_SECRET_KEY, 'ns_sec'),
-    engine: 'Nitrosend AI Email Agent v2.4 (Replaced Mailchimp)',
+    engine: 'Nitrosend AI Email Agent v2.4',
     adminEmail: ADMIN_EMAIL,
     adminPhone: ADMIN_PHONE
   });

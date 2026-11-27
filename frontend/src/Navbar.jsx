@@ -24,6 +24,7 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
   const location = useLocation();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const isAdmin = isAdminUser(user);
+  const emailUsername = user?.email ? String(user.email).split('@')[0] : user?.displayName || 'User';
 
   const handleLogout = async () => {
     sessionStorage.setItem('gridshift_signed_out', 'true');
@@ -116,9 +117,10 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
             <span>Report Incident</span>
           </button>
 
-          {/* Authenticated User Display (No Role Switcher) */}
+          {/* Authenticated User Display (Username extracted from email) */}
           <div
             className="desktop-only-btn"
+            title={user?.email || emailUsername}
             style={{
               padding: '6px 12px',
               borderRadius: '9999px',
@@ -128,11 +130,12 @@ function Navbar({ user, sidebarOpen, setSidebarOpen, onOpenWasteCamera, onOpenCh
               alignItems: 'center',
               gap: '6px',
               fontSize: '0.76rem',
-              fontWeight: 700
+              fontWeight: 700,
+              maxWidth: '148px'
             }}
           >
-            {isAdmin ? <ShieldCheck size={13} /> : <User size={13} />}
-            <span>{user?.email || 'User'}</span>
+            {isAdmin ? <ShieldCheck size={13} style={{ flexShrink: 0 }} /> : <User size={13} style={{ flexShrink: 0 }} />}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emailUsername}</span>
           </div>
 
           {/* Compact Logout Button */}

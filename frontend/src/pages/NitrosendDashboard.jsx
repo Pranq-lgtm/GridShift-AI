@@ -168,13 +168,11 @@ const DEFAULT_SEGMENTS = [
 
 function NitrosendDashboard({ user }) {
   const isAdmin = isAdminUser(user);
-  // Allow switching between Client-Facing View and Admin/Internal Team View
-  const [activePerspective, setActivePerspective] = useState(isAdmin ? 'admin' : 'client');
   const [nitroStatus, setNitroStatus] = useState({
     configured: true,
     publicKeyMasked: 'ns_pub_live_••••••••••••',
     secretKeyMasked: 'ns_sec_live_••••••••••••',
-    engine: 'Nitrosend AI Email Agent v2.4 (Replaced Mailchimp)',
+    engine: 'Nitrosend AI Email Agent v2.4',
     domain: 'gridshift-ai.web.app'
   });
 
@@ -375,7 +373,7 @@ function NitrosendDashboard({ user }) {
 
   return (
     <div className="page-container">
-      {/* Header & Perspective Switcher */}
+      {/* Role-Locked Header (Admin sees Admin Console; Clients see Client Dashboard) */}
       <div
         style={{
           display: 'flex',
@@ -403,74 +401,23 @@ function NitrosendDashboard({ user }) {
             }}
           >
             <Zap size={13} />
-            NITROSEND AI EMAIL AGENT • MAILCHIMP REPLACED • KEYS ACTIVE ({nitroStatus.publicKeyMasked})
+            NITROSEND AI EMAIL AGENT • {isAdmin ? 'ADMIN OPERATIONS CONSOLE' : 'CITIZEN COMMUNICATIONS PORTAL'}
           </div>
           <h1 className="page-title" style={{ margin: 0 }}>
             Nitrosend Autonomous Email & Communications Hub
           </h1>
           <p className="page-subtitle" style={{ marginTop: '6px' }}>
-            Transactional SLA receipts, citizen preference center, AI-drafted campaign approval gate, and SPF/DKIM/DMARC deliverability telemetry
+            {isAdmin
+              ? 'Platform-wide email analytics, AI-drafted campaign approval gate, audience segments, and SPF/DKIM/DMARC deliverability telemetry'
+              : 'Transactional SLA receipts, personal notification preferences, and direct municipal email outbox'}
           </p>
-        </div>
-
-        {/* Role Perspective Toggle */}
-        <div
-          style={{
-            display: 'flex',
-            backgroundColor: '#f1f5f9',
-            padding: '4px',
-            borderRadius: '12px',
-            border: '1px solid #cbd5e1',
-            gap: '4px'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActivePerspective('client')}
-            style={{
-              padding: '9px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: activePerspective === 'client' ? '#092C5E' : 'transparent',
-              color: activePerspective === 'client' ? '#ffffff' : '#475569',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Mail size={14} />
-            👤 Client-Facing Dashboard
-          </button>
-          <button
-            type="button"
-            onClick={() => setActivePerspective('admin')}
-            style={{
-              padding: '9px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: activePerspective === 'admin' ? '#092C5E' : 'transparent',
-              color: activePerspective === 'admin' ? '#ffffff' : '#475569',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <ShieldCheck size={14} />
-            👥 Internal Team / Admin Dashboard
-          </button>
         </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════════
-          VIEW 1: 👤 WHAT THE END USER SEES (CLIENT-FACING DASHBOARD)
+          ROLE-LOCKED VIEW: Clients see ONLY Client Dashboard; Admins see ONLY Admin Dashboard
           ════════════════════════════════════════════════════════════════════════ */}
-      {activePerspective === 'client' ? (
+      {!isAdmin ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Client Summary Strip */}
           <div className="redressal-kpi-grid">
